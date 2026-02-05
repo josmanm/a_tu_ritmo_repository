@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 2aabbc8e8806815459fa548f8077db52
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - simonImage: {instanceID: 0}
+  - baseSprite: {instanceID: 0}
+  - redOn: {fileID: -3878619378704317303, guid: 079e30feddc0db34892c3706f52f62ff, type: 3}
+  - yellowOn: {instanceID: 0}
+  - greenOn: {instanceID: 0}
+  - blueOn: {instanceID: 0}
+  - infoText: {instanceID: 0}
+  - startButton: {instanceID: 0}
+  - btnRed: {instanceID: 0}
+  - btnYellow: {instanceID: 0}
+  - btnGreen: {instanceID: 0}
+  - btnBlue: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
