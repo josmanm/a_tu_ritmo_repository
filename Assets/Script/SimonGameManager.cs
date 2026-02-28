@@ -7,7 +7,6 @@ using UnityEngine.UI;
 public class SimonGameManager : MonoBehaviour
 {
     // -------------------- CONFIG --------------------
-
     [Header("Main Image (Circle)")]
     [SerializeField] private Image simonImage;
 
@@ -40,7 +39,8 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private AudioClip yellowClip;
     [SerializeField] private AudioClip greenClip;
     [SerializeField] private AudioClip blueClip;
-    [SerializeField] private AudioClip failClip;
+    [SerializeField] private AudioClip failClip; // el audio que se usara para cuando se pierda uan vida 
+    [SerializeField] private AudioClip gameOverClip; // el audio que se usara para cuando se pierda el juego (vidas = 0)
 
     [Header("Difficulty - Sequence Speed")]
     [SerializeField] private float flashStart = 0.45f;
@@ -82,6 +82,9 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private Sprite heartFull;
     [SerializeField] private Sprite heartEmpty;
 
+    [SerializeField] private GameObject timeBarRoot; // el objeto que contiene la barra completa
+
+
     // -------------------- STATE --------------------
 
     private const string RECORD_KEY = "SIMON_RECORD";
@@ -103,6 +106,9 @@ public class SimonGameManager : MonoBehaviour
     private int lives;
 
     private float timeLimit; // tiempo maximo del turno actual
+
+    private Coroutine showSequenceRoutine;
+    private bool isLosingLife;
 
     // -------------------- UNITY --------------------
 
@@ -135,7 +141,7 @@ public class SimonGameManager : MonoBehaviour
 
         if (currentInputTime <= 0f)
         {
-            LoseLife("Tiempo agotado");
+            StartCoroutine(LoseLife("Tiempo agotado"));
         }
 
         if (timeBarFill != null && timeLimit > 0f)
@@ -168,7 +174,7 @@ public class SimonGameManager : MonoBehaviour
         SetStatus("Memoriza la secuencia", warningColor);
         SetInfo("");
 
-        StartCoroutine(ShowSequence());
+        showSequenceRoutine = StartCoroutine(ShowSequence());
         lives = maxLives;
         UpdateLivesUI();
 
@@ -183,7 +189,7 @@ public class SimonGameManager : MonoBehaviour
 
     private IEnumerator ShowSequence()
     {
-        if (timeBarFill != null) timeBarFill.transform.parent.gameObject.SetActive(false);
+        if (timeBarRoot != null) timeBarRoot.SetActive(true);
         isShowing = true;
         isPlayerTurn = false;
 
@@ -223,27 +229,28 @@ public class SimonGameManager : MonoBehaviour
 
     private void OnPlayerPress(int idx)
     {
-        // No aceptar input fuera de turno
         if (isShowing || !isPlayerTurn) return;
 
-        // Feedback inmediato
-        PlayColorSound(idx);
+        // Feedback visual inmediato (esto sí lo puedes dejar)
         ShowOn(idx);
         StartCoroutine(BackToBaseAfter(0.12f));
 
-        // Validar
-        if (sequence.Count == 0 || idx != sequence[playerIndex])
+        // Validar primero
+        bool isWrong = (sequence.Count == 0 || idx != sequence[playerIndex]);
+
+        if (isWrong)
         {
-            LoseLife("Fallaste");
+            // Opcional: si quieres que al fallar NO se vea el color, comenta el ShowOn de arriba.
+            StartCoroutine(LoseLife("Fallaste"));
             return;
         }
 
-        playerIndex++;
+        // Si acertó, ahora sí suena el color
+        PlayColorSound(idx);
 
-        // Reiniciar tiempo SOLO si acierta
+        playerIndex++;
         ResetPlayerTimeLimit();
 
-        // Completó secuencia
         if (playerIndex >= sequence.Count)
         {
             isPlayerTurn = false;
@@ -313,7 +320,7 @@ public class SimonGameManager : MonoBehaviour
         SetInput(false);
         startButton.interactable = true;
 
-        if (failClip && sfxSource) sfxSource.PlayOneShot(failClip);
+        if (gameOverClip && sfxSource) sfxSource.PlayOneShot(gameOverClip);
 
         int currentLevel = sequence.Count;
 
@@ -431,14 +438,19 @@ public class SimonGameManager : MonoBehaviour
 
         if (clipToPlay == null) return;
 
-        // Corta el sonido anterior para evitar superposición
-        sfxSource.Stop();
-        sfxSource.clip = clipToPlay;
-        sfxSource.Play();
+        sfxSource.PlayOneShot(clipToPlay);
     }
-    void LoseLife(string reason)
+    IEnumerator LoseLife(string reason)
     {
-        StopAllCoroutines();
+        if (isLosingLife) yield break; // evita doble llamada
+        isLosingLife = true;
+
+        // Detén SOLO la secuencia si estaba corriendo
+        if (showSequenceRoutine != null)
+        {
+            StopCoroutine(showSequenceRoutine);
+            showSequenceRoutine = null;
+        }
 
         isShowing = false;
         isPlayerTurn = false;
@@ -447,21 +459,27 @@ public class SimonGameManager : MonoBehaviour
         lives--;
         UpdateLivesUI();
 
-        if (failClip && sfxSource) sfxSource.PlayOneShot(failClip);
-
         if (lives <= 0)
         {
             GameOver(reason);
-            return;
+            isLosingLife = false;
+            yield break;
         }
 
-        // Sigue con vidas: repetir misma secuencia
+        if (sfxSource) sfxSource.Stop();
+        if (failClip && sfxSource) sfxSource.PlayOneShot(failClip);
+
         simonImage.sprite = baseSprite;
         SetStatus($"{reason}. Te quedan {lives}", errorColor);
         SetInfo("Repite la secuencia");
 
         playerIndex = 0;
-        StartCoroutine(ShowSequence());
+
+        // ✅ pausa
+        yield return new WaitForSeconds(1f);
+
+        showSequenceRoutine = StartCoroutine(ShowSequence());
+        isLosingLife = false;
     }
 
     void UpdateLivesUI()

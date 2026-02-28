@@ -6,16 +6,29 @@ MonoImporter:
   defaultReferences:
   - simonImage: {instanceID: 0}
   - baseSprite: {instanceID: 0}
-  - redOn: {fileID: -3878619378704317303, guid: 079e30feddc0db34892c3706f52f62ff, type: 3}
+  - redOn: {instanceID: 0}
   - yellowOn: {instanceID: 0}
   - greenOn: {instanceID: 0}
   - blueOn: {instanceID: 0}
-  - infoText: {instanceID: 0}
   - startButton: {instanceID: 0}
+  - statusText: {instanceID: 0}
+  - infoText: {instanceID: 0}
+  - recordText: {instanceID: 0}
   - btnRed: {instanceID: 0}
   - btnYellow: {instanceID: 0}
   - btnGreen: {instanceID: 0}
   - btnBlue: {instanceID: 0}
+  - sfxSource: {instanceID: 0}
+  - redClip: {instanceID: 0}
+  - yellowClip: {instanceID: 0}
+  - greenClip: {instanceID: 0}
+  - blueClip: {instanceID: 0}
+  - failClip: {instanceID: 0}
+  - gameOverClip: {instanceID: 0}
+  - timeBarFill: {instanceID: 0}
+  - heartFull: {instanceID: 0}
+  - heartEmpty: {instanceID: 0}
+  - timeBarRoot: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
