@@ -121,15 +121,37 @@ TextureImporter:
         width: 500
         height: 500
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 1103b54ed5f5323a0800000000000000
+      spriteID: 3387e9f3ae9ec574f8bdfae41ac0ef95
       internalID: -6691399764474646511
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Simon_base_3d_rojo_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 500
+        height: 500
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 894037933a1d682419c878fb4277355e
+      internalID: -228681518
       vertices: []
       indices: 
       edges: []
@@ -149,6 +171,7 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       Simon_base_3d_rojo_0: -6691399764474646511
+      Simon_base_3d_rojo_1: -228681518
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

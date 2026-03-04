@@ -11,16 +11,20 @@
       "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\rhythmgamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josman m\\cursos 2025\\unity\\simondice\\assets\\script\\menumanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\menumanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josman m\\cursos 2025\\unity\\simondice\\assets\\script\\simongamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\simongamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\NoteUI.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Script\\NoteUI.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MenuManager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Script\\MenuManager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:2:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MenuManager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:2:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Script\\MenuManager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josman m\\cursos 2025\\unity\\simondice\\assets\\script\\noteui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\noteui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -55,12 +59,11 @@
               "RelativeToolTip": "Assets\\Script\\RhythmGameManager.cs",
               "ViewState": "AgIAAFgAAAAAAAAAAAAnwGYAAAAcAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-05T20:14:15.91Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-02-05T20:14:15.91Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 2,
               "Title": "SimonGameManager.cs",
               "DocumentMoniker": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\SimonGameManager.cs",
               "RelativeDocumentMoniker": "Assets\\Script\\SimonGameManager.cs",
@@ -68,25 +71,11 @@
               "RelativeToolTip": "Assets\\Script\\SimonGameManager.cs",
               "ViewState": "AgIAABwAAAAAAAAAAAAEwC0AAAAhAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-20T02:38:01.767Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-01-20T02:38:01.767Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "MenuManager.cs",
-              "DocumentMoniker": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MenuManager.cs",
-              "RelativeDocumentMoniker": "Assets\\Script\\MenuManager.cs",
-              "ToolTip": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MenuManager.cs",
-              "RelativeToolTip": "Assets\\Script\\MenuManager.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-05T17:53:14.605Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "NoteUI.cs",
               "DocumentMoniker": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\NoteUI.cs",
               "RelativeDocumentMoniker": "Assets\\Script\\NoteUI.cs",
@@ -94,8 +83,32 @@
               "RelativeToolTip": "Assets\\Script\\NoteUI.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAbAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-02-05T20:11:05.254Z",
+              "WhenOpened": "2026-02-05T20:11:05.254Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MenuManager.cs",
+              "DocumentMoniker": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MenuManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Script\\MenuManager.cs",
+              "ToolTip": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MenuManager.cs",
+              "RelativeToolTip": "Assets\\Script\\MenuManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-09T22:57:38.23Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "MenuManager.cs",
+              "DocumentMoniker": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MenuManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Script\\MenuManager.cs",
+              "ToolTip": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MenuManager.cs",
+              "RelativeToolTip": "Assets\\Script\\MenuManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-05T17:53:14.605Z"
             }
           ]
         }

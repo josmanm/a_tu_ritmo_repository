@@ -116,12 +116,12 @@ TextureImporter:
       name: Simon_base_3d_sin_fondo_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 500
-        height: 500
+        x: 58
+        y: 62
+        width: 387
+        height: 385
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 47ed5c6db928638479c89ca245dc0ee1
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
