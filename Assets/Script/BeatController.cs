@@ -12,6 +12,9 @@ public class BeatController : MonoBehaviour
     public AudioClip metronomeClick;
 
     public event Action<double> OnBeat;
+
+    public double NextBeatDspTime => nextBeatTime;
+    public double IntervalSec => interval;
     public double LastBeatDspTime { get; private set; }
 
     double interval;

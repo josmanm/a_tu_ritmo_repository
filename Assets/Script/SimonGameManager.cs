@@ -27,6 +27,8 @@ public class SimonGameManager : MonoBehaviour
     // Record fijo (arriba izq)
     [SerializeField] private TMP_Text recordText;
 
+    [SerializeField] private TMP_Text scoreText;
+
     [Header("Input Buttons (Transparent zones)")]
     [SerializeField] private Button btnRed;
     [SerializeField] private Button btnYellow;
@@ -110,6 +112,8 @@ public class SimonGameManager : MonoBehaviour
     private Coroutine showSequenceRoutine;
     private bool isLosingLife;
 
+    private int score;
+
     // -------------------- UNITY --------------------
 
     private void Start()
@@ -125,8 +129,10 @@ public class SimonGameManager : MonoBehaviour
         SetInput(false);
 
         startButton.interactable = true;
-
+        score = 0;
+        RefreshScoreUI();
         RefreshRecordUI();
+
         SetStatus("Presiona START", normalColor, animate: false);
         SetInfo(""); // sin tiempo al inicio
     }
@@ -163,6 +169,8 @@ public class SimonGameManager : MonoBehaviour
 
         sequence.Clear();
         playerIndex = 0;
+        score = 0;
+        RefreshScoreUI();
 
         simonImage.sprite = baseSprite;
 
@@ -177,7 +185,6 @@ public class SimonGameManager : MonoBehaviour
         showSequenceRoutine = StartCoroutine(ShowSequence());
         lives = maxLives;
         UpdateLivesUI();
-
     }
 
     // -------------------- GAME FLOW --------------------
@@ -253,6 +260,9 @@ public class SimonGameManager : MonoBehaviour
 
         if (playerIndex >= sequence.Count)
         {
+            score += 10;
+            RefreshScoreUI();
+
             isPlayerTurn = false;
             SetInput(false);
             StartCoroutine(NextRound());
@@ -491,5 +501,10 @@ public class SimonGameManager : MonoBehaviour
             if (lifeIcons[i] == null) continue;
             lifeIcons[i].sprite = (i < lives) ? heartFull : heartEmpty;
         }
+    }
+    private void RefreshScoreUI()
+    {
+        if (scoreText != null)
+            scoreText.text = $"Puntos: {score}";
     }
 }

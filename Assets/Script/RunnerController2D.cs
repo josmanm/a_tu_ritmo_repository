@@ -13,15 +13,25 @@ public class RunnerController2D : MonoBehaviour
     Rigidbody2D rb;
     bool isGrounded;
     Animator anim;
+    Collider2D col;
+
+    bool gameStarted = false;
+
+    void Start()
+    {
+        SetGameStarted(false);
+    }
 
     void Awake()
     {
-        anim = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
+        col = GetComponent<Collider2D>();
     }
 
     void Update()
     {
+        if (!gameStarted) return;
         // Detectar si está tocando el suelo
         if (groundCheck != null)
             isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
@@ -29,16 +39,12 @@ public class RunnerController2D : MonoBehaviour
             anim.SetBool("IsJumping", !isGrounded);
     }
 
-    public void Jump()
+    public void Jump(float multiplier = 1f)
     {
         if (!isGrounded) return;
 
-        // Reset de velocidad vertical para que el salto sea consistente
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0f);
-        rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-
-        if (anim != null)
-            anim.SetBool("IsJumping", true);
+        rb.AddForce(Vector2.up * jumpForce * multiplier, ForceMode2D.Impulse);
     }
 
     // Para ver el circulito en la escena
@@ -47,5 +53,15 @@ public class RunnerController2D : MonoBehaviour
         if (groundCheck == null) return;
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+    }
+    public void SetGameStarted(bool started)
+    {
+        gameStarted = started;
+
+        if (rb != null)
+            rb.simulated = started;
+
+        if (anim != null)
+            anim.enabled = started;
     }
 }

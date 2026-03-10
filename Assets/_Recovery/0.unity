@@ -201,7 +201,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 128663282}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 799382423}
+        m_TargetAssemblyTypeName: MenuManager, Assembly-CSharp
+        m_MethodName: LoadScene
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: TempoTapScene
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &128663282
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1001,8 +1013,8 @@ RectTransform:
   - {fileID: 1170586537}
   - {fileID: 1917712787}
   - {fileID: 176139685}
-  - {fileID: 1935357636}
   - {fileID: 128663280}
+  - {fileID: 1935357636}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

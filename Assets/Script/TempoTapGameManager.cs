@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
@@ -11,6 +11,9 @@ public class TempoTapGameManager : MonoBehaviour
     public TMP_Text feedbackText;
     public TMP_Text timerText;
     public Image stabilityFill;
+
+    [Header("UI Panels")]
+    public GameObject startPanel;
 
     [Header("Timing Windows (ms)")]
     public float perfectMs = 60f;
@@ -31,14 +34,26 @@ public class TempoTapGameManager : MonoBehaviour
 
     [Header("Runner")]
     public RunnerController2D runner;
-    public bool jumpOnGood = true; // si "Bien" tambi�n salta
+    public bool jumpOnGood = true; // si "Bien" también salta
+
+    [Header("Asistencia (siempre activa)")]
+    public float assistMs = 180f;   // ventana extra para que igual salte
+    public float assistedJumpMultiplier = 0.9f; // salto un poco más bajo si quieres
+
+    public BeatSyncedObstacleSpawner obstacleSpawner;
 
     bool running;
     float timeLeft;
 
+
     void Start()
     {
-        StartSession();
+        running = false;
+        timeLeft = sessionSeconds;
+        UpdateUI();
+
+        if (beatController != null)
+            beatController.StopBeats();
     }
 
     public void StartSession()
@@ -49,7 +64,7 @@ public class TempoTapGameManager : MonoBehaviour
         UpdateUI();
 
         if (beatController) beatController.StartBeats();
-        SetFeedback("Mant�n el ritmo", 0.7f);
+        SetFeedback("Mantén el ritmo", 0.7f);
     }
 
     void Update()
@@ -75,8 +90,13 @@ public class TempoTapGameManager : MonoBehaviour
     void EndSession()
     {
         running = false;
+
         if (beatController) beatController.StopBeats();
-        SetFeedback("�Listo!", 1.2f);
+
+        if (obstacleSpawner != null)
+            obstacleSpawner.StopSpawner();
+
+        SetFeedback("¡Listo!", 1.2f);
     }
 
     public void RegisterTap()
@@ -95,22 +115,28 @@ public class TempoTapGameManager : MonoBehaviour
             stability = Mathf.Clamp01(stability + gainOnHit);
             SetFeedback("Perfecto", 0.5f);
             if (sfxSource && tapCorrect) sfxSource.PlayOneShot(tapCorrect);
-
-            if (runner) runner.Jump();
+            if (runner) runner.Jump(1f);
         }
         else if (absMs <= goodMs)
         {
             stability = Mathf.Clamp01(stability + gainOnHit * 0.5f);
             SetFeedback("Bien", 0.5f);
             if (sfxSource && tapCorrect) sfxSource.PlayOneShot(tapCorrect);
-
-            if (jumpOnGood && runner) runner.Jump();
+            if (runner) runner.Jump(1f);
+        }
+        else if (absMs <= assistMs)
+        {
+            // Asistencia: igual salta pero “no perfecto”
+            stability = Mathf.Clamp01(stability - 0.02f); // castigo mínimo o ninguno
+            SetFeedback("Casi ", 0.5f);
+            if (runner) runner.Jump(assistedJumpMultiplier);
         }
         else
         {
             stability = Mathf.Clamp01(stability - lossOnMiss);
-            SetFeedback("Ups�", 0.6f);
+            SetFeedback("Ups…", 0.6f);
             if (sfxSource && tapWrong) sfxSource.PlayOneShot(tapWrong);
+
         }
         UpdateUI();
     }
@@ -127,5 +153,18 @@ public class TempoTapGameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(seconds);
         if (feedbackText) feedbackText.text = "";
+    }
+    public void StartGameFromButton()
+    {
+        if (startPanel != null)
+            startPanel.SetActive(false);
+
+        if (obstacleSpawner != null)
+            obstacleSpawner.StartSpawner();
+
+        if (runner != null)
+            runner.SetGameStarted(true);
+
+        StartSession();
     }
 }

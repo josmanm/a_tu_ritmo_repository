@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: a065cc0d2d7abb14db029625d36ebebf
+guid: 02c2654d86de0754da0fea7915e52110
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -405622670648910569
-    second: Simon_base_3d_sin_fondo_0
+      213: -876007037608943702
+    second: timerBG_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,23 +113,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Simon_base_3d_sin_fondo_0
+      name: timerBG_0
       rect:
         serializedVersion: 2
-        x: 58
-        y: 62
-        width: 387
-        height: 385
+        x: 0
+        y: 0
+        width: 1200
+        height: 200
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 71d50238450fe5af0800000000000000
-      internalID: -405622670648910569
+      spriteID: aaf93969d3cc7d3f0800000000000000
+      internalID: -876007037608943702
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 54e6fa6a68a3706408d4be60b4d4832a
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Simon_base_3d_sin_fondo_0: -405622670648910569
+      timerBG_0: -876007037608943702
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
