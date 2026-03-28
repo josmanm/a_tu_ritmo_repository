@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -6,162 +6,301 @@ using UnityEngine.UI;
 
 public class SimonGameManager : MonoBehaviour
 {
-    // -------------------- CONFIG --------------------
-    [Header("Main Image (Circle)")]
-    [SerializeField] private Image simonImage;
+    [System.Serializable]
+    public class SimonColorData
+    {
+        public string name;
+        public string label;
+        public Color normalColor;
+        public Color litColor;
+        public AudioClip clip;
+    }
 
-    [Header("Sprites")]
-    [SerializeField] private Sprite baseSprite;
-    [SerializeField] private Sprite redOn;
-    [SerializeField] private Sprite yellowOn;
-    [SerializeField] private Sprite greenOn;
-    [SerializeField] private Sprite blueOn;
+    [Header("Configuracion del tablero")]
+    [SerializeField] private float pieceSize = 400f;
+    [SerializeField] private RectTransform piecesRoot;
+    [SerializeField] private SimonPieceUI piecePrefab;
+
+    [Header("Sprites por cantidad de piezas")]
+    [SerializeField] private Sprite pieceSprite4;
+    [SerializeField] private Sprite pieceSprite5;
+    [SerializeField] private Sprite pieceSprite7;
+
+    [Header("Colores disponibles")]
+    [SerializeField] private List<SimonColorData> colorPool = new List<SimonColorData>();
 
     [Header("UI")]
     [SerializeField] private Button startButton;
-
-    // Un texto grande para estados ("Tu turno", "Fallaste", etc.)
+    [SerializeField] private Button replayButton;
     [SerializeField] private TMP_Text statusText;
-    // Un texto pequeno para tiempo u otra info (opcional)
     [SerializeField] private TMP_Text infoText;
-    // Record fijo (arriba izq)
     [SerializeField] private TMP_Text recordText;
-
     [SerializeField] private TMP_Text scoreText;
 
-    [Header("Input Buttons (Transparent zones)")]
-    [SerializeField] private Button btnRed;
-    [SerializeField] private Button btnYellow;
-    [SerializeField] private Button btnGreen;
-    [SerializeField] private Button btnBlue;
+    [Header("Panel de estadisticas")]
+    [SerializeField] private GameObject statsPanel;
+    [SerializeField] private TMP_Text levelText;
+    [SerializeField] private TMP_Text streakText;
+    [SerializeField] private TMP_Text bestStreakText;
+    [SerializeField] private TMP_Text avgTimeText;
 
     [Header("Audio")]
     [SerializeField] private AudioSource sfxSource;
-    [SerializeField] private AudioClip redClip;
-    [SerializeField] private AudioClip yellowClip;
-    [SerializeField] private AudioClip greenClip;
-    [SerializeField] private AudioClip blueClip;
-    [SerializeField] private AudioClip failClip; // el audio que se usara para cuando se pierda uan vida 
-    [SerializeField] private AudioClip gameOverClip; // el audio que se usara para cuando se pierda el juego (vidas = 0)
+    [SerializeField] private AudioClip failClip;
+    [SerializeField] private AudioClip gameOverClip;
+    [SerializeField] private AudioClip successClip;
+    [SerializeField] private AudioClip levelUpClip;
+    [SerializeField] private AudioClip roundTransitionClip;
 
-    [Header("Difficulty - Sequence Speed")]
-    [SerializeField] private float flashStart = 0.45f;
-    [SerializeField] private float gapStart = 0.20f;
-    [SerializeField] private float flashMin = 0.18f;
-    [SerializeField] private float gapMin = 0.06f;
-    [SerializeField] private float flashDecreasePerLevel = 0.02f;
-    [SerializeField] private float gapDecreasePerLevel = 0.01f;
+    [Header("Efectos visuales")]
+    [SerializeField] private SimonCelebrationEffect celebrationEffect;
+    [SerializeField] private Image backgroundOverlay;
+    [SerializeField] private Color bgSuccessColor = new Color(0.1f, 0.3f, 0.1f, 0.3f);
+    [SerializeField] private Color bgErrorColor = new Color(0.3f, 0.1f, 0.1f, 0.3f);
 
-    [Header("Difficulty - Player Time Limit")]
-    [SerializeField] private float timePerInputStart = 3.0f;
-    [SerializeField] private float timePerInputMin = 1.2f;
-    [SerializeField] private float timeDecreasePerLevel = 0.1f;
+    [Header("Dificultad suave")]
+    [SerializeField] private float timePerInputStart = 4.5f;
+    [SerializeField] private float timePerInputMin = 1.8f;
+    [SerializeField] private float timeDecreasePerLevel = 0.12f;
+    [SerializeField] private float flashStart = 0.5f;
+    [SerializeField] private float gapStart = 0.25f;
+    [SerializeField] private float flashMin = 0.25f;
+    [SerializeField] private float gapMin = 0.1f;
+    [SerializeField] private float flashDecreasePerLevel = 0.015f;
+    [SerializeField] private float gapDecreasePerLevel = 0.008f;
 
-    [Header("Status Colors")]
+    [Header("Colores de estado")]
     [SerializeField] private Color normalColor = Color.white;
     [SerializeField] private Color successColor = new Color(0.2f, 0.9f, 0.4f);
     [SerializeField] private Color warningColor = new Color(1f, 0.85f, 0.2f);
     [SerializeField] private Color errorColor = new Color(1f, 0.3f, 0.3f);
 
-    [Header("Status Animation")]
+    [Header("Animacion de estado")]
     [SerializeField] private float popDuration = 0.25f;
     [SerializeField] private float popScale = 1.15f;
 
-
-    [Header("Time Bar UI")]
+    [Header("Barra de tiempo")]
     [SerializeField] private Image timeBarFill;
-
     [SerializeField] private Color timeOkColor = Color.white;
     [SerializeField] private Color timeWarnColor = new Color(1f, 0.85f, 0.2f);
     [SerializeField] private Color timeLowColor = new Color(1f, 0.3f, 0.3f);
+    [SerializeField] private float warnThreshold = 0.35f;
+    [SerializeField] private float lowThreshold = 0.15f;
+    [SerializeField] private GameObject timeBarRoot;
 
-    [SerializeField] private float warnThreshold = 0.35f; // 35%
-    [SerializeField] private float lowThreshold = 0.15f;  // 15%
-
-    [Header("Lives UI")]
+    [Header("Vidas")]
     [SerializeField] private int maxLives = 3;
-    [SerializeField] private Image[] lifeIcons;   // arrastra Life1, Life2, Life3
+    [SerializeField] private Image[] lifeIcons;
     [SerializeField] private Sprite heartFull;
     [SerializeField] private Sprite heartEmpty;
 
-    [SerializeField] private GameObject timeBarRoot; // el objeto que contiene la barra completa
-
-
-    // -------------------- STATE --------------------
+    private enum GameState { Idle, ShowingSequence, PlayerTurn, GameOver }
+    private GameState currentState = GameState.Idle;
 
     private const string RECORD_KEY = "SIMON_RECORD";
+    private const string STREAK_KEY = "SIMON_STREAK";
+    private const string BEST_STREAK_KEY = "SIMON_BEST_STREAK";
 
-    // 0=Red,1=Yellow,2=Green,3=Blue
     private readonly List<int> sequence = new List<int>();
     private int playerIndex = 0;
 
-    private bool isShowing = false;
-    private bool isPlayerTurn = false;
-
     private float flashTime;
     private float gapTime;
-
     private float currentInputTime;
+    private float timeLimit;
 
     private Coroutine statusAnim;
+    private Coroutine showSequenceRoutine;
+    private Coroutine loseLifeRoutine;
 
     private int lives;
-
-    private float timeLimit; // tiempo maximo del turno actual
-
-    private Coroutine showSequenceRoutine;
-    private bool isLosingLife;
-
     private int score;
 
-    // -------------------- UNITY --------------------
+    private readonly List<SimonPieceUI> activePieces = new List<SimonPieceUI>();
+    private int currentColorCount = 4;
+
+    private float lastTapTime = -1f;
+    private float tapCooldown = 0.2f;
+
+    private int currentStreak = 0;
+    private int bestStreak = 0;
+    private readonly List<float> inputTimes = new List<float>();
 
     private void Start()
     {
-        // Conectar clicks
-        btnRed.onClick.AddListener(() => OnPlayerPress(0));
-        btnYellow.onClick.AddListener(() => OnPlayerPress(1));
-        btnGreen.onClick.AddListener(() => OnPlayerPress(2));
-        btnBlue.onClick.AddListener(() => OnPlayerPress(3));
-
-        // Estado inicial
-        simonImage.sprite = baseSprite;
+        ValidateReferences();
+        LoadStats();
+        AutoCreateStatsPanel();
+        BuildBoard(4);
         SetInput(false);
+        ShowStatsPanel(false);
 
         startButton.interactable = true;
+        if (replayButton != null)
+        {
+            replayButton.gameObject.SetActive(false);
+            replayButton.onClick.RemoveAllListeners();
+            replayButton.onClick.AddListener(ReplaySequence);
+        }
         score = 0;
         RefreshScoreUI();
         RefreshRecordUI();
+        RefreshStatsUI();
 
         SetStatus("Presiona START", normalColor, animate: false);
-        SetInfo(""); // sin tiempo al inicio
+        SetInfo("");
+    }
+
+    private void AutoCreateStatsPanel()
+    {
+        if (statsPanel == null)
+        {
+            GameObject canvas = FindObjectOfType<Canvas>()?.gameObject;
+            if (canvas == null) return;
+
+            GameObject panelObj = new GameObject("StatsPanel");
+            panelObj.transform.SetParent(canvas.transform, false);
+
+            RectTransform rt = panelObj.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0, 0);
+            rt.anchorMax = new Vector2(0, 0);
+            rt.pivot = new Vector2(0, 0);
+            rt.anchoredPosition = new Vector2(20, 20);
+            rt.sizeDelta = new Vector2(180, 120);
+
+            Image bg = panelObj.AddComponent<Image>();
+            bg.color = new Color(0, 0, 0, 0.3f);
+
+            statsPanel = panelObj;
+
+            CreateStatText(panelObj.transform, "LevelText", ref levelText, "Nivel: 0", 0);
+            CreateStatText(panelObj.transform, "StreakText", ref streakText, "Racha: 0", 28);
+            CreateStatText(panelObj.transform, "BestStreakText", ref bestStreakText, "Mejor: 0", 56);
+            CreateStatText(panelObj.transform, "AvgTimeText", ref avgTimeText, "Promedio: -", 84);
+        }
+    }
+
+    private void CreateStatText(Transform parent, string name, ref TMP_Text textRef, string defaultText, float yOffset)
+    {
+        GameObject txtObj = new GameObject(name);
+        txtObj.transform.SetParent(parent, false);
+
+        RectTransform rt = txtObj.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0, 1);
+        rt.anchorMax = new Vector2(0, 1);
+        rt.pivot = new Vector2(0, 1);
+        rt.anchoredPosition = new Vector2(10, -yOffset);
+        rt.sizeDelta = new Vector2(160, 22);
+
+        textRef = txtObj.AddComponent<TMP_Text>();
+        textRef.text = defaultText;
+        textRef.fontSize = 16;
+        textRef.color = Color.white;
+        textRef.alignment = TextAlignmentOptions.Left;
     }
 
     private void Update()
     {
-        // Temporizador solo durante el turno del jugador
-        if (!isPlayerTurn) return;
+        if (currentState != GameState.PlayerTurn) return;
 
         currentInputTime -= Time.deltaTime;
-        SetInfo($"Tiempo: {currentInputTime:0.0}s");
+        float remaining = Mathf.Max(0, currentInputTime);
+        SetInfo($"Tiempo: {remaining:0.0}s");
 
         if (currentInputTime <= 0f)
         {
-            StartCoroutine(LoseLife("Tiempo agotado"));
+            StartLoseLife("Tiempo agotado");
+            return;
         }
 
-        if (timeBarFill != null && timeLimit > 0f)
-        {
-            float pct = Mathf.Clamp01(currentInputTime / timeLimit);
-            timeBarFill.fillAmount = pct;
-
-            if (pct <= lowThreshold) timeBarFill.color = timeLowColor;
-            else if (pct <= warnThreshold) timeBarFill.color = timeWarnColor;
-            else timeBarFill.color = timeOkColor;
-        }
+        UpdateTimeBar();
     }
 
-    // -------------------- PUBLIC UI --------------------
+    private void ValidateReferences()
+    {
+        if (piecesRoot == null) Debug.LogError("SimonGameManager: piecesRoot es null.");
+        if (piecePrefab == null) Debug.LogError("SimonGameManager: piecePrefab es null.");
+        if (colorPool == null || colorPool.Count == 0) Debug.LogError("SimonGameManager: colorPool esta vacio.");
+    }
+
+    private void LoadStats()
+    {
+        bestStreak = PlayerPrefs.GetInt(BEST_STREAK_KEY, 0);
+    }
+
+    private void SaveStats()
+    {
+        PlayerPrefs.SetInt(STREAK_KEY, currentStreak);
+        if (currentStreak > bestStreak)
+        {
+            bestStreak = currentStreak;
+            PlayerPrefs.SetInt(BEST_STREAK_KEY, bestStreak);
+        }
+        PlayerPrefs.Save();
+    }
+
+    private float GetAverageInputTime()
+    {
+        if (inputTimes.Count == 0) return 0;
+        float sum = 0;
+        foreach (float t in inputTimes) sum += t;
+        return sum / inputTimes.Count;
+    }
+
+    private int GetColorCountForLevel(int level)
+    {
+        if (level < 4) return 4;
+        if (level < 7) return 5;
+        return 7;
+    }
+
+    private void BuildBoard(int pieceCount)
+    {
+        if (colorPool == null || colorPool.Count < pieceCount)
+        {
+            Debug.LogError($"SimonGameManager: faltan {pieceCount - (colorPool?.Count ?? 0)} colores en colorPool.");
+            return;
+        }
+
+        foreach (Transform child in piecesRoot)
+            Destroy(child.gameObject);
+
+        activePieces.Clear();
+
+        Sprite spriteToUse = pieceCount switch
+        {
+            4 => pieceSprite4,
+            5 => pieceSprite5,
+            7 => pieceSprite7,
+            _ => pieceSprite4
+        };
+
+        float angleStep = 360f / pieceCount;
+
+        for (int i = 0; i < pieceCount; i++)
+        {
+            SimonPieceUI piece = Instantiate(piecePrefab, piecesRoot);
+            RectTransform rt = piece.GetComponent<RectTransform>();
+            piece.SetSprite(spriteToUse);
+
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(pieceSize, pieceSize);
+            rt.localScale = Vector3.one;
+
+            float rotationZ = -i * angleStep;
+            rt.localRotation = Quaternion.Euler(0f, 0f, rotationZ);
+
+            piece.Setup(i, colorPool[i].normalColor, colorPool[i].litColor, colorPool[i].label, OnPlayerPress);
+            piece.SetLabelRotation(-rotationZ);
+
+            activePieces.Add(piece);
+        }
+
+        currentColorCount = pieceCount;
+    }
 
     public void StartGame()
     {
@@ -170,39 +309,55 @@ public class SimonGameManager : MonoBehaviour
         sequence.Clear();
         playerIndex = 0;
         score = 0;
+        currentStreak = 0;
+        inputTimes.Clear();
         RefreshScoreUI();
 
-        simonImage.sprite = baseSprite;
-
+        BuildBoard(4);
         AddStep();
-
+        UpdateBoardForLevel();
         UpdateDifficultyForLevel();
         ResetPlayerTimeLimit();
 
+        ShowStatsPanel(true);
+        RefreshStatsUI();
+
         SetStatus("Memoriza la secuencia", warningColor);
         SetInfo("");
+
+        if (replayButton != null) replayButton.gameObject.SetActive(true);
 
         showSequenceRoutine = StartCoroutine(ShowSequence());
         lives = maxLives;
         UpdateLivesUI();
     }
 
-    // -------------------- GAME FLOW --------------------
+    public void ReplaySequence()
+    {
+        if (currentState != GameState.PlayerTurn && currentState != GameState.Idle) return;
+
+        StopAllCoroutines();
+        currentStreak = 0;
+        inputTimes.Clear();
+        RefreshStatsUI();
+
+        SetStatus("Escucha de nuevo", warningColor);
+        showSequenceRoutine = StartCoroutine(ShowSequence());
+    }
 
     private void AddStep()
     {
-        sequence.Add(Random.Range(0, 4));
+        sequence.Add(Random.Range(0, activePieces.Count));
     }
 
     private IEnumerator ShowSequence()
     {
-        if (timeBarRoot != null) timeBarRoot.SetActive(true);
-        isShowing = true;
-        isPlayerTurn = false;
+        currentState = GameState.ShowingSequence;
 
+        if (timeBarRoot != null) timeBarRoot.SetActive(true);
         SetInput(false);
         startButton.interactable = false;
-
+        if (replayButton != null) replayButton.interactable = false;
         SetInfo("");
 
         yield return new WaitForSeconds(0.4f);
@@ -211,18 +366,16 @@ public class SimonGameManager : MonoBehaviour
         {
             int step = sequence[i];
 
-            ShowOn(step);
+            activePieces[step].ShowLit();
             PlayColorSound(step);
 
             yield return new WaitForSeconds(flashTime);
 
-            simonImage.sprite = baseSprite;
+            activePieces[step].SetOff();
             yield return new WaitForSeconds(gapTime);
         }
 
-        // Turno del jugador
-        isShowing = false;
-        isPlayerTurn = true;
+        currentState = GameState.PlayerTurn;
         playerIndex = 0;
 
         ResetPlayerTimeLimit();
@@ -230,40 +383,51 @@ public class SimonGameManager : MonoBehaviour
         SetStatus("Tu turno", normalColor, animate: false);
         SetInput(true);
         startButton.interactable = true;
-        if (timeBarFill != null) timeBarFill.transform.parent.gameObject.SetActive(true);
+        if (replayButton != null) replayButton.interactable = true;
 
+        if (timeBarFill != null)
+            timeBarFill.transform.parent.gameObject.SetActive(true);
     }
 
     private void OnPlayerPress(int idx)
     {
-        if (isShowing || !isPlayerTurn) return;
+        if (currentState != GameState.PlayerTurn) return;
 
-        // Feedback visual inmediato (esto sí lo puedes dejar)
-        ShowOn(idx);
-        StartCoroutine(BackToBaseAfter(0.12f));
+        float now = Time.time;
+        if (now - lastTapTime < tapCooldown) return;
+        lastTapTime = now;
 
-        // Validar primero
-        bool isWrong = (sequence.Count == 0 || idx != sequence[playerIndex]);
+        activePieces[idx].FlashOn();
 
-        if (isWrong)
+        if (idx != sequence[playerIndex])
         {
-            // Opcional: si quieres que al fallar NO se vea el color, comenta el ShowOn de arriba.
-            StartCoroutine(LoseLife("Fallaste"));
+            TriggerHapticError();
+            StartLoseLife("Fallaste");
             return;
         }
 
-        // Si acertó, ahora sí suena el color
         PlayColorSound(idx);
+        TriggerHapticSuccess();
+
+        float usedTime = timeLimit - currentInputTime;
+        inputTimes.Add(usedTime);
+
+        Vector3 piecePos = activePieces[idx].transform.position;
+        celebrationEffect.PlayPerfectEffect(piecePos);
+
+        currentStreak++;
+        SaveStats();
 
         playerIndex++;
         ResetPlayerTimeLimit();
+        RefreshStatsUI();
 
         if (playerIndex >= sequence.Count)
         {
             score += 10;
             RefreshScoreUI();
 
-            isPlayerTurn = false;
+            currentState = GameState.Idle;
             SetInput(false);
             StartCoroutine(NextRound());
         }
@@ -271,12 +435,19 @@ public class SimonGameManager : MonoBehaviour
 
     private IEnumerator NextRound()
     {
-        SetStatus("¡Ronda completada!", successColor);
+        if (roundTransitionClip != null && sfxSource != null)
+            sfxSource.PlayOneShot(roundTransitionClip);
+
+        SetStatus("Excelente!", successColor);
         SetInfo("");
+        RefreshStatsUI();
+
+        celebrationEffect.PlayLevelUpEffect();
+
         yield return new WaitForSeconds(0.8f);
 
         AddStep();
-
+        UpdateBoardForLevel();
         UpdateDifficultyForLevel();
         ResetPlayerTimeLimit();
 
@@ -284,32 +455,26 @@ public class SimonGameManager : MonoBehaviour
         yield return StartCoroutine(ShowSequence());
     }
 
-    private IEnumerator BackToBaseAfter(float t)
-    {
-        yield return new WaitForSeconds(t);
-        simonImage.sprite = baseSprite;
-    }
-
-    // -------------------- DIFFICULTY --------------------
-
     private void UpdateDifficultyForLevel()
     {
         int level = Mathf.Max(1, sequence.Count);
 
-        flashTime = Mathf.Max(flashMin, flashStart - (level - 1) * flashDecreasePerLevel);
-        gapTime = Mathf.Max(gapMin, gapStart - (level - 1) * gapDecreasePerLevel);
+        float progress = (level - 1) / 20f;
+        progress = Mathf.Clamp01(progress);
+
+        flashTime = Mathf.Lerp(flashStart, flashMin, progress);
+        gapTime = Mathf.Lerp(gapStart, gapMin, progress);
     }
 
     private void ResetPlayerTimeLimit()
     {
         int level = Mathf.Max(1, sequence.Count);
 
-        currentInputTime = Mathf.Max(
-            timePerInputMin,
-            timePerInputStart - (level - 1) * timeDecreasePerLevel
-        );
+        float progress = (level - 1) / 25f;
+        progress = Mathf.Clamp01(progress);
 
-        timeLimit = currentInputTime;  // guarda el maximo para calcular porcentaje
+        currentInputTime = Mathf.Lerp(timePerInputStart, timePerInputMin, progress);
+        timeLimit = currentInputTime;
 
         if (timeBarFill != null)
         {
@@ -318,28 +483,39 @@ public class SimonGameManager : MonoBehaviour
         }
     }
 
-    // -------------------- GAME OVER + RECORD --------------------
+    private void UpdateTimeBar()
+    {
+        if (timeBarFill == null || timeLimit <= 0f) return;
+
+        float pct = Mathf.Clamp01(currentInputTime / timeLimit);
+        timeBarFill.fillAmount = pct;
+
+        if (pct <= lowThreshold) timeBarFill.color = timeLowColor;
+        else if (pct <= warnThreshold) timeBarFill.color = timeWarnColor;
+        else timeBarFill.color = timeOkColor;
+    }
 
     private void GameOver(string reason)
     {
         StopAllCoroutines();
 
-        isShowing = false;
-        isPlayerTurn = false;
-
+        currentState = GameState.GameOver;
         SetInput(false);
         startButton.interactable = true;
+        if (replayButton != null) replayButton.gameObject.SetActive(false);
 
-        if (gameOverClip && sfxSource) sfxSource.PlayOneShot(gameOverClip);
+        if (gameOverClip != null && sfxSource != null)
+            sfxSource.PlayOneShot(gameOverClip);
 
-        int currentLevel = sequence.Count;
+        TriggerHapticError();
+        celebrationEffect.PlayErrorEffect(Vector3.zero);
 
-        SaveRecordIfNeeded(currentLevel);
+        SaveStats();
+        SaveRecordIfNeeded(sequence.Count);
         RefreshRecordUI();
+        RefreshStatsUI();
 
-        simonImage.sprite = baseSprite;
-
-        SetStatus($"{reason}. Nivel: {currentLevel}", errorColor);
+        SetStatus($"{reason}. Nivel: {sequence.Count}", errorColor);
         SetInfo("Presiona START");
 
         sequence.Clear();
@@ -360,17 +536,35 @@ public class SimonGameManager : MonoBehaviour
     private void RefreshRecordUI()
     {
         int record = PlayerPrefs.GetInt(RECORD_KEY, 0);
-        if (recordText != null) recordText.text = $"Récord: {record}";
+        if (recordText != null) recordText.text = $"Record: {record}";
     }
 
-    // -------------------- UI HELPERS --------------------
+    private void RefreshStatsUI()
+    {
+        if (levelText != null) levelText.text = $"Nivel: {sequence.Count}";
+        if (streakText != null) streakText.text = $"Racha: {currentStreak}";
+        if (bestStreakText != null) bestStreakText.text = $"Mejor racha: {bestStreak}";
+
+        float avgTime = GetAverageInputTime();
+        if (avgTimeText != null)
+        {
+            if (avgTime > 0)
+                avgTimeText.text = $"Tiempo promedio: {avgTime:0.0}s";
+            else
+                avgTimeText.text = "Tiempo promedio: -";
+        }
+    }
+
+    private void ShowStatsPanel(bool show)
+    {
+        if (statsPanel != null)
+            statsPanel.SetActive(show);
+    }
 
     private void SetInput(bool value)
     {
-        btnRed.interactable = value;
-        btnYellow.interactable = value;
-        btnGreen.interactable = value;
-        btnBlue.interactable = value;
+        for (int i = 0; i < activePieces.Count; i++)
+            activePieces[i].SetInteractable(value);
     }
 
     private void SetStatus(string msg, Color color, bool animate = true)
@@ -379,6 +573,16 @@ public class SimonGameManager : MonoBehaviour
 
         statusText.text = msg;
         statusText.color = color;
+
+        if (backgroundOverlay != null)
+        {
+            if (color == successColor)
+                backgroundOverlay.color = bgSuccessColor;
+            else if (color == errorColor)
+                backgroundOverlay.color = bgErrorColor;
+            else
+                backgroundOverlay.color = Color.clear;
+        }
 
         if (!animate) return;
 
@@ -395,7 +599,7 @@ public class SimonGameManager : MonoBehaviour
     private IEnumerator StatusPop()
     {
         RectTransform rt = statusText.rectTransform;
-        Vector3 original = Vector3.one;
+        Vector3 original = rt.localScale;
 
         rt.localScale = original * 0.9f;
 
@@ -420,79 +624,86 @@ public class SimonGameManager : MonoBehaviour
         rt.localScale = original;
     }
 
-    // -------------------- VISUALS + AUDIO --------------------
-
     private void ShowOn(int idx)
     {
-        switch (idx)
-        {
-            case 0: simonImage.sprite = redOn; break;
-            case 1: simonImage.sprite = yellowOn; break;
-            case 2: simonImage.sprite = greenOn; break;
-            case 3: simonImage.sprite = blueOn; break;
-        }
+        if (idx < 0 || idx >= activePieces.Count) return;
+        activePieces[idx].ShowLit();
+    }
+
+    private void ShowAllOff()
+    {
+        for (int i = 0; i < activePieces.Count; i++)
+            activePieces[i].SetOff();
     }
 
     private void PlayColorSound(int idx)
     {
-        if (sfxSource == null) return;
+        if (sfxSource == null || idx < 0 || idx >= colorPool.Count) return;
 
-        AudioClip clipToPlay = idx switch
-        {
-            0 => redClip,
-            1 => yellowClip,
-            2 => greenClip,
-            3 => blueClip,
-            _ => null
-        };
-
-        if (clipToPlay == null) return;
-
-        sfxSource.PlayOneShot(clipToPlay);
+        AudioClip clipToPlay = colorPool[idx].clip;
+        if (clipToPlay != null) sfxSource.PlayOneShot(clipToPlay);
     }
-    IEnumerator LoseLife(string reason)
-    {
-        if (isLosingLife) yield break; // evita doble llamada
-        isLosingLife = true;
 
-        // Detén SOLO la secuencia si estaba corriendo
+    private void TriggerHapticSuccess()
+    {
+#if UNITY_ANDROID || UNITY_IOS
+        Handheld.Vibrate();
+#endif
+    }
+
+    private void TriggerHapticError()
+    {
+#if UNITY_ANDROID || UNITY_IOS
+        Handheld.Vibrate();
+#endif
+    }
+
+    private void StartLoseLife(string reason)
+    {
+        if (loseLifeRoutine != null) return;
+        loseLifeRoutine = StartCoroutine(LoseLifeRoutine(reason));
+    }
+
+    private IEnumerator LoseLifeRoutine(string reason)
+    {
+        currentState = GameState.Idle;
+
         if (showSequenceRoutine != null)
         {
             StopCoroutine(showSequenceRoutine);
             showSequenceRoutine = null;
         }
 
-        isShowing = false;
-        isPlayerTurn = false;
         SetInput(false);
 
         lives--;
         UpdateLivesUI();
 
+        celebrationEffect.PlayErrorEffect(Vector3.zero);
+
         if (lives <= 0)
         {
             GameOver(reason);
-            isLosingLife = false;
+            loseLifeRoutine = null;
             yield break;
         }
 
-        if (sfxSource) sfxSource.Stop();
-        if (failClip && sfxSource) sfxSource.PlayOneShot(failClip);
+        if (sfxSource != null) sfxSource.Stop();
+        if (failClip != null && sfxSource != null) sfxSource.PlayOneShot(failClip);
 
-        simonImage.sprite = baseSprite;
         SetStatus($"{reason}. Te quedan {lives}", errorColor);
         SetInfo("Repite la secuencia");
+        ShowAllOff();
 
         playerIndex = 0;
 
-        // ✅ pausa
         yield return new WaitForSeconds(1f);
 
         showSequenceRoutine = StartCoroutine(ShowSequence());
-        isLosingLife = false;
+        loseLifeRoutine = null;
     }
 
-    void UpdateLivesUI()
+    private void UpdateLivesUI()
     {
         if (lifeIcons == null) return;
 
@@ -502,9 +713,19 @@ public class SimonGameManager : MonoBehaviour
             lifeIcons[i].sprite = (i < lives) ? heartFull : heartEmpty;
         }
     }
+
     private void RefreshScoreUI()
     {
         if (scoreText != null)
             scoreText.text = $"Puntos: {score}";
+    }
+
+    private void UpdateBoardForLevel()
+    {
+        int level = Mathf.Max(1, sequence.Count);
+        int neededCount = GetColorCountForLevel(level);
+
+        if (neededCount != currentColorCount)
+            BuildBoard(neededCount);
     }
 }
