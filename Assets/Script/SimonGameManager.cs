@@ -29,6 +29,17 @@ public class SimonGameManager : MonoBehaviour
     [Header("Colores disponibles")]
     [SerializeField] private List<SimonColorData> colorPool = new List<SimonColorData>();
 
+    [Header("Posicion de letras")]
+    [SerializeField] private Vector2 labelPositionFor4Pieces = new Vector2(-140f, 140f);
+    [SerializeField] private Vector2 labelPositionFor5Pieces = new Vector2(-165f, 70f);
+    [SerializeField] private Vector2 labelPositionFor7Pieces = new Vector2(-150f, 55f);
+    [SerializeField] private Vector2[] labelPositionsFor5ByIndex = new Vector2[5];
+    [SerializeField] private Vector2[] labelPositionsFor7ByIndex = new Vector2[7];
+    [SerializeField] private float labelFontSizeFor4Pieces = 30f;
+    [SerializeField] private float labelFontSizeFor5Pieces = 24f;
+    [SerializeField] private float labelFontSizeFor7Pieces = 20f;
+    [SerializeField] private float[] labelXPatternFallback = new float[] { -140f, 7f, 140f };
+
     [Header("UI")]
     [SerializeField] private Button startButton;
     [SerializeField] private Button replayButton;
@@ -37,12 +48,7 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private TMP_Text recordText;
     [SerializeField] private TMP_Text scoreText;
 
-    [Header("Panel de estadisticas")]
-    [SerializeField] private GameObject statsPanel;
-    [SerializeField] private TMP_Text levelText;
-    [SerializeField] private TMP_Text streakText;
-    [SerializeField] private TMP_Text bestStreakText;
-    [SerializeField] private TMP_Text avgTimeText;
+    // Panel de estadisticas eliminado - UI mas limpia
 
     [Header("Audio")]
     [SerializeField] private AudioSource sfxSource;
@@ -98,8 +104,8 @@ public class SimonGameManager : MonoBehaviour
     private GameState currentState = GameState.Idle;
 
     private const string RECORD_KEY = "SIMON_RECORD";
-    private const string STREAK_KEY = "SIMON_STREAK";
-    private const string BEST_STREAK_KEY = "SIMON_BEST_STREAK";
+
+    private int currentLevel = 0;
 
     private readonly List<int> sequence = new List<int>();
     private int playerIndex = 0;
@@ -122,18 +128,11 @@ public class SimonGameManager : MonoBehaviour
     private float lastTapTime = -1f;
     private float tapCooldown = 0.2f;
 
-    private int currentStreak = 0;
-    private int bestStreak = 0;
-    private readonly List<float> inputTimes = new List<float>();
-
     private void Start()
     {
         ValidateReferences();
-        LoadStats();
-        AutoCreateStatsPanel();
         BuildBoard(4);
         SetInput(false);
-        ShowStatsPanel(false);
 
         startButton.interactable = true;
         if (replayButton != null)
@@ -145,58 +144,9 @@ public class SimonGameManager : MonoBehaviour
         score = 0;
         RefreshScoreUI();
         RefreshRecordUI();
-        RefreshStatsUI();
 
-        SetStatus("Presiona START", normalColor, animate: false);
+        SetStatus("Presiona JUGAR para comenzar", normalColor, animate: false);
         SetInfo("");
-    }
-
-    private void AutoCreateStatsPanel()
-    {
-        if (statsPanel == null)
-        {
-            GameObject canvas = FindObjectOfType<Canvas>()?.gameObject;
-            if (canvas == null) return;
-
-            GameObject panelObj = new GameObject("StatsPanel");
-            panelObj.transform.SetParent(canvas.transform, false);
-
-            RectTransform rt = panelObj.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0, 0);
-            rt.anchorMax = new Vector2(0, 0);
-            rt.pivot = new Vector2(0, 0);
-            rt.anchoredPosition = new Vector2(20, 20);
-            rt.sizeDelta = new Vector2(180, 120);
-
-            Image bg = panelObj.AddComponent<Image>();
-            bg.color = new Color(0, 0, 0, 0.3f);
-
-            statsPanel = panelObj;
-
-            CreateStatText(panelObj.transform, "LevelText", ref levelText, "Nivel: 0", 0);
-            CreateStatText(panelObj.transform, "StreakText", ref streakText, "Racha: 0", 28);
-            CreateStatText(panelObj.transform, "BestStreakText", ref bestStreakText, "Mejor: 0", 56);
-            CreateStatText(panelObj.transform, "AvgTimeText", ref avgTimeText, "Promedio: -", 84);
-        }
-    }
-
-    private void CreateStatText(Transform parent, string name, ref TMP_Text textRef, string defaultText, float yOffset)
-    {
-        GameObject txtObj = new GameObject(name);
-        txtObj.transform.SetParent(parent, false);
-
-        RectTransform rt = txtObj.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0, 1);
-        rt.anchorMax = new Vector2(0, 1);
-        rt.pivot = new Vector2(0, 1);
-        rt.anchoredPosition = new Vector2(10, -yOffset);
-        rt.sizeDelta = new Vector2(160, 22);
-
-        textRef = txtObj.AddComponent<TMP_Text>();
-        textRef.text = defaultText;
-        textRef.fontSize = 16;
-        textRef.color = Color.white;
-        textRef.alignment = TextAlignmentOptions.Left;
     }
 
     private void Update()
@@ -221,30 +171,6 @@ public class SimonGameManager : MonoBehaviour
         if (piecesRoot == null) Debug.LogError("SimonGameManager: piecesRoot es null.");
         if (piecePrefab == null) Debug.LogError("SimonGameManager: piecePrefab es null.");
         if (colorPool == null || colorPool.Count == 0) Debug.LogError("SimonGameManager: colorPool esta vacio.");
-    }
-
-    private void LoadStats()
-    {
-        bestStreak = PlayerPrefs.GetInt(BEST_STREAK_KEY, 0);
-    }
-
-    private void SaveStats()
-    {
-        PlayerPrefs.SetInt(STREAK_KEY, currentStreak);
-        if (currentStreak > bestStreak)
-        {
-            bestStreak = currentStreak;
-            PlayerPrefs.SetInt(BEST_STREAK_KEY, bestStreak);
-        }
-        PlayerPrefs.Save();
-    }
-
-    private float GetAverageInputTime()
-    {
-        if (inputTimes.Count == 0) return 0;
-        float sum = 0;
-        foreach (float t in inputTimes) sum += t;
-        return sum / inputTimes.Count;
     }
 
     private int GetColorCountForLevel(int level)
@@ -283,11 +209,19 @@ public class SimonGameManager : MonoBehaviour
             RectTransform rt = piece.GetComponent<RectTransform>();
             piece.SetSprite(spriteToUse);
 
+            if (spriteToUse != null)
+            {
+                rt.sizeDelta = new Vector2(spriteToUse.texture.width, spriteToUse.texture.height);
+            }
+            else
+            {
+                rt.sizeDelta = new Vector2(pieceSize, pieceSize);
+            }
+
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(pieceSize, pieceSize);
             rt.localScale = Vector3.one;
 
             float rotationZ = -i * angleStep;
@@ -295,6 +229,7 @@ public class SimonGameManager : MonoBehaviour
 
             piece.Setup(i, colorPool[i].normalColor, colorPool[i].litColor, colorPool[i].label, OnPlayerPress);
             piece.SetLabelRotation(-rotationZ);
+            ApplyLabelPosition(piece, i, pieceCount);
 
             activePieces.Add(piece);
         }
@@ -309,8 +244,7 @@ public class SimonGameManager : MonoBehaviour
         sequence.Clear();
         playerIndex = 0;
         score = 0;
-        currentStreak = 0;
-        inputTimes.Clear();
+        currentLevel = 1;
         RefreshScoreUI();
 
         BuildBoard(4);
@@ -319,11 +253,8 @@ public class SimonGameManager : MonoBehaviour
         UpdateDifficultyForLevel();
         ResetPlayerTimeLimit();
 
-        ShowStatsPanel(true);
-        RefreshStatsUI();
-
-        SetStatus("Memoriza la secuencia", warningColor);
-        SetInfo("");
+        SetStatus($"Mira la secuencia y repitela tocando los colores", warningColor);
+        SetInfo($"Nivel {currentLevel}");
 
         if (replayButton != null) replayButton.gameObject.SetActive(true);
 
@@ -337,9 +268,6 @@ public class SimonGameManager : MonoBehaviour
         if (currentState != GameState.PlayerTurn && currentState != GameState.Idle) return;
 
         StopAllCoroutines();
-        currentStreak = 0;
-        inputTimes.Clear();
-        RefreshStatsUI();
 
         SetStatus("Escucha de nuevo", warningColor);
         showSequenceRoutine = StartCoroutine(ShowSequence());
@@ -358,7 +286,7 @@ public class SimonGameManager : MonoBehaviour
         SetInput(false);
         startButton.interactable = false;
         if (replayButton != null) replayButton.interactable = false;
-        SetInfo("");
+        SetInfo($"Nivel {currentLevel}");
 
         yield return new WaitForSeconds(0.4f);
 
@@ -380,7 +308,8 @@ public class SimonGameManager : MonoBehaviour
 
         ResetPlayerTimeLimit();
 
-        SetStatus("Tu turno", normalColor, animate: false);
+        SetStatus("Repite la secuencia tocando los colores", normalColor, animate: false);
+        SetInfo($"Nivel {currentLevel}");
         SetInput(true);
         startButton.interactable = true;
         if (replayButton != null) replayButton.interactable = true;
@@ -409,18 +338,11 @@ public class SimonGameManager : MonoBehaviour
         PlayColorSound(idx);
         TriggerHapticSuccess();
 
-        float usedTime = timeLimit - currentInputTime;
-        inputTimes.Add(usedTime);
-
         Vector3 piecePos = activePieces[idx].transform.position;
         celebrationEffect.PlayPerfectEffect(piecePos);
 
-        currentStreak++;
-        SaveStats();
-
         playerIndex++;
         ResetPlayerTimeLimit();
-        RefreshStatsUI();
 
         if (playerIndex >= sequence.Count)
         {
@@ -438,9 +360,9 @@ public class SimonGameManager : MonoBehaviour
         if (roundTransitionClip != null && sfxSource != null)
             sfxSource.PlayOneShot(roundTransitionClip);
 
-        SetStatus("Excelente!", successColor);
-        SetInfo("");
-        RefreshStatsUI();
+        currentLevel++;
+        SetStatus($"Excelente! Nivel {currentLevel}", successColor);
+        SetInfo($"Siguiente: Nivel {currentLevel}");
 
         celebrationEffect.PlayLevelUpEffect();
 
@@ -451,7 +373,7 @@ public class SimonGameManager : MonoBehaviour
         UpdateDifficultyForLevel();
         ResetPlayerTimeLimit();
 
-        SetStatus("Memoriza la secuencia", warningColor, animate: false);
+        SetStatus("Mira la secuencia y repitela tocando los colores", warningColor, animate: false);
         yield return StartCoroutine(ShowSequence());
     }
 
@@ -510,16 +432,16 @@ public class SimonGameManager : MonoBehaviour
         TriggerHapticError();
         celebrationEffect.PlayErrorEffect(Vector3.zero);
 
-        SaveStats();
-        SaveRecordIfNeeded(sequence.Count);
+        int nivelAlcanzado = currentLevel;
+        SaveRecordIfNeeded(nivelAlcanzado);
         RefreshRecordUI();
-        RefreshStatsUI();
 
-        SetStatus($"{reason}. Nivel: {sequence.Count}", errorColor);
-        SetInfo("Presiona START");
+        SetStatus($"Fin del juego! Nivel alcanzado: {nivelAlcanzado}", errorColor);
+        SetInfo("Presiona JUGAR para intentarlo de nuevo");
 
         sequence.Clear();
         playerIndex = 0;
+        currentLevel = 0;
     }
 
     private void SaveRecordIfNeeded(int currentLevel)
@@ -537,28 +459,6 @@ public class SimonGameManager : MonoBehaviour
     {
         int record = PlayerPrefs.GetInt(RECORD_KEY, 0);
         if (recordText != null) recordText.text = $"Record: {record}";
-    }
-
-    private void RefreshStatsUI()
-    {
-        if (levelText != null) levelText.text = $"Nivel: {sequence.Count}";
-        if (streakText != null) streakText.text = $"Racha: {currentStreak}";
-        if (bestStreakText != null) bestStreakText.text = $"Mejor racha: {bestStreak}";
-
-        float avgTime = GetAverageInputTime();
-        if (avgTimeText != null)
-        {
-            if (avgTime > 0)
-                avgTimeText.text = $"Tiempo promedio: {avgTime:0.0}s";
-            else
-                avgTimeText.text = "Tiempo promedio: -";
-        }
-    }
-
-    private void ShowStatsPanel(bool show)
-    {
-        if (statsPanel != null)
-            statsPanel.SetActive(show);
     }
 
     private void SetInput(bool value)
@@ -691,8 +591,8 @@ public class SimonGameManager : MonoBehaviour
         if (sfxSource != null) sfxSource.Stop();
         if (failClip != null && sfxSource != null) sfxSource.PlayOneShot(failClip);
 
-        SetStatus($"{reason}. Te quedan {lives}", errorColor);
-        SetInfo("Repite la secuencia");
+        SetStatus($"{reason}! Te quedan {lives} vidas", errorColor);
+        SetInfo($"Nivel {currentLevel}");
         ShowAllOff();
 
         playerIndex = 0;
@@ -717,7 +617,7 @@ public class SimonGameManager : MonoBehaviour
     private void RefreshScoreUI()
     {
         if (scoreText != null)
-            scoreText.text = $"Puntos: {score}";
+            scoreText.text = $"Puntos\n {score}";
     }
 
     private void UpdateBoardForLevel()
@@ -727,5 +627,48 @@ public class SimonGameManager : MonoBehaviour
 
         if (neededCount != currentColorCount)
             BuildBoard(neededCount);
+    }
+
+    private void ApplyLabelPosition(SimonPieceUI piece, int index, int pieceCount)
+    {
+        if (piece == null) return;
+
+        if (pieceCount == 4)
+        {
+            piece.SetLabelAnchoredPosition(labelPositionFor4Pieces.x, labelPositionFor4Pieces.y);
+            piece.SetLabelFontSize(labelFontSizeFor4Pieces);
+            return;
+        }
+
+        if (pieceCount == 5)
+        {
+            Vector2 p = GetPerIndexLabelPosition(labelPositionsFor5ByIndex, index, labelPositionFor5Pieces);
+            piece.SetLabelAnchoredPosition(p.x, p.y);
+            piece.SetLabelFontSize(labelFontSizeFor5Pieces);
+            return;
+        }
+
+        if (pieceCount == 7)
+        {
+            Vector2 p = GetPerIndexLabelPosition(labelPositionsFor7ByIndex, index, labelPositionFor7Pieces);
+            piece.SetLabelAnchoredPosition(p.x, p.y);
+            piece.SetLabelFontSize(labelFontSizeFor7Pieces);
+            return;
+        }
+
+        if (labelXPatternFallback == null || labelXPatternFallback.Length == 0) return;
+        piece.SetLabelAnchoredX(labelXPatternFallback[index % labelXPatternFallback.Length]);
+    }
+
+    private Vector2 GetPerIndexLabelPosition(Vector2[] byIndex, int index, Vector2 fallback)
+    {
+        if (byIndex == null || byIndex.Length == 0) return fallback;
+        if (index < 0 || index >= byIndex.Length) return fallback;
+
+        Vector2 p = byIndex[index];
+        if (Mathf.Approximately(p.x, 0f) && Mathf.Approximately(p.y, 0f))
+            return fallback;
+
+        return p;
     }
 }

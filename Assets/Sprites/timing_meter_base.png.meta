@@ -117,9 +117,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 46
-        width: 1414
-        height: 73
+        y: 45
+        width: 705
+        height: 69
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 5}
@@ -130,6 +130,28 @@ TextureImporter:
       bones: []
       spriteID: 32fc5a19e044401e0800000000000000
       internalID: -2232584685905129693
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: timing_meter_base_1
+      rect:
+        serializedVersion: 2
+        x: 908
+        y: 17
+        width: 61
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7a361fe0de1b9f544a854d742196f1a5
+      internalID: -1886702752
       vertices: []
       indices: 
       edges: []
@@ -149,6 +171,7 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       timing_meter_base_0: -2232584685905129693
+      timing_meter_base_1: -1886702752
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

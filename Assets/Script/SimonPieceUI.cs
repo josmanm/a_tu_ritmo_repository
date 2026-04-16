@@ -50,7 +50,7 @@ public class SimonPieceUI : MonoBehaviour
         if (labelText != null)
         {
             labelText.text = label;
-            labelText.color = labelDefaultColor;
+            labelText.color = Color.white;
         }
 
         if (pieceButton != null)
@@ -83,7 +83,7 @@ public class SimonPieceUI : MonoBehaviour
             mainImage.color = normalColor;
 
         if (labelText != null)
-            labelText.color = labelDefaultColor;
+            labelText.color = Color.white;
     }
 
     public void ShowLit()
@@ -123,7 +123,7 @@ public class SimonPieceUI : MonoBehaviour
             mainImage.color = normalColor;
 
         if (labelText != null)
-            labelText.color = labelDefaultColor;
+            labelText.color = Color.white;
 
         flashRoutine = null;
     }
@@ -135,6 +135,27 @@ public class SimonPieceUI : MonoBehaviour
             labelText.rectTransform.localRotation = Quaternion.Euler(0f, 0f, zRotation);
             labelText.rectTransform.localScale = Vector3.one;
         }
+    }
+
+    public void SetLabelAnchoredX(float x)
+    {
+        if (labelText == null) return;
+
+        Vector2 pos = labelText.rectTransform.anchoredPosition;
+        pos.x = x;
+        labelText.rectTransform.anchoredPosition = pos;
+    }
+
+    public void SetLabelAnchoredPosition(float x, float y)
+    {
+        if (labelText == null) return;
+        labelText.rectTransform.anchoredPosition = new Vector2(x, y);
+    }
+
+    public void SetLabelFontSize(float size)
+    {
+        if (labelText == null) return;
+        labelText.fontSize = size;
     }
 
     public void SetLabelColor(Color color)
