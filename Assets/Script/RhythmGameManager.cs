@@ -9,16 +9,6 @@ public class RhythmGameManager : MonoBehaviour
     [Header("UI")]
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text statusText;
-    [SerializeField] private Button startButton;
-    [SerializeField] private GameObject startPanel;
-
-    [Header("Panel de estadisticas")]
-    [SerializeField] private GameObject statsPanel;
-    [SerializeField] private TMP_Text levelText;
-    [SerializeField] private TMP_Text streakText;
-    [SerializeField] private TMP_Text bestStreakText;
-    [SerializeField] private TMP_Text precisionText;
-    [SerializeField] private TMP_Text comboText;
 
     [Header("Buttons (3 lanes)")]
     [SerializeField] private Button[] laneButtons;
@@ -51,23 +41,12 @@ public class RhythmGameManager : MonoBehaviour
     [SerializeField] private float hitPopScale = 1.15f;
     [SerializeField] private float hitPopTime = 0.08f;
     [SerializeField] private Color hitTint = new Color(0.7f, 1f, 0.7f);
-    [SerializeField] private Color missTint = new Color(1f, 0.5f, 0.5f);
 
     [Header("Vidas")]
     [SerializeField] private int maxLives = 3;
     [SerializeField] private Image[] lifeIcons;
     [SerializeField] private Sprite heartFull;
     [SerializeField] private Sprite heartEmpty;
-
-    [Header("Audio")]
-    [SerializeField] private AudioSource sfxSource;
-    [SerializeField] private AudioClip hitClip;
-    [SerializeField] private AudioClip missClip;
-    [SerializeField] private AudioClip gameOverClip;
-
-    [Header("Efectos")]
-    [SerializeField] private Image backgroundOverlay;
-    [SerializeField] private ParticleSystem hitParticles;
 
     private enum GameState { Idle, Playing, Paused, GameOver }
     private GameState currentState = GameState.Idle;
@@ -99,17 +78,8 @@ public class RhythmGameManager : MonoBehaviour
     {
         ValidateReferences();
         LoadStats();
-        AutoCreateStatsPanel();
-
-        ShowStatsPanel(false);
         UpdateScore();
         UpdateLivesUI();
-
-        if (startButton != null)
-        {
-            startButton.onClick.RemoveAllListeners();
-            startButton.onClick.AddListener(StartGame);
-        }
 
         for (int i = 0; i < laneButtons.Length; i++)
         {
@@ -130,10 +100,7 @@ public class RhythmGameManager : MonoBehaviour
             }
         }
 
-        SetStatus("Presiona START", Color.white);
-
-        if (startPanel != null)
-            startPanel.SetActive(true);
+        StartGame();
     }
 
     private void Update()
@@ -166,11 +133,7 @@ public class RhythmGameManager : MonoBehaviour
                 Destroy(note.gameObject);
                 activeNotes.RemoveAt(i);
 
-                if (missClip != null && sfxSource != null)
-                    sfxSource.PlayOneShot(missClip);
-
                 TriggerHapticError();
-                FlashBackground(missTint, 0.1f);
 
                 if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS)
                 {
@@ -179,7 +142,6 @@ public class RhythmGameManager : MonoBehaviour
                 }
 
                 SetStatus("Casi...", new Color(1f, 0.85f, 0.2f), animate: false);
-                RefreshStatsUI();
             }
         }
     }
@@ -208,19 +170,9 @@ public class RhythmGameManager : MonoBehaviour
         }
     }
 
-    private float GetPrecision()
-    {
-        int total = totalNotesHit + totalNotesMissed;
-        if (total == 0) return 0;
-        return (float)totalNotesHit / total * 100f;
-    }
-
     public void StartGame()
     {
         if (currentState == GameState.Playing) return;
-
-        if (startPanel != null)
-            startPanel.SetActive(false);
 
         currentState = GameState.Playing;
         score = 0;
@@ -236,8 +188,6 @@ public class RhythmGameManager : MonoBehaviour
 
         UpdateScore();
         UpdateLivesUI();
-        ShowStatsPanel(true);
-        RefreshStatsUI();
 
         SetStatus("¡Sigue el ritmo!", new Color(0.2f, 0.9f, 0.4f));
 
@@ -295,13 +245,6 @@ public class RhythmGameManager : MonoBehaviour
 
             currentNoteSpeed = noteSpeed * speedMultiplier;
             currentSpawnInterval = spawnInterval * intervalMultiplier;
-
-            if (hitParticles != null)
-            {
-                ParticleSystem ps = Instantiate(hitParticles, Vector3.zero, Quaternion.identity);
-                ps.Play();
-                Destroy(ps.gameObject, 1f);
-            }
         }
     }
 
@@ -361,18 +304,7 @@ public class RhythmGameManager : MonoBehaviour
 
             SaveStats();
 
-            if (hitClip != null && sfxSource != null)
-                sfxSource.PlayOneShot(hitClip);
-
             TriggerHapticSuccess();
-            FlashBackground(hitTint, 0.08f);
-
-            if (hitParticles != null && best.transform != null)
-            {
-                ParticleSystem ps = Instantiate(hitParticles, best.transform.position, Quaternion.identity);
-                ps.Play();
-                Destroy(ps.gameObject, 0.5f);
-            }
 
             UpdateScore();
             SetStatus("¡Bien!", new Color(0.2f, 0.9f, 0.4f));
@@ -385,8 +317,6 @@ public class RhythmGameManager : MonoBehaviour
             currentStreak = 0;
             SetStatus("Intenta de nuevo", new Color(1f, 0.85f, 0.2f), animate: false);
         }
-
-        RefreshStatsUI();
     }
 
     private void GameOver(string reason)
@@ -408,16 +338,9 @@ public class RhythmGameManager : MonoBehaviour
             PlayerPrefs.Save();
         }
 
-        if (gameOverClip != null && sfxSource != null)
-            sfxSource.PlayOneShot(gameOverClip);
-
         TriggerHapticError();
-        FlashBackground(missTint, 0.15f);
 
         SetStatus($"{reason}! Puntos: {score}", new Color(1f, 0.3f, 0.3f));
-
-        if (startPanel != null)
-            startPanel.SetActive(true);
     }
 
     private void UpdateScore()
@@ -442,47 +365,6 @@ public class RhythmGameManager : MonoBehaviour
         if (statusText == null) return;
         statusText.text = msg;
         statusText.color = color;
-    }
-
-    private void RefreshStatsUI()
-    {
-        if (levelText != null) levelText.text = $"Nivel: {level}";
-        if (streakText != null) streakText.text = $"Racha: {currentStreak}";
-        if (bestStreakText != null) bestStreakText.text = $"Mejor: {bestStreak}";
-        if (comboText != null) comboText.text = $"Errores: {consecutiveErrors}/{MAX_CONSECUTIVE_ERRORS}";
-
-        float precision = GetPrecision();
-        if (precisionText != null)
-            precisionText.text = precision > 0 ? $"Precision: {precision:0}%": "Precision: -";
-    }
-
-    private void ShowStatsPanel(bool show)
-    {
-        if (statsPanel != null)
-            statsPanel.SetActive(show);
-    }
-
-    private void FlashBackground(Color color, float duration)
-    {
-        if (backgroundOverlay == null) return;
-        StartCoroutine(FlashBackgroundRoutine(color, duration));
-    }
-
-    private IEnumerator FlashBackgroundRoutine(Color color, float duration)
-    {
-        backgroundOverlay.gameObject.SetActive(true);
-        backgroundOverlay.color = color;
-
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float alpha = Mathf.Lerp(color.a, 0f, elapsed / duration);
-            backgroundOverlay.color = new Color(color.r, color.g, color.b, alpha);
-            yield return null;
-        }
-
-        backgroundOverlay.gameObject.SetActive(false);
     }
 
     private void TriggerHapticSuccess()
@@ -529,51 +411,4 @@ public class RhythmGameManager : MonoBehaviour
         img.color = originalColor;
     }
 
-    private void AutoCreateStatsPanel()
-    {
-        if (statsPanel == null)
-        {
-            GameObject canvas = FindObjectOfType<Canvas>()?.gameObject;
-            if (canvas == null) return;
-
-            GameObject panelObj = new GameObject("RhythmStatsPanel");
-            panelObj.transform.SetParent(canvas.transform, false);
-
-            RectTransform rt = panelObj.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0, 0);
-            rt.anchorMax = new Vector2(0, 0);
-            rt.pivot = new Vector2(0, 0);
-            rt.anchoredPosition = new Vector2(20, 20);
-            rt.sizeDelta = new Vector2(160, 110);
-
-            Image bg = panelObj.AddComponent<Image>();
-            bg.color = new Color(0, 0, 0, 0.3f);
-
-            statsPanel = panelObj;
-
-            CreateStatText(panelObj.transform, "LevelText", ref levelText, "Nivel: 1", 0);
-            CreateStatText(panelObj.transform, "StreakText", ref streakText, "Racha: 0", 24);
-            CreateStatText(panelObj.transform, "BestStreakText", ref bestStreakText, "Mejor: 0", 48);
-            CreateStatText(panelObj.transform, "PrecisionText", ref precisionText, "Precision: -", 72);
-        }
-    }
-
-    private void CreateStatText(Transform parent, string name, ref TMP_Text textRef, string defaultText, float yOffset)
-    {
-        GameObject txtObj = new GameObject(name);
-        txtObj.transform.SetParent(parent, false);
-
-        RectTransform rt = txtObj.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0, 1);
-        rt.anchorMax = new Vector2(0, 1);
-        rt.pivot = new Vector2(0, 1);
-        rt.anchoredPosition = new Vector2(10, -yOffset);
-        rt.sizeDelta = new Vector2(140, 20);
-
-        textRef = txtObj.AddComponent<TMP_Text>();
-        textRef.text = defaultText;
-        textRef.fontSize = 14;
-        textRef.color = Color.white;
-        textRef.alignment = TextAlignmentOptions.Left;
-    }
 }

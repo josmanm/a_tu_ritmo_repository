@@ -204,7 +204,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.08627451, g: 0.73333335, b: 0.47058827, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1163,7 +1163,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.93725497, g: 0.15686275, b: 0.2784314, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1377,14 +1377,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.10588236, g: 0.62352943, b: 0.83921576, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -4563930353504062334, guid: 9126167120a30f747b66ffc168d164c5, type: 3}
+  m_Sprite: {fileID: 0}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1433,14 +1433,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   scoreText: {fileID: 1017924436}
   statusText: {fileID: 1288785440}
-  startButton: {fileID: 158454154}
-  startPanel: {fileID: 0}
-  statsPanel: {fileID: 0}
-  levelText: {fileID: 0}
-  streakText: {fileID: 0}
-  bestStreakText: {fileID: 0}
-  precisionText: {fileID: 0}
-  comboText: {fileID: 0}
   laneButtons:
   - {fileID: 545457048}
   - {fileID: 1691723087}
@@ -1470,17 +1462,10 @@ MonoBehaviour:
   hitPopScale: 1.15
   hitPopTime: 0.08
   hitTint: {r: 0.7, g: 1, b: 0.7, a: 1}
-  missTint: {r: 1, g: 0.5, b: 0.5, a: 1}
   maxLives: 3
   lifeIcons: []
   heartFull: {fileID: -205270267638800340, guid: 22f5b687e75a5ff4bbd5803163b64fef, type: 3}
   heartEmpty: {fileID: 6475384851103413656, guid: 632ffa9598cbb4443a3a1d8b0193afbe, type: 3}
-  sfxSource: {fileID: 0}
-  hitClip: {fileID: 0}
-  missClip: {fileID: 0}
-  gameOverClip: {fileID: 0}
-  backgroundOverlay: {fileID: 0}
-  hitParticles: {fileID: 0}
 --- !u!224 &925070260
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2444,7 +2429,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -335}
+  m_AnchoredPosition: {x: 0, y: -340}
   m_SizeDelta: {x: 800, y: 260}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1489280529

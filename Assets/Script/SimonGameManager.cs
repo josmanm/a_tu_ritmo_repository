@@ -67,13 +67,10 @@ public class SimonGameManager : MonoBehaviour
     [Header("Dificultad suave")]
     [SerializeField] private float timePerInputStart = 4.5f;
     [SerializeField] private float timePerInputMin = 1.8f;
-    [SerializeField] private float timeDecreasePerLevel = 0.12f;
     [SerializeField] private float flashStart = 0.5f;
     [SerializeField] private float gapStart = 0.25f;
     [SerializeField] private float flashMin = 0.25f;
     [SerializeField] private float gapMin = 0.1f;
-    [SerializeField] private float flashDecreasePerLevel = 0.015f;
-    [SerializeField] private float gapDecreasePerLevel = 0.008f;
 
     [Header("Colores de estado")]
     [SerializeField] private Color normalColor = Color.white;
