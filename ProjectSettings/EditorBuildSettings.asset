@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/TempoTapScene.unity
     guid: a74d479dac9b86b40a0110ec58b05d9f
+  - enabled: 1
+    path: Assets/Scenes/BasicrhythmScene.unity
+    guid: e175a9fe911563d47803c40cefbf9a60
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
