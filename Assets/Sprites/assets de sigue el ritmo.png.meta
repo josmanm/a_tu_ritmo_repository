@@ -1,0 +1,837 @@
+fileFormatVersion: 2
+guid: 042a37d77efeb8e468f67053eb6ecc71
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2470167896867363362
+    second: assets de sigue el ritmo_0
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 4
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_0
+      rect:
+        serializedVersion: 2
+        x: 1383
+        y: 796
+        width: 78
+        height: 75
+      alignment: 9
+      pivot: {x: 0.72077805, y: 0.5161914}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 22a5a5c5d9cc74220800000000000000
+      internalID: 2470167896867363362
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_38
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 782
+        width: 316
+        height: 88
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 09d66bf116a0e164894f36a986f5b76f
+      internalID: -707279159
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_40
+      rect:
+        serializedVersion: 2
+        x: 390
+        y: 781
+        width: 246
+        height: 86
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4942aaaf2c1d9424a952fa07ab201f15
+      internalID: 1557855934
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_41
+      rect:
+        serializedVersion: 2
+        x: 647
+        y: 782
+        width: 281
+        height: 85
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a2ac400141afbb54b9fdbc7458442645
+      internalID: 1745154276
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_42
+      rect:
+        serializedVersion: 2
+        x: 967
+        y: 766
+        width: 105
+        height: 106
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1a855101f87e2814f86b03cb28486dbe
+      internalID: 1413341875
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_43
+      rect:
+        serializedVersion: 2
+        x: 1081
+        y: 766
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2a51752ae2b94784fbac5d1296be9e8c
+      internalID: -268514666
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_44
+      rect:
+        serializedVersion: 2
+        x: 1215
+        y: 796
+        width: 88
+        height: 75
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fcd18c85169e03648b453c0aef3e5c13
+      internalID: -2014782556
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_46
+      rect:
+        serializedVersion: 2
+        x: 63
+        y: 655
+        width: 265
+        height: 99
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d75c90578ba607e4c967e51a15ae0c1d
+      internalID: -1271605268
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_47
+      rect:
+        serializedVersion: 2
+        x: 334
+        y: 644
+        width: 276
+        height: 110
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5f6a4a0712b28a740ac7b064e6f1014f
+      internalID: 901264670
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_48
+      rect:
+        serializedVersion: 2
+        x: 613
+        y: 654
+        width: 245
+        height: 105
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 979cbc09840e2a04e92ef8101452bde5
+      internalID: -329418262
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_49
+      rect:
+        serializedVersion: 2
+        x: 967
+        y: 616
+        width: 103
+        height: 109
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6b0f482d4c558dd40b8a8817622b9bef
+      internalID: -147350724
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_51
+      rect:
+        serializedVersion: 2
+        x: 1215
+        y: 686
+        width: 257
+        height: 108
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0c9eee5742f478c40a177c459d8e95f6
+      internalID: 196467581
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_52
+      rect:
+        serializedVersion: 2
+        x: 1215
+        y: 616
+        width: 306
+        height: 71
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e01fa59e8a74ef044b87af765006fe64
+      internalID: -922548081
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_54
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 546
+        width: 104
+        height: 101
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dab008ed0190e164a8488a3438c7955b
+      internalID: 1838969152
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_55
+      rect:
+        serializedVersion: 2
+        x: 296
+        y: 544
+        width: 104
+        height: 102
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fd151545e2a13f544a540e3e1f14ef3a
+      internalID: 1785304232
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_56
+      rect:
+        serializedVersion: 2
+        x: 426
+        y: 554
+        width: 204
+        height: 87
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6d632aabd510411488be51ccf2599a25
+      internalID: 1314689612
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_57
+      rect:
+        serializedVersion: 2
+        x: 637
+        y: 555
+        width: 227
+        height: 86
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cd077d876c0fae542a5785b1dc9c5385
+      internalID: 789409933
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_77
+      rect:
+        serializedVersion: 2
+        x: 37
+        y: 162
+        width: 451
+        height: 285
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8f9bbda90759afe40b2c384a74ba3c48
+      internalID: -927588257
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_78
+      rect:
+        serializedVersion: 2
+        x: 513
+        y: 162
+        width: 366
+        height: 281
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 20b1b9056793fa040b33509fe2a82ae7
+      internalID: -1822808206
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_79
+      rect:
+        serializedVersion: 2
+        x: 944
+        y: 312
+        width: 113
+        height: 111
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a523c827ebddcca4481ebf98c90007c2
+      internalID: -161560892
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_80
+      rect:
+        serializedVersion: 2
+        x: 1074
+        y: 312
+        width: 107
+        height: 112
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 73181a1934adb194a8d8bf29d1525cb2
+      internalID: -1814587801
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_81
+      rect:
+        serializedVersion: 2
+        x: 1197
+        y: 318
+        width: 108
+        height: 117
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fdfdf060415161743b476d7cf43c4373
+      internalID: -1313995705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_83
+      rect:
+        serializedVersion: 2
+        x: 1145
+        y: 168
+        width: 43
+        height: 39
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 77a0540458469464e9fd51e10ccedb6f
+      internalID: 835690184
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_84
+      rect:
+        serializedVersion: 2
+        x: 1215
+        y: 168
+        width: 41
+        height: 39
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 24866fd38f8a28640b293fb4f3a53cf7
+      internalID: 835137341
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_85
+      rect:
+        serializedVersion: 2
+        x: 1281
+        y: 169
+        width: 39
+        height: 38
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c43d5daabdef2f14db19d6b6a070e85a
+      internalID: 1284667428
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_53
+      rect:
+        serializedVersion: 2
+        x: 177
+        y: 544
+        width: 104
+        height: 101
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b5e55b47e52d9894f808fc6aa1bede43
+      internalID: -31799232
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_1
+      rect:
+        serializedVersion: 2
+        x: 1304
+        y: 796
+        width: 78
+        height: 75
+      alignment: 9
+      pivot: {x: 0.72077805, y: 0.5161914}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 965c14c0e9ba69a439c8bd87e648fb07
+      internalID: -987406014
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de sigue el ritmo_2
+      rect:
+        serializedVersion: 2
+        x: 1082
+        y: 616
+        width: 105
+        height: 109
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b28317a9f5990a640a3569e629f33279
+      internalID: 1757821122
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: ccc9209c4aa8fe545be11ee34b88f97d
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      assets de sigue el ritmo_0: 2470167896867363362
+      assets de sigue el ritmo_1: -987406014
+      assets de sigue el ritmo_10: -881510302
+      assets de sigue el ritmo_11: 1159316090
+      assets de sigue el ritmo_12: 366862130
+      assets de sigue el ritmo_13: 2023138665
+      assets de sigue el ritmo_14: 1176421099
+      assets de sigue el ritmo_15: 894855218
+      assets de sigue el ritmo_16: -582461536
+      assets de sigue el ritmo_17: 1590922190
+      assets de sigue el ritmo_18: -213235307
+      assets de sigue el ritmo_19: 1064183364
+      assets de sigue el ritmo_2: 1757821122
+      assets de sigue el ritmo_20: -1134497306
+      assets de sigue el ritmo_21: -1286597729
+      assets de sigue el ritmo_22: 226994021
+      assets de sigue el ritmo_23: -1711436900
+      assets de sigue el ritmo_24: -2091111551
+      assets de sigue el ritmo_25: -2141338765
+      assets de sigue el ritmo_26: 2064600771
+      assets de sigue el ritmo_27: 821001677
+      assets de sigue el ritmo_28: -724104173
+      assets de sigue el ritmo_29: 1737462221
+      assets de sigue el ritmo_3: 1843537516
+      assets de sigue el ritmo_30: 1415713805
+      assets de sigue el ritmo_31: -1423598806
+      assets de sigue el ritmo_32: 1190013155
+      assets de sigue el ritmo_33: 1957991346
+      assets de sigue el ritmo_34: 1532322048
+      assets de sigue el ritmo_35: -2048772934
+      assets de sigue el ritmo_36: 461252135
+      assets de sigue el ritmo_37: -1345613323
+      assets de sigue el ritmo_38: -707279159
+      assets de sigue el ritmo_39: 468255242
+      assets de sigue el ritmo_4: -627383607
+      assets de sigue el ritmo_40: 1557855934
+      assets de sigue el ritmo_41: 1745154276
+      assets de sigue el ritmo_42: 1413341875
+      assets de sigue el ritmo_43: -268514666
+      assets de sigue el ritmo_44: -2014782556
+      assets de sigue el ritmo_45: 1196300216
+      assets de sigue el ritmo_46: -1271605268
+      assets de sigue el ritmo_47: 901264670
+      assets de sigue el ritmo_48: -329418262
+      assets de sigue el ritmo_49: -147350724
+      assets de sigue el ritmo_5: 536145441
+      assets de sigue el ritmo_50: 1152109469
+      assets de sigue el ritmo_51: 196467581
+      assets de sigue el ritmo_52: -922548081
+      assets de sigue el ritmo_53: -31799232
+      assets de sigue el ritmo_54: 1838969152
+      assets de sigue el ritmo_55: 1785304232
+      assets de sigue el ritmo_56: 1314689612
+      assets de sigue el ritmo_57: 789409933
+      assets de sigue el ritmo_58: -160251958
+      assets de sigue el ritmo_59: 1901607036
+      assets de sigue el ritmo_6: -1839750746
+      assets de sigue el ritmo_60: -1045373182
+      assets de sigue el ritmo_61: -120120887
+      assets de sigue el ritmo_62: 2009560550
+      assets de sigue el ritmo_63: -578948107
+      assets de sigue el ritmo_64: -1306468692
+      assets de sigue el ritmo_65: -1144519821
+      assets de sigue el ritmo_66: -948509731
+      assets de sigue el ritmo_67: -1911529793
+      assets de sigue el ritmo_68: 1027043421
+      assets de sigue el ritmo_69: -1454308282
+      assets de sigue el ritmo_7: -1478487259
+      assets de sigue el ritmo_70: 1355176214
+      assets de sigue el ritmo_71: 1710756118
+      assets de sigue el ritmo_72: -1455499874
+      assets de sigue el ritmo_73: -1770698430
+      assets de sigue el ritmo_74: -832161466
+      assets de sigue el ritmo_75: -2142114499
+      assets de sigue el ritmo_76: 516025669
+      assets de sigue el ritmo_77: -927588257
+      assets de sigue el ritmo_78: -1822808206
+      assets de sigue el ritmo_79: -161560892
+      assets de sigue el ritmo_8: -2027188182
+      assets de sigue el ritmo_80: -1814587801
+      assets de sigue el ritmo_81: -1313995705
+      assets de sigue el ritmo_82: 421717007
+      assets de sigue el ritmo_83: 835690184
+      assets de sigue el ritmo_84: 835137341
+      assets de sigue el ritmo_85: 1284667428
+      assets de sigue el ritmo_9: 503124997
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
