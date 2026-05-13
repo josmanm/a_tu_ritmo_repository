@@ -1,7 +1,8 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using System;
 
 public class TempoTapGameManager : MonoBehaviour
 {
@@ -40,10 +41,14 @@ public class TempoTapGameManager : MonoBehaviour
     public float assistMs = 180f;   // ventana extra para que igual salte
     public float assistedJumpMultiplier = 0.9f; // salto un poco más bajo si quieres
 
+    [Header("Control")]
+    public bool ignoreExtraTapsOnSameBeat = true;
+
     public BeatSyncedObstacleSpawner obstacleSpawner;
 
     bool running;
     float timeLeft;
+    double lastJudgedBeatTime = double.NaN;
 
 
     void Start()
@@ -54,6 +59,8 @@ public class TempoTapGameManager : MonoBehaviour
 
         if (beatController != null)
             beatController.StopBeats();
+
+        StartGameFromButton();
     }
 
     public void StartSession()
@@ -61,6 +68,7 @@ public class TempoTapGameManager : MonoBehaviour
         running = true;
         timeLeft = sessionSeconds;
         stability = 1f;
+        lastJudgedBeatTime = double.NaN;
         UpdateUI();
 
         if (beatController) beatController.StartBeats();
@@ -96,7 +104,10 @@ public class TempoTapGameManager : MonoBehaviour
         if (obstacleSpawner != null)
             obstacleSpawner.StopSpawner();
 
-        SetFeedback("¡Listo!", 1.2f);
+        if (runner != null)
+            runner.SetGameStarted(false);
+
+        SetFeedback("Juego terminado", 0f);
     }
 
     public void RegisterTap()
@@ -104,10 +115,12 @@ public class TempoTapGameManager : MonoBehaviour
         if (!running || beatController == null) return;
 
         double tapTime = AudioSettings.dspTime;
-        double beatTime = beatController.LastBeatDspTime;
+        float deltaMs = beatController.GetSignedDeltaToNearestBeatMs(tapTime, out double judgedBeatTime);
 
-        double deltaSec = tapTime - beatTime;
-        float deltaMs = (float)(deltaSec * 1000.0f);
+        if (ignoreExtraTapsOnSameBeat && !double.IsNaN(lastJudgedBeatTime) && Math.Abs(judgedBeatTime - lastJudgedBeatTime) < 0.0001)
+            return;
+
+        lastJudgedBeatTime = judgedBeatTime;
         float absMs = Mathf.Abs(deltaMs);
 
         if (absMs <= perfectMs)
@@ -122,13 +135,13 @@ public class TempoTapGameManager : MonoBehaviour
             stability = Mathf.Clamp01(stability + gainOnHit * 0.5f);
             SetFeedback("Bien", 0.5f);
             if (sfxSource && tapCorrect) sfxSource.PlayOneShot(tapCorrect);
-            if (runner) runner.Jump(1f);
+            if (jumpOnGood && runner) runner.Jump(1f);
         }
         else if (absMs <= assistMs)
         {
             // Asistencia: igual salta pero “no perfecto”
             stability = Mathf.Clamp01(stability - 0.02f); // castigo mínimo o ninguno
-            SetFeedback("Casi ", 0.5f);
+            SetFeedback("Casi", 0.5f);
             if (runner) runner.Jump(assistedJumpMultiplier);
         }
         else
@@ -138,6 +151,13 @@ public class TempoTapGameManager : MonoBehaviour
             if (sfxSource && tapWrong) sfxSource.PlayOneShot(tapWrong);
 
         }
+
+        if (stability <= 0f)
+        {
+            EndSession();
+            return;
+        }
+
         UpdateUI();
     }
 
@@ -146,6 +166,10 @@ public class TempoTapGameManager : MonoBehaviour
         if (!feedbackText) return;
         feedbackText.text = msg;
         StopCoroutine(nameof(ClearFeedbackRoutine));
+
+        if (seconds <= 0f)
+            return;
+
         StartCoroutine(ClearFeedbackRoutine(seconds));
     }
 

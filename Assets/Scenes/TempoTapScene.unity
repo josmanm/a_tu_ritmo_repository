@@ -1523,7 +1523,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 10
   m_MaskInteraction: 0
   m_Sprite: {fileID: 1537518874226183753, guid: 10a3e6644fe1139468d79dc49a98ec16, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -2100,8 +2100,8 @@ MonoBehaviour:
   timerText: {fileID: 2067416221}
   stabilityFill: {fileID: 5045299}
   startPanel: {fileID: 393282563}
-  perfectMs: 100
-  goodMs: 120
+  perfectMs: 80
+  goodMs: 150
   sessionSeconds: 30
   stability: 1
   gainOnHit: 0.06
@@ -2111,8 +2111,9 @@ MonoBehaviour:
   tapWrong: {fileID: 0}
   runner: {fileID: 1168069011}
   jumpOnGood: 1
-  assistMs: 180
-  assistedJumpMultiplier: 0.9
+  assistMs: 220
+  assistedJumpMultiplier: 0.1
+  ignoreExtraTapsOnSameBeat: 1
   obstacleSpawner: {fileID: 1988025654}
 --- !u!114 &1921002567
 MonoBehaviour:
@@ -2555,8 +2556,8 @@ SceneRoots:
   - {fileID: 1365180657}
   - {fileID: 1921002568}
   - {fileID: 903075356}
-  - {fileID: 1168069015}
   - {fileID: 1988025653}
   - {fileID: 602460461}
   - {fileID: 1124936507}
+  - {fileID: 1168069015}
   - {fileID: 1410382657}

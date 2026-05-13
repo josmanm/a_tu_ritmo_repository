@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "D:/JosmanM/Cursos2025/Unity/Simondice"
+      ],
+      "enabled": true
+    },
+    "github": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "environment": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_TOKEN}"
+      },
+      "enabled": true
+    },
+    "ai-game-developer": {
+      "type": "remote",
+      "enabled": false,
+      "url": "https://ai-game.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer FZFqRgVzVHi5IT8HuG5hhcoPP9CrrF8H1uDbrcK4BeQ"
+      }
+    }
+  }
+}

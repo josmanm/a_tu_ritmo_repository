@@ -46,7 +46,6 @@ public class BasicRhythmGameManager : MonoBehaviour
     [Header("Audio Juego")]
     [SerializeField] private AudioClip yourTurnVoiceClip;
     [SerializeField] private AudioClip veryGoodVoiceClip;
-    [SerializeField] private AudioClip noProblemVoiceClip;
     [SerializeField] private AudioClip waitALittleVoiceClip;
     [SerializeField] private AudioClip observeVoiceClip;
     [SerializeField] private AudioClip tryAgainVoiceClip;
@@ -250,6 +249,9 @@ public class BasicRhythmGameManager : MonoBehaviour
 
                 yield return StartCoroutine(ShowDemoPattern());
 
+                SetFeedback(ComposeFeedback(GetInputInstruction()), normalFeedbackColor);
+                yield return StartCoroutine(PlayBlockingVoice(yourTurnVoiceClip));
+
                 waitingForInput = true;
                 isPressing = false;
                 currentNoteIndex = 0;
@@ -257,10 +259,8 @@ public class BasicRhythmGameManager : MonoBehaviour
                 roundSuccessfulHits = 0;
                 inputPhaseStartTime = Time.time;
 
-                SetFeedback(ComposeFeedback(GetInputInstruction()), normalFeedbackColor);
-                PlayVoice(yourTurnVoiceClip);
                 drumButton.interactable = true;
-                ResetPatternVisuals();
+                ResetPatternVisuals(false);
 
                 yield return new WaitUntil(() => attemptFinished || lives <= 0);
             }
@@ -285,7 +285,7 @@ public class BasicRhythmGameManager : MonoBehaviour
     private IEnumerator ShowDemoPattern()
     {
         SetFeedback(ComposeFeedback(GetDemoInstruction()), normalFeedbackColor);
-        ResetPatternVisuals();
+        ResetPatternVisuals(true);
 
         for (int i = 0; i < noteCountInPattern; i++)
         {
@@ -337,14 +337,14 @@ public class BasicRhythmGameManager : MonoBehaviour
 
             if (i > currentNoteIndex)
             {
-                HighlightPatternIcon(i, noteDimColor);
+                HighlightPatternIcon(i, waitingForInput ? noteLitColor : noteDimColor);
                 SetFillColor(i, longNoteFillColor);
             }
         }
 
         if (currentNoteIndex >= 0 && currentNoteIndex < patternIcons.Count)
         {
-            HighlightPatternIcon(currentNoteIndex, noteDimColor);
+            HighlightPatternIcon(currentNoteIndex, waitingForInput ? noteLitColor : noteDimColor);
             SetFillColor(currentNoteIndex, longNoteFillColor);
         }
     }
@@ -471,7 +471,6 @@ public class BasicRhythmGameManager : MonoBehaviour
         else
         {
             SetFeedback(ComposeFeedback("Bien +5"), successFeedbackColor);
-            PlayVoice(noProblemVoiceClip);
         }
     }
 
@@ -495,7 +494,6 @@ public class BasicRhythmGameManager : MonoBehaviour
         PlaySfx(failClip);
         PulseDrum(failFeedbackColor);
         SetFeedback(ComposeFeedback(reason), failFeedbackColor);
-        PlayVoice(tryAgainVoiceClip);
 
         AdvanceToNextNote();
     }
@@ -541,7 +539,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         }
 
         SetFeedback(ComposeFeedback("Pierdes 1 vida"), failFeedbackColor);
-        PlayVoice(waitALittleVoiceClip);
+        PlayVoice(tryAgainVoiceClip);
     }
 
     private int GetRequiredHitsForPattern()
@@ -700,7 +698,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             patternFillImages.Add(CreateFillImage(icon));
         }
 
-        ResetPatternVisuals();
+        ResetPatternVisuals(true);
     }
 
     private void ClearPatternVisuals()
@@ -715,11 +713,13 @@ public class BasicRhythmGameManager : MonoBehaviour
         patternFillImages.Clear();
     }
 
-    private void ResetPatternVisuals()
+    private void ResetPatternVisuals(bool dimIcons)
     {
+        Color iconColor = dimIcons ? noteDimColor : noteLitColor;
+
         for (int i = 0; i < patternIcons.Count; i++)
         {
-            HighlightPatternIcon(i, noteDimColor);
+            HighlightPatternIcon(i, iconColor);
             SetFillColor(i, longNoteFillColor);
             SetFillAmount(i, 0f);
         }
@@ -884,7 +884,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (active)
             SetPatternPreviewColor(currentNoteIndex, timingCueColor);
         else
-            SetPatternPreviewColor(currentNoteIndex, noteDimColor);
+            SetPatternPreviewColor(currentNoteIndex, waitingForInput ? noteLitColor : noteDimColor);
     }
 
     private void SetPatternPreviewColor(int index, Color color)
@@ -893,7 +893,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
 
         HighlightPatternIcon(index, color);
-        SetFillColor(index, color == noteDimColor ? longNoteFillColor : color);
+        SetFillColor(index, longNoteFillColor);
     }
 
     private void PulseDrum(Color pulseColor)
@@ -959,11 +959,28 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private IEnumerator PlayPreRoundVoiceIfNeeded()
     {
-        AudioClip clipToPlay = tutorialActive ? GetTutorialVoiceClip() : observeVoiceClip;
-        if (clipToPlay == null || voiceSource == null)
+        if (voiceSource == null)
             yield break;
 
-        PlayVoice(clipToPlay);
+        if (tutorialActive)
+        {
+            AudioClip tutorialClip = GetTutorialVoiceClip();
+            if (tutorialClip != null)
+                yield return StartCoroutine(PlayBlockingVoice(tutorialClip));
+
+            yield break;
+        }
+
+        if (observeVoiceClip != null)
+            yield return StartCoroutine(PlayBlockingVoice(observeVoiceClip));
+    }
+
+    private IEnumerator PlayBlockingVoice(AudioClip clip)
+    {
+        if (clip == null || voiceSource == null)
+            yield break;
+
+        PlayVoice(clip);
         while (voiceSource.isPlaying)
             yield return null;
     }

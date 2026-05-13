@@ -2987,6 +2987,17 @@ MonoBehaviour:
   metronomeClip: {fileID: 8300000, guid: cbb4a4c038f3c074c9098232292190c3, type: 3}
   successClip: {fileID: 8300000, guid: e43083518b217444da2e24b70c9b98a7, type: 3}
   failClip: {fileID: 8300000, guid: adf7650a379fbf94bb884a6842e03949, type: 3}
+  tutorialIntroClip: {fileID: 8300000, guid: b262323a48092004184c270ec2341d04, type: 3}
+  redondaVoiceClip: {fileID: 8300000, guid: 22460c535cd26614c917da8080ddd258, type: 3}
+  blancaVoiceClip: {fileID: 8300000, guid: 528011dc05511dd4bbd6f5c5d173ce6c, type: 3}
+  negraVoiceClip: {fileID: 8300000, guid: 86f70c21bee7ffb44a068f739f942bf2, type: 3}
+  corcheaVoiceClip: {fileID: 8300000, guid: 54da02099c38edf4d97e601cccda6c9a, type: 3}
+  yourTurnVoiceClip: {fileID: 8300000, guid: 1066d02c3f665c545a906eb807d9f6e3, type: 3}
+  veryGoodVoiceClip: {fileID: 8300000, guid: a7fac494b5ac4d0408e6aed1ec0ff7f2, type: 3}
+  noProblemVoiceClip: {fileID: 8300000, guid: 6b8ce3738631e3e49a74823b3a69b093, type: 3}
+  waitALittleVoiceClip: {fileID: 8300000, guid: bb811d671c395594e9c2ebf49dbbea58, type: 3}
+  observeVoiceClip: {fileID: 8300000, guid: 2136a0edb1c99004eb18eb2f24374068, type: 3}
+  tryAgainVoiceClip: {fileID: 8300000, guid: 3bb46e73b15bd6342bba7e64f1939e33, type: 3}
   bpm: 60
   totalPatternBeats: 4
   roundIntroDelay: 0.6
