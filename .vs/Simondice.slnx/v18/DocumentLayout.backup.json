@@ -1,18 +1,18 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\",
+  "WorkspaceRootPath": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josman m\\cursos 2025\\unity\\simondice\\assets\\script\\basicrhythmgamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josmanm\\cursos2025\\unity\\simondice\\assets\\script\\basicrhythmgamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\basicrhythmgamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josman m\\cursos 2025\\unity\\simondice\\assets\\script\\memoryfiguregamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\memoryfiguregamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josmanm\\cursos2025\\unity\\simondice\\assets\\script\\simongamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\simongamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josman m\\cursos 2025\\unity\\simondice\\assets\\script\\simongamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\simongamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josmanm\\cursos2025\\unity\\simondice\\assets\\script\\memoryfiguregamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\memoryfiguregamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,23 +26,24 @@
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
               "Title": "SimonGameManager.cs",
-              "DocumentMoniker": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\SimonGameManager.cs",
+              "DocumentMoniker": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\SimonGameManager.cs",
               "RelativeDocumentMoniker": "Assets\\Script\\SimonGameManager.cs",
-              "ToolTip": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\SimonGameManager.cs",
+              "ToolTip": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\SimonGameManager.cs",
               "RelativeToolTip": "Assets\\Script\\SimonGameManager.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEQAAAA6AAAAAAAAAA==",
+              "ViewState": "AgIAAMoCAAAAAAAAAAAAANkCAABKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-17T14:44:39.189Z"
+              "WhenOpened": "2026-04-17T14:44:39.189Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "MemoryFigureGameManager.cs",
-              "DocumentMoniker": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MemoryFigureGameManager.cs",
+              "DocumentMoniker": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\MemoryFigureGameManager.cs",
               "RelativeDocumentMoniker": "Assets\\Script\\MemoryFigureGameManager.cs",
-              "ToolTip": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\MemoryFigureGameManager.cs",
+              "ToolTip": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\MemoryFigureGameManager.cs",
               "RelativeToolTip": "Assets\\Script\\MemoryFigureGameManager.cs",
               "ViewState": "AgIAAFUCAAAAAAAAAADgv2QCAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
@@ -52,13 +53,13 @@
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "BasicRhythmGameManager.cs",
-              "DocumentMoniker": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\BasicRhythmGameManager.cs",
+              "DocumentMoniker": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\BasicRhythmGameManager.cs",
               "RelativeDocumentMoniker": "Assets\\Script\\BasicRhythmGameManager.cs",
-              "ToolTip": "D:\\Josman M\\Cursos 2025\\Unity\\Simondice\\Assets\\Script\\BasicRhythmGameManager.cs",
+              "ToolTip": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\BasicRhythmGameManager.cs",
               "RelativeToolTip": "Assets\\Script\\BasicRhythmGameManager.cs",
-              "ViewState": "AgIAADUDAAAAAAAAAAAWwAsDAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAAH8EAAAAAAAAAAAqwI0EAAAeAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-27T17:25:12.464Z",
+              "WhenOpened": "2026-05-07T15:52:55.359Z",
               "EditorCaption": ""
             }
           ]

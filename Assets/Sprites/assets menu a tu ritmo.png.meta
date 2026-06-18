@@ -1,0 +1,612 @@
+fileFormatVersion: 2
+guid: 083bb3ff003680147b39893a51d5ef5f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -7666848047860730877
+    second: assets menu a tu ritmo_0
+  - first:
+      213: -8401303742804027371
+    second: assets menu a tu ritmo_1
+  - first:
+      213: 2529599807488340537
+    second: assets menu a tu ritmo_2
+  - first:
+      213: -2921577005360451213
+    second: assets menu a tu ritmo_3
+  - first:
+      213: -1285037774986700283
+    second: assets menu a tu ritmo_4
+  - first:
+      213: 4681346100128652175
+    second: assets menu a tu ritmo_5
+  - first:
+      213: 5459183643226156647
+    second: assets menu a tu ritmo_6
+  - first:
+      213: -230289551808956124
+    second: assets menu a tu ritmo_7
+  - first:
+      213: -5811183968320286090
+    second: assets menu a tu ritmo_8
+  - first:
+      213: 6692677744473306186
+    second: assets menu a tu ritmo_9
+  - first:
+      213: -8522682358746654580
+    second: assets menu a tu ritmo_10
+  - first:
+      213: -75226232549447604
+    second: assets menu a tu ritmo_11
+  - first:
+      213: 3124426530188681466
+    second: assets menu a tu ritmo_12
+  - first:
+      213: -4476347786816925484
+    second: assets menu a tu ritmo_13
+  - first:
+      213: -7282097007662795373
+    second: assets menu a tu ritmo_14
+  - first:
+      213: 6963720542516840967
+    second: assets menu a tu ritmo_15
+  - first:
+      213: 8502349470927054293
+    second: assets menu a tu ritmo_16
+  - first:
+      213: -5675483782903636050
+    second: assets menu a tu ritmo_17
+  - first:
+      213: -6732568283061324327
+    second: assets menu a tu ritmo_18
+  - first:
+      213: -585869194182065274
+    second: assets menu a tu ritmo_19
+  - first:
+      213: -704584389055561060
+    second: assets menu a tu ritmo_20
+  - first:
+      213: 6932476840540059620
+    second: assets menu a tu ritmo_21
+  - first:
+      213: -5048942166335948401
+    second: assets menu a tu ritmo_22
+  - first:
+      213: 9198552685971137261
+    second: assets menu a tu ritmo_23
+  - first:
+      213: -5942686309818706737
+    second: assets menu a tu ritmo_24
+  - first:
+      213: 5030727368002776718
+    second: assets menu a tu ritmo_25
+  - first:
+      213: 4312488795900978584
+    second: assets menu a tu ritmo_26
+  - first:
+      213: -399213649965915787
+    second: assets menu a tu ritmo_27
+  - first:
+      213: 3084919170727899634
+    second: assets menu a tu ritmo_28
+  - first:
+      213: 2818375466539289503
+    second: assets menu a tu ritmo_29
+  - first:
+      213: 8789888071867694244
+    second: assets menu a tu ritmo_30
+  - first:
+      213: -7587341852606406399
+    second: assets menu a tu ritmo_31
+  - first:
+      213: -1662795517474305447
+    second: assets menu a tu ritmo_32
+  - first:
+      213: -5867602583557716289
+    second: assets menu a tu ritmo_33
+  - first:
+      213: 7073881331858258478
+    second: assets menu a tu ritmo_34
+  - first:
+      213: 4197476866157000788
+    second: assets menu a tu ritmo_35
+  - first:
+      213: 1431433074961583633
+    second: assets menu a tu ritmo_36
+  - first:
+      213: -5605209976687895475
+    second: assets menu a tu ritmo_37
+  - first:
+      213: 1629012030719094917
+    second: assets menu a tu ritmo_38
+  - first:
+      213: 5324399291717404162
+    second: assets menu a tu ritmo_39
+  - first:
+      213: -2250784124204678493
+    second: assets menu a tu ritmo_40
+  - first:
+      213: -8604380920262306406
+    second: assets menu a tu ritmo_41
+  - first:
+      213: 4029986206951366408
+    second: assets menu a tu ritmo_42
+  - first:
+      213: -4494449350968912486
+    second: assets menu a tu ritmo_43
+  - first:
+      213: 1302704570401497589
+    second: assets menu a tu ritmo_44
+  - first:
+      213: 7501195818007165656
+    second: assets menu a tu ritmo_45
+  - first:
+      213: -3134626736667239891
+    second: assets menu a tu ritmo_46
+  - first:
+      213: -1258441595166233760
+    second: assets menu a tu ritmo_47
+  - first:
+      213: 6045862947274288576
+    second: assets menu a tu ritmo_48
+  - first:
+      213: -8519317940669121439
+    second: assets menu a tu ritmo_49
+  - first:
+      213: -7824909360617507815
+    second: assets menu a tu ritmo_50
+  - first:
+      213: 7003416331364314387
+    second: assets menu a tu ritmo_51
+  - first:
+      213: -667848467348465285
+    second: assets menu a tu ritmo_52
+  - first:
+      213: 51228508293734768
+    second: assets menu a tu ritmo_53
+  - first:
+      213: 6560839752156141899
+    second: assets menu a tu ritmo_54
+  - first:
+      213: -8314048495434641445
+    second: assets menu a tu ritmo_55
+  - first:
+      213: -6189503535344818256
+    second: assets menu a tu ritmo_56
+  - first:
+      213: -5374390658945067832
+    second: assets menu a tu ritmo_57
+  - first:
+      213: -4310515398816866369
+    second: assets menu a tu ritmo_58
+  - first:
+      213: 1908158524061331150
+    second: assets menu a tu ritmo_59
+  - first:
+      213: -7468143575520859443
+    second: assets menu a tu ritmo_60
+  - first:
+      213: -8965758702032645099
+    second: assets menu a tu ritmo_61
+  - first:
+      213: 8725809601992959632
+    second: assets menu a tu ritmo_62
+  - first:
+      213: 6450081121260161849
+    second: assets menu a tu ritmo_63
+  - first:
+      213: -6742575976688919945
+    second: assets menu a tu ritmo_64
+  - first:
+      213: -1743893092467872276
+    second: assets menu a tu ritmo_65
+  - first:
+      213: 6157683701988406219
+    second: assets menu a tu ritmo_66
+  - first:
+      213: 4072468090093900596
+    second: assets menu a tu ritmo_67
+  - first:
+      213: -3692462703973699695
+    second: assets menu a tu ritmo_68
+  - first:
+      213: -7683885892140708357
+    second: assets menu a tu ritmo_69
+  - first:
+      213: 1819883698875492178
+    second: assets menu a tu ritmo_70
+  - first:
+      213: -467229729967388334
+    second: assets menu a tu ritmo_71
+  - first:
+      213: -1666298439639230838
+    second: assets menu a tu ritmo_72
+  - first:
+      213: 8544390735425508779
+    second: assets menu a tu ritmo_73
+  - first:
+      213: 3511288920056796054
+    second: assets menu a tu ritmo_74
+  - first:
+      213: -6183817897645720658
+    second: assets menu a tu ritmo_75
+  - first:
+      213: -3057189248936197652
+    second: assets menu a tu ritmo_76
+  - first:
+      213: 38570439307924063
+    second: assets menu a tu ritmo_77
+  - first:
+      213: -7581755775803647692
+    second: assets menu a tu ritmo_78
+  - first:
+      213: -79856408246511189
+    second: assets menu a tu ritmo_79
+  - first:
+      213: 4595759580540470242
+    second: assets menu a tu ritmo_80
+  - first:
+      213: 8810051959128912747
+    second: assets menu a tu ritmo_81
+  - first:
+      213: 5524136392424813816
+    second: assets menu a tu ritmo_82
+  - first:
+      213: -5916733175660452237
+    second: assets menu a tu ritmo_83
+  - first:
+      213: 7946621579326512045
+    second: assets menu a tu ritmo_84
+  - first:
+      213: 6362875543640389020
+    second: assets menu a tu ritmo_85
+  - first:
+      213: 3707653417814612431
+    second: assets menu a tu ritmo_86
+  - first:
+      213: -3751056370265272015
+    second: assets menu a tu ritmo_87
+  - first:
+      213: 5315355745071077465
+    second: assets menu a tu ritmo_88
+  - first:
+      213: -1571447806746476353
+    second: assets menu a tu ritmo_89
+  - first:
+      213: 2761782835304022092
+    second: assets menu a tu ritmo_90
+  - first:
+      213: 300132394090934163
+    second: assets menu a tu ritmo_91
+  - first:
+      213: -3947037678740803391
+    second: assets menu a tu ritmo_92
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: assets menu a tu ritmo_13
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 278
+        width: 281
+        height: 82
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4d0dba39761d0e1c0800000000000000
+      internalID: -4476347786816925484
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets menu a tu ritmo_26
+      rect:
+        serializedVersion: 2
+        x: 333
+        y: 19
+        width: 309
+        height: 349
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 895a78916b909db30800000000000000
+      internalID: 4312488795900978584
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets menu a tu ritmo_47
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 185
+        width: 281
+        height: 80
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 06b6a85690e198ee0800000000000000
+      internalID: -1258441595166233760
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets menu a tu ritmo_83
+      rect:
+        serializedVersion: 2
+        x: 10
+        y: 94
+        width: 281
+        height: 80
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3766df1668a83eda0800000000000000
+      internalID: -5916733175660452237
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets menu a tu ritmo_85
+      rect:
+        serializedVersion: 2
+        x: 11
+        y: 11
+        width: 186
+        height: 66
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c95b4b058997d4850800000000000000
+      internalID: 6362875543640389020
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 487d3e871bd8cf44ca5b4d19c947a28e
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      assets menu a tu ritmo_0: -7666848047860730877
+      assets menu a tu ritmo_1: -8401303742804027371
+      assets menu a tu ritmo_10: -8522682358746654580
+      assets menu a tu ritmo_11: -75226232549447604
+      assets menu a tu ritmo_12: 3124426530188681466
+      assets menu a tu ritmo_13: -4476347786816925484
+      assets menu a tu ritmo_14: -7282097007662795373
+      assets menu a tu ritmo_15: 6963720542516840967
+      assets menu a tu ritmo_16: 8502349470927054293
+      assets menu a tu ritmo_17: -5675483782903636050
+      assets menu a tu ritmo_18: -6732568283061324327
+      assets menu a tu ritmo_19: -585869194182065274
+      assets menu a tu ritmo_2: 2529599807488340537
+      assets menu a tu ritmo_20: -704584389055561060
+      assets menu a tu ritmo_21: 6932476840540059620
+      assets menu a tu ritmo_22: -5048942166335948401
+      assets menu a tu ritmo_23: 9198552685971137261
+      assets menu a tu ritmo_24: -5942686309818706737
+      assets menu a tu ritmo_25: 5030727368002776718
+      assets menu a tu ritmo_26: 4312488795900978584
+      assets menu a tu ritmo_27: -399213649965915787
+      assets menu a tu ritmo_28: 3084919170727899634
+      assets menu a tu ritmo_29: 2818375466539289503
+      assets menu a tu ritmo_3: -2921577005360451213
+      assets menu a tu ritmo_30: 8789888071867694244
+      assets menu a tu ritmo_31: -7587341852606406399
+      assets menu a tu ritmo_32: -1662795517474305447
+      assets menu a tu ritmo_33: -5867602583557716289
+      assets menu a tu ritmo_34: 7073881331858258478
+      assets menu a tu ritmo_35: 4197476866157000788
+      assets menu a tu ritmo_36: 1431433074961583633
+      assets menu a tu ritmo_37: -5605209976687895475
+      assets menu a tu ritmo_38: 1629012030719094917
+      assets menu a tu ritmo_39: 5324399291717404162
+      assets menu a tu ritmo_4: -1285037774986700283
+      assets menu a tu ritmo_40: -2250784124204678493
+      assets menu a tu ritmo_41: -8604380920262306406
+      assets menu a tu ritmo_42: 4029986206951366408
+      assets menu a tu ritmo_43: -4494449350968912486
+      assets menu a tu ritmo_44: 1302704570401497589
+      assets menu a tu ritmo_45: 7501195818007165656
+      assets menu a tu ritmo_46: -3134626736667239891
+      assets menu a tu ritmo_47: -1258441595166233760
+      assets menu a tu ritmo_48: 6045862947274288576
+      assets menu a tu ritmo_49: -8519317940669121439
+      assets menu a tu ritmo_5: 4681346100128652175
+      assets menu a tu ritmo_50: -7824909360617507815
+      assets menu a tu ritmo_51: 7003416331364314387
+      assets menu a tu ritmo_52: -667848467348465285
+      assets menu a tu ritmo_53: 51228508293734768
+      assets menu a tu ritmo_54: 6560839752156141899
+      assets menu a tu ritmo_55: -8314048495434641445
+      assets menu a tu ritmo_56: -6189503535344818256
+      assets menu a tu ritmo_57: -5374390658945067832
+      assets menu a tu ritmo_58: -4310515398816866369
+      assets menu a tu ritmo_59: 1908158524061331150
+      assets menu a tu ritmo_6: 5459183643226156647
+      assets menu a tu ritmo_60: -7468143575520859443
+      assets menu a tu ritmo_61: -8965758702032645099
+      assets menu a tu ritmo_62: 8725809601992959632
+      assets menu a tu ritmo_63: 6450081121260161849
+      assets menu a tu ritmo_64: -6742575976688919945
+      assets menu a tu ritmo_65: -1743893092467872276
+      assets menu a tu ritmo_66: 6157683701988406219
+      assets menu a tu ritmo_67: 4072468090093900596
+      assets menu a tu ritmo_68: -3692462703973699695
+      assets menu a tu ritmo_69: -7683885892140708357
+      assets menu a tu ritmo_7: -230289551808956124
+      assets menu a tu ritmo_70: 1819883698875492178
+      assets menu a tu ritmo_71: -467229729967388334
+      assets menu a tu ritmo_72: -1666298439639230838
+      assets menu a tu ritmo_73: 8544390735425508779
+      assets menu a tu ritmo_74: 3511288920056796054
+      assets menu a tu ritmo_75: -6183817897645720658
+      assets menu a tu ritmo_76: -3057189248936197652
+      assets menu a tu ritmo_77: 38570439307924063
+      assets menu a tu ritmo_78: -7581755775803647692
+      assets menu a tu ritmo_79: -79856408246511189
+      assets menu a tu ritmo_8: -5811183968320286090
+      assets menu a tu ritmo_80: 4595759580540470242
+      assets menu a tu ritmo_81: 8810051959128912747
+      assets menu a tu ritmo_82: 5524136392424813816
+      assets menu a tu ritmo_83: -5916733175660452237
+      assets menu a tu ritmo_84: 7946621579326512045
+      assets menu a tu ritmo_85: 6362875543640389020
+      assets menu a tu ritmo_86: 3707653417814612431
+      assets menu a tu ritmo_87: -3751056370265272015
+      assets menu a tu ritmo_88: 5315355745071077465
+      assets menu a tu ritmo_89: -1571447806746476353
+      assets menu a tu ritmo_9: 6692677744473306186
+      assets menu a tu ritmo_90: 2761782835304022092
+      assets menu a tu ritmo_91: 300132394090934163
+      assets menu a tu ritmo_92: -3947037678740803391
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

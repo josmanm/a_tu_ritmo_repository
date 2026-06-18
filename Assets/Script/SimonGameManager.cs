@@ -2,51 +2,69 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.Linq;
 
 public class SimonGameManager : MonoBehaviour
 {
+    [System.Serializable]
+    private class BoardReferences
+    {
+        public RectTransform boardRoot;
+        public Image baseBoardImage;
+        public RectTransform zonesRoot;
+    }
+
     [System.Serializable]
     public class SimonColorData
     {
         public string name;
         public string label;
-        public Color normalColor;
-        public Color litColor;
         public AudioClip clip;
     }
 
     [Header("Configuracion del tablero")]
-    [SerializeField] private float pieceSize = 400f;
-    [SerializeField] private RectTransform piecesRoot;
-    [SerializeField] private SimonPieceUI piecePrefab;
+    [SerializeField] private RectTransform board4Root;
+    [SerializeField] private Image board4Image;
+    [SerializeField] private RectTransform board4ZonesRoot;
+    [SerializeField] private RectTransform board5Root;
+    [SerializeField] private Image board5Image;
+    [SerializeField] private RectTransform board5ZonesRoot;
+    [SerializeField] private RectTransform board7Root;
+    [SerializeField] private Image board7Image;
+    [SerializeField] private RectTransform board7ZonesRoot;
 
-    [Header("Sprites por cantidad de piezas")]
-    [SerializeField] private Sprite pieceSprite4;
-    [SerializeField] private Sprite pieceSprite5;
-    [SerializeField] private Sprite pieceSprite7;
+    [Header("Sprites base del tablero")]
+    [SerializeField] private Sprite boardSprite4;
+    [SerializeField] private Sprite boardSprite5;
+    [SerializeField] private Sprite boardSprite7;
+
+    [Header("Sprites iluminados del tablero")]
+    [SerializeField] private Sprite[] board4LitSprites = new Sprite[4];
+    [SerializeField] private Sprite[] board5LitSprites = new Sprite[5];
+    [SerializeField] private Sprite[] board7LitSprites = new Sprite[7];
+
+    [Header("Editor Preview")]
+    [SerializeField] [Range(4, 7)] private int editorPreviewPieceCount = 4;
 
     [Header("Colores disponibles")]
     [SerializeField] private List<SimonColorData> colorPool = new List<SimonColorData>();
 
-    [Header("Posicion de letras")]
-    [SerializeField] private Vector2 labelPositionFor4Pieces = new Vector2(-140f, 140f);
-    [SerializeField] private Vector2 labelPositionFor5Pieces = new Vector2(-165f, 70f);
-    [SerializeField] private Vector2 labelPositionFor7Pieces = new Vector2(-150f, 55f);
-    [SerializeField] private Vector2[] labelPositionsFor5ByIndex = new Vector2[5];
-    [SerializeField] private Vector2[] labelPositionsFor7ByIndex = new Vector2[7];
-    [SerializeField] private float labelFontSizeFor4Pieces = 30f;
-    [SerializeField] private float labelFontSizeFor5Pieces = 24f;
-    [SerializeField] private float labelFontSizeFor7Pieces = 20f;
-    [SerializeField] private float[] labelXPatternFallback = new float[] { -140f, 7f, 140f };
-
     [Header("UI")]
     [SerializeField] private Button startButton;
     [SerializeField] private Button replayButton;
+    [SerializeField] private Button menuButton;
     [SerializeField] private TMP_Text statusText;
     [SerializeField] private TMP_Text infoText;
     [SerializeField] private TMP_Text recordText;
     [SerializeField] private TMP_Text scoreText;
+    [SerializeField] private Color scoreColor = new Color32(0xFF, 0xD9, 0x05, 0xFF);
+    [SerializeField] private GameObject pausePanel;
+    [SerializeField] private Button resumeButton;
+    [SerializeField] private Button restartButton;
+    [SerializeField] private Button closeButton;
+    [SerializeField] private Button pauseMenuButton;
 
     // Panel de estadisticas eliminado - UI mas limpia
 
@@ -54,7 +72,6 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private AudioClip failClip;
     [SerializeField] private AudioClip gameOverClip;
-    [SerializeField] private AudioClip successClip;
     [SerializeField] private AudioClip levelUpClip;
     [SerializeField] private AudioClip roundTransitionClip;
 
@@ -65,12 +82,17 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private Color bgErrorColor = new Color(0.3f, 0.1f, 0.1f, 0.3f);
 
     [Header("Dificultad suave")]
-    [SerializeField] private float timePerInputStart = 4.5f;
-    [SerializeField] private float timePerInputMin = 1.8f;
-    [SerializeField] private float flashStart = 0.5f;
-    [SerializeField] private float gapStart = 0.25f;
-    [SerializeField] private float flashMin = 0.25f;
-    [SerializeField] private float gapMin = 0.1f;
+    [SerializeField] private float pauseBetweenRounds = 0.8f;
+    [SerializeField] private float playerResponseBeatWindow = 3f;
+    [SerializeField] private float minimumResponseTime = 1.5f;
+
+    [Header("Tempo")]
+    [SerializeField] private float initialBPM = 60f;
+    [SerializeField] private float maximumBPM = 90f;
+    [SerializeField] private float bpmIncrease = 5f;
+    [SerializeField] private int roundsPerSpeedIncrease = 2;
+    [SerializeField] [Range(0.2f, 0.9f)] private float soundDurationRatio = 0.6f;
+    [SerializeField] private SimonMetronomeController metronomeController;
 
     [Header("Colores de estado")]
     [SerializeField] private Color normalColor = Color.white;
@@ -107,10 +129,9 @@ public class SimonGameManager : MonoBehaviour
     private readonly List<int> sequence = new List<int>();
     private int playerIndex = 0;
 
-    private float flashTime;
-    private float gapTime;
     private float currentInputTime;
     private float timeLimit;
+    private float currentBPM;
 
     private Coroutine statusAnim;
     private Coroutine showSequenceRoutine;
@@ -119,24 +140,42 @@ public class SimonGameManager : MonoBehaviour
     private int lives;
     private int score;
 
-    private readonly List<SimonPieceUI> activePieces = new List<SimonPieceUI>();
+    private readonly List<SimonZoneUI> activeZones = new List<SimonZoneUI>();
+    private readonly List<Transform> discoveredZoneButtons = new List<Transform>();
+    private Image activeBoardImage;
+    private RectTransform activeZonesRoot;
     private int currentColorCount = 4;
 
     private float lastTapTime = -1f;
     private float tapCooldown = 0.2f;
+    private bool isPaused;
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        ResolveBoardReferences();
+        ApplyEditorPreview();
+    }
 
     private void Start()
     {
+        ResolveBoardReferences();
+        ResolvePauseReferences();
         ValidateReferences();
         BuildBoard(4);
         SetInput(false);
+        ConfigureButtons();
+        currentBPM = initialBPM;
+
+        if (pausePanel != null)
+            pausePanel.SetActive(false);
 
         startButton.interactable = true;
         if (replayButton != null)
         {
             replayButton.gameObject.SetActive(false);
-            replayButton.onClick.RemoveAllListeners();
-            replayButton.onClick.AddListener(ReplaySequence);
         }
         score = 0;
         RefreshScoreUI();
@@ -148,6 +187,9 @@ public class SimonGameManager : MonoBehaviour
 
     private void Update()
     {
+        if (isPaused)
+            return;
+
         if (currentState != GameState.PlayerTurn) return;
 
         currentInputTime -= Time.deltaTime;
@@ -165,8 +207,9 @@ public class SimonGameManager : MonoBehaviour
 
     private void ValidateReferences()
     {
-        if (piecesRoot == null) Debug.LogError("SimonGameManager: piecesRoot es null.");
-        if (piecePrefab == null) Debug.LogError("SimonGameManager: piecePrefab es null.");
+        if (board4ZonesRoot == null) Debug.LogError("SimonGameManager: board4ZonesRoot es null.");
+        if (board5ZonesRoot == null) Debug.LogError("SimonGameManager: board5ZonesRoot es null.");
+        if (board7ZonesRoot == null) Debug.LogError("SimonGameManager: board7ZonesRoot es null.");
         if (colorPool == null || colorPool.Count == 0) Debug.LogError("SimonGameManager: colorPool esta vacio.");
     }
 
@@ -185,50 +228,47 @@ public class SimonGameManager : MonoBehaviour
             return;
         }
 
-        foreach (Transform child in piecesRoot)
-            Destroy(child.gameObject);
+        ResolveBoardReferences();
+        BoardReferences board = GetBoardReferences(pieceCount);
+        if (board == null || board.zonesRoot == null)
+            return;
 
-        activePieces.Clear();
+        SetActiveBoard(pieceCount);
 
-        Sprite spriteToUse = pieceCount switch
+        activeZones.Clear();
+
+        Sprite boardSpriteToUse = pieceCount switch
         {
-            4 => pieceSprite4,
-            5 => pieceSprite5,
-            7 => pieceSprite7,
-            _ => pieceSprite4
+            4 => boardSprite4,
+            5 => boardSprite5,
+            7 => boardSprite7,
+            _ => boardSprite4
         };
 
-        float angleStep = 360f / pieceCount;
-
-        for (int i = 0; i < pieceCount; i++)
+        if (board.baseBoardImage != null)
         {
-            SimonPieceUI piece = Instantiate(piecePrefab, piecesRoot);
-            RectTransform rt = piece.GetComponent<RectTransform>();
-            piece.SetSprite(spriteToUse);
+            board.baseBoardImage.sprite = boardSpriteToUse;
+            board.baseBoardImage.preserveAspect = true;
+            board.baseBoardImage.enabled = boardSpriteToUse != null;
+        }
 
-            if (spriteToUse != null)
-            {
-                rt.sizeDelta = new Vector2(spriteToUse.texture.width, spriteToUse.texture.height);
-            }
-            else
-            {
-                rt.sizeDelta = new Vector2(pieceSize, pieceSize);
-            }
+        for (int i = 0; i < 7; i++)
+        {
+            bool active = i < pieceCount;
+            if (!active)
+                continue;
 
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
-            rt.localScale = Vector3.one;
+            SimonZoneUI zone = GetOrCreateZone(i);
+            if (zone == null)
+                continue;
 
-            float rotationZ = -i * angleStep;
-            rt.localRotation = Quaternion.Euler(0f, 0f, rotationZ);
+            zone.gameObject.SetActive(true);
 
-            piece.Setup(i, colorPool[i].normalColor, colorPool[i].litColor, colorPool[i].label, OnPlayerPress);
-            piece.SetLabelRotation(-rotationZ);
-            ApplyLabelPosition(piece, i, pieceCount);
+            zone.Setup(i, colorPool[i].label, OnPlayerPress);
 
-            activePieces.Add(piece);
+            zone.SetOff();
+
+            activeZones.Add(zone);
         }
 
         currentColorCount = pieceCount;
@@ -237,17 +277,20 @@ public class SimonGameManager : MonoBehaviour
     public void StartGame()
     {
         StopAllCoroutines();
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
 
         sequence.Clear();
         playerIndex = 0;
         score = 0;
         currentLevel = 1;
+        currentBPM = initialBPM;
         RefreshScoreUI();
 
         BuildBoard(4);
         AddStep();
         UpdateBoardForLevel();
-        UpdateDifficultyForLevel();
+        UpdateTempoForRound();
         ResetPlayerTimeLimit();
 
         SetStatus($"Mira la secuencia y repitela tocando los colores", warningColor);
@@ -262,9 +305,14 @@ public class SimonGameManager : MonoBehaviour
 
     public void ReplaySequence()
     {
+        if (isPaused)
+            return;
+
         if (currentState != GameState.PlayerTurn && currentState != GameState.Idle) return;
 
         StopAllCoroutines();
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
 
         SetStatus("Escucha de nuevo", warningColor);
         showSequenceRoutine = StartCoroutine(ShowSequence());
@@ -272,12 +320,13 @@ public class SimonGameManager : MonoBehaviour
 
     private void AddStep()
     {
-        sequence.Add(Random.Range(0, activePieces.Count));
+        sequence.Add(Random.Range(0, activeZones.Count));
     }
 
     private IEnumerator ShowSequence()
     {
         currentState = GameState.ShowingSequence;
+        ShowAllOff();
 
         if (timeBarRoot != null) timeBarRoot.SetActive(true);
         SetInput(false);
@@ -287,18 +336,29 @@ public class SimonGameManager : MonoBehaviour
 
         yield return new WaitForSeconds(0.4f);
 
+        float beatDuration = GetBeatDuration();
+        float activeDuration = beatDuration * soundDurationRatio;
+        float restDuration = Mathf.Max(0f, beatDuration - activeDuration);
+
+        if (metronomeController != null)
+            metronomeController.StartMetronome(currentBPM);
+
         for (int i = 0; i < sequence.Count; i++)
         {
             int step = sequence[i];
 
-            activePieces[step].ShowLit();
+            ShowOn(step);
             PlayColorSound(step);
 
-            yield return new WaitForSeconds(flashTime);
+            yield return new WaitForSeconds(activeDuration);
 
-            activePieces[step].SetOff();
-            yield return new WaitForSeconds(gapTime);
+            ShowAllOff();
+            if (restDuration > 0f)
+                yield return new WaitForSeconds(restDuration);
         }
+
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
 
         currentState = GameState.PlayerTurn;
         playerIndex = 0;
@@ -317,13 +377,16 @@ public class SimonGameManager : MonoBehaviour
 
     private void OnPlayerPress(int idx)
     {
+        if (isPaused)
+            return;
+
         if (currentState != GameState.PlayerTurn) return;
 
         float now = Time.time;
         if (now - lastTapTime < tapCooldown) return;
         lastTapTime = now;
 
-        activePieces[idx].FlashOn();
+        StartCoroutine(FlashBoardSelection(idx));
 
         if (idx != sequence[playerIndex])
         {
@@ -335,7 +398,7 @@ public class SimonGameManager : MonoBehaviour
         PlayColorSound(idx);
         TriggerHapticSuccess();
 
-        Vector3 piecePos = activePieces[idx].transform.position;
+        Vector3 piecePos = activeZones[idx].transform.position;
         celebrationEffect.PlayPerfectEffect(piecePos);
 
         playerIndex++;
@@ -363,36 +426,31 @@ public class SimonGameManager : MonoBehaviour
 
         celebrationEffect.PlayLevelUpEffect();
 
-        yield return new WaitForSeconds(0.8f);
+        yield return new WaitForSeconds(pauseBetweenRounds);
 
         AddStep();
         UpdateBoardForLevel();
-        UpdateDifficultyForLevel();
+        UpdateTempoForRound();
         ResetPlayerTimeLimit();
 
         SetStatus("Mira la secuencia y repitela tocando los colores", warningColor, animate: false);
         yield return StartCoroutine(ShowSequence());
     }
 
-    private void UpdateDifficultyForLevel()
+    private void UpdateTempoForRound()
     {
-        int level = Mathf.Max(1, sequence.Count);
+        int roundIndex = Mathf.Max(0, currentLevel - 1);
+        int increaseSteps = Mathf.Max(0, roundIndex / Mathf.Max(1, roundsPerSpeedIncrease));
+        currentBPM = Mathf.Min(maximumBPM, initialBPM + increaseSteps * bpmIncrease);
 
-        float progress = (level - 1) / 20f;
-        progress = Mathf.Clamp01(progress);
-
-        flashTime = Mathf.Lerp(flashStart, flashMin, progress);
-        gapTime = Mathf.Lerp(gapStart, gapMin, progress);
+        if (metronomeController != null)
+            metronomeController.SetBpm(currentBPM);
     }
 
     private void ResetPlayerTimeLimit()
     {
-        int level = Mathf.Max(1, sequence.Count);
-
-        float progress = (level - 1) / 25f;
-        progress = Mathf.Clamp01(progress);
-
-        currentInputTime = Mathf.Lerp(timePerInputStart, timePerInputMin, progress);
+        float beatDuration = GetBeatDuration();
+        currentInputTime = Mathf.Max(minimumResponseTime, beatDuration * Mathf.Max(0.5f, playerResponseBeatWindow));
         timeLimit = currentInputTime;
 
         if (timeBarFill != null)
@@ -422,6 +480,8 @@ public class SimonGameManager : MonoBehaviour
         SetInput(false);
         startButton.interactable = true;
         if (replayButton != null) replayButton.gameObject.SetActive(false);
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
 
         if (gameOverClip != null && sfxSource != null)
             sfxSource.PlayOneShot(gameOverClip);
@@ -460,8 +520,8 @@ public class SimonGameManager : MonoBehaviour
 
     private void SetInput(bool value)
     {
-        for (int i = 0; i < activePieces.Count; i++)
-            activePieces[i].SetInteractable(value);
+        for (int i = 0; i < activeZones.Count; i++)
+            activeZones[i].SetInteractable(value);
     }
 
     private void SetStatus(string msg, Color color, bool animate = true)
@@ -523,14 +583,20 @@ public class SimonGameManager : MonoBehaviour
 
     private void ShowOn(int idx)
     {
-        if (idx < 0 || idx >= activePieces.Count) return;
-        activePieces[idx].ShowLit();
+        if (idx < 0 || idx >= activeZones.Count) return;
+
+        Sprite litSprite = GetLitBoardSprite(currentColorCount, idx);
+        if (activeBoardImage != null && litSprite != null)
+            activeBoardImage.sprite = litSprite;
     }
 
     private void ShowAllOff()
     {
-        for (int i = 0; i < activePieces.Count; i++)
-            activePieces[i].SetOff();
+        for (int i = 0; i < activeZones.Count; i++)
+            activeZones[i].SetOff();
+
+        if (activeBoardImage != null)
+            activeBoardImage.sprite = GetBoardSpriteForCount(currentColorCount);
     }
 
     private void PlayColorSound(int idx)
@@ -614,7 +680,10 @@ public class SimonGameManager : MonoBehaviour
     private void RefreshScoreUI()
     {
         if (scoreText != null)
-            scoreText.text = $"Puntos\n {score}";
+        {
+            scoreText.text = score.ToString();
+            scoreText.color = scoreColor;
+        }
     }
 
     private void UpdateBoardForLevel()
@@ -626,46 +695,384 @@ public class SimonGameManager : MonoBehaviour
             BuildBoard(neededCount);
     }
 
-    private void ApplyLabelPosition(SimonPieceUI piece, int index, int pieceCount)
+    private void ResolveBoardReferences()
     {
-        if (piece == null) return;
-
-        if (pieceCount == 4)
-        {
-            piece.SetLabelAnchoredPosition(labelPositionFor4Pieces.x, labelPositionFor4Pieces.y);
-            piece.SetLabelFontSize(labelFontSizeFor4Pieces);
-            return;
-        }
-
-        if (pieceCount == 5)
-        {
-            Vector2 p = GetPerIndexLabelPosition(labelPositionsFor5ByIndex, index, labelPositionFor5Pieces);
-            piece.SetLabelAnchoredPosition(p.x, p.y);
-            piece.SetLabelFontSize(labelFontSizeFor5Pieces);
-            return;
-        }
-
-        if (pieceCount == 7)
-        {
-            Vector2 p = GetPerIndexLabelPosition(labelPositionsFor7ByIndex, index, labelPositionFor7Pieces);
-            piece.SetLabelAnchoredPosition(p.x, p.y);
-            piece.SetLabelFontSize(labelFontSizeFor7Pieces);
-            return;
-        }
-
-        if (labelXPatternFallback == null || labelXPatternFallback.Length == 0) return;
-        piece.SetLabelAnchoredX(labelXPatternFallback[index % labelXPatternFallback.Length]);
+        ResolveBoardSet(ref board4Root, ref board4Image, ref board4ZonesRoot, "Board4Root");
+        ResolveBoardSet(ref board5Root, ref board5Image, ref board5ZonesRoot, "Board5Root");
+        ResolveBoardSet(ref board7Root, ref board7Image, ref board7ZonesRoot, "Board7Root");
     }
 
-    private Vector2 GetPerIndexLabelPosition(Vector2[] byIndex, int index, Vector2 fallback)
+    private void ApplyEditorPreview()
     {
-        if (byIndex == null || byIndex.Length == 0) return fallback;
-        if (index < 0 || index >= byIndex.Length) return fallback;
+        int visibleCount = editorPreviewPieceCount <= 4 ? 4 : editorPreviewPieceCount <= 5 ? 5 : 7;
+        SetActiveBoard(visibleCount);
 
-        Vector2 p = byIndex[index];
-        if (Mathf.Approximately(p.x, 0f) && Mathf.Approximately(p.y, 0f))
-            return fallback;
+        if (activeBoardImage != null)
+        {
+            Sprite previewSprite = GetBoardSpriteForCount(visibleCount);
+            activeBoardImage.sprite = previewSprite;
+            activeBoardImage.enabled = previewSprite != null;
+            activeBoardImage.preserveAspect = true;
+        }
 
-        return p;
+        if (activeZonesRoot == null)
+            return;
+
+        if (discoveredZoneButtons.Count == 0)
+            RefreshDiscoveredZones();
+
+        for (int i = 0; i < discoveredZoneButtons.Count; i++)
+            discoveredZoneButtons[i].gameObject.SetActive(i < visibleCount);
+    }
+
+    private Sprite GetBoardSpriteForCount(int pieceCount)
+    {
+        return pieceCount switch
+        {
+            4 => boardSprite4,
+            5 => boardSprite5,
+            7 => boardSprite7,
+            _ => boardSprite4
+        };
+    }
+
+    private Sprite GetLitBoardSprite(int pieceCount, int index)
+    {
+        Sprite[] litSprites = pieceCount switch
+        {
+            4 => board4LitSprites,
+            5 => board5LitSprites,
+            7 => board7LitSprites,
+            _ => null
+        };
+
+        if (litSprites == null || index < 0 || index >= litSprites.Length)
+            return null;
+
+        return litSprites[index];
+    }
+
+    private SimonZoneUI GetOrCreateZone(int index)
+    {
+        if (activeZonesRoot == null)
+            return null;
+
+        if (discoveredZoneButtons.Count == 0)
+            RefreshDiscoveredZones();
+
+        Transform zoneTransform = activeZonesRoot.Find("ZoneButton_" + index);
+        if (zoneTransform == null && index >= 0 && index < discoveredZoneButtons.Count)
+            zoneTransform = discoveredZoneButtons[index];
+
+        if (zoneTransform == null)
+        {
+            Debug.LogWarning("SimonGameManager: falta ZoneButton_" + index);
+            return null;
+        }
+
+        SimonZoneUI zone = zoneTransform.GetComponent<SimonZoneUI>();
+        if (zone == null)
+            zone = zoneTransform.gameObject.AddComponent<SimonZoneUI>();
+
+        return zone;
+    }
+
+    private void RefreshDiscoveredZones()
+    {
+        discoveredZoneButtons.Clear();
+        if (activeZonesRoot == null)
+            return;
+
+        List<Transform> namedZones = new List<Transform>();
+        List<Transform> unnamedZones = new List<Transform>();
+
+        for (int i = 0; i < activeZonesRoot.childCount; i++)
+        {
+            Transform child = activeZonesRoot.GetChild(i);
+            if (child.GetComponent<Button>() == null)
+                continue;
+
+            if (child.name.StartsWith("ZoneButton_"))
+                namedZones.Add(child);
+            else
+                unnamedZones.Add(child);
+        }
+
+        namedZones = namedZones.OrderBy(t => ExtractZoneIndex(t.name)).ToList();
+        discoveredZoneButtons.AddRange(namedZones);
+        discoveredZoneButtons.AddRange(unnamedZones);
+    }
+
+    private int ExtractZoneIndex(string zoneName)
+    {
+        const string prefix = "ZoneButton_";
+        if (string.IsNullOrEmpty(zoneName))
+            return int.MaxValue;
+
+        string trimmedName = zoneName.Trim();
+        if (!trimmedName.StartsWith(prefix))
+            return int.MaxValue;
+
+        string suffix = trimmedName.Substring(prefix.Length).Trim();
+        if (int.TryParse(suffix, out int parsedIndex))
+            return parsedIndex;
+
+        return int.MaxValue;
+    }
+
+    private void ResolveBoardSet(ref RectTransform board, ref Image image, ref RectTransform zones, string rootName)
+    {
+        if (board == null)
+        {
+            GameObject boardObject = GameObject.Find(rootName);
+            if (boardObject != null)
+                board = boardObject.GetComponent<RectTransform>();
+        }
+
+        if (image == null && board != null)
+        {
+            Transform imageTransform = board.Find("BaseBoardImage");
+            if (imageTransform != null)
+                image = imageTransform.GetComponent<Image>();
+        }
+
+        if (zones == null && board != null)
+        {
+            Transform zonesTransform = board.Find("ZonesRoot");
+            if (zonesTransform != null)
+                zones = zonesTransform as RectTransform;
+        }
+    }
+
+    private BoardReferences GetBoardReferences(int pieceCount)
+    {
+        BoardReferences board = new BoardReferences();
+        switch (pieceCount)
+        {
+            case 4:
+                board.boardRoot = board4Root;
+                board.baseBoardImage = board4Image;
+                board.zonesRoot = board4ZonesRoot;
+                break;
+            case 5:
+                board.boardRoot = board5Root;
+                board.baseBoardImage = board5Image;
+                board.zonesRoot = board5ZonesRoot;
+                break;
+            case 7:
+                board.boardRoot = board7Root;
+                board.baseBoardImage = board7Image;
+                board.zonesRoot = board7ZonesRoot;
+                break;
+            default:
+                return null;
+        }
+
+        return board.boardRoot != null ? board : null;
+    }
+
+    private void SetActiveBoard(int pieceCount)
+    {
+        SetBoardVisible(board4Root, pieceCount == 4);
+        SetBoardVisible(board5Root, pieceCount == 5);
+        SetBoardVisible(board7Root, pieceCount == 7);
+
+        BoardReferences board = GetBoardReferences(pieceCount);
+        activeBoardImage = board != null ? board.baseBoardImage : null;
+        activeZonesRoot = board != null ? board.zonesRoot : null;
+        RefreshDiscoveredZones();
+    }
+
+    private void SetBoardVisible(RectTransform boardRootToToggle, bool visible)
+    {
+        if (boardRootToToggle != null)
+            boardRootToToggle.gameObject.SetActive(visible);
+    }
+
+    private void ResolvePauseReferences()
+    {
+        if (menuButton == null)
+            menuButton = FindButtonInScene("BtnMenu") ?? FindButtonInScene("BtnExIt") ?? FindButtonInScene("MenuButton");
+
+        if (pausePanel == null)
+        {
+            GameObject pausePanelObject = GameObject.Find("PausePanel");
+            if (pausePanelObject != null)
+                pausePanel = pausePanelObject;
+        }
+
+        if (pausePanel != null)
+        {
+            Transform pauseTransform = pausePanel.transform;
+            if (resumeButton == null)
+                resumeButton = FindButton(pauseTransform, "ResumenButton") ?? FindButton(pauseTransform, "ResumeButton");
+            if (restartButton == null)
+                restartButton = FindButton(pauseTransform, "RestartButton");
+            if (closeButton == null)
+                closeButton = FindButton(pauseTransform, "CloseButton");
+            if (pauseMenuButton == null)
+                pauseMenuButton = FindButton(pauseTransform, "MenuButton");
+        }
+    }
+
+    private void ConfigureButtons()
+    {
+        if (startButton != null)
+        {
+            startButton.onClick = new Button.ButtonClickedEvent();
+            startButton.onClick.RemoveAllListeners();
+            startButton.onClick.AddListener(StartGame);
+        }
+
+        if (replayButton != null)
+        {
+            replayButton.onClick = new Button.ButtonClickedEvent();
+            replayButton.onClick.RemoveAllListeners();
+            replayButton.onClick.AddListener(ReplaySequence);
+        }
+
+        if (menuButton != null)
+        {
+            menuButton.onClick = new Button.ButtonClickedEvent();
+            menuButton.onClick.RemoveAllListeners();
+            menuButton.onClick.AddListener(PauseGame);
+        }
+
+        if (resumeButton != null)
+        {
+            resumeButton.onClick = new Button.ButtonClickedEvent();
+            resumeButton.onClick.RemoveAllListeners();
+            resumeButton.onClick.AddListener(ResumeGame);
+        }
+
+        if (closeButton != null)
+        {
+            closeButton.onClick = new Button.ButtonClickedEvent();
+            closeButton.onClick.RemoveAllListeners();
+            closeButton.onClick.AddListener(ResumeGame);
+        }
+
+        if (restartButton != null)
+        {
+            restartButton.onClick = new Button.ButtonClickedEvent();
+            restartButton.onClick.RemoveAllListeners();
+            restartButton.onClick.AddListener(RestartScene);
+        }
+
+        if (pauseMenuButton != null)
+        {
+            pauseMenuButton.onClick = new Button.ButtonClickedEvent();
+            pauseMenuButton.onClick.RemoveAllListeners();
+            pauseMenuButton.onClick.AddListener(LoadMainScene);
+        }
+    }
+
+    private void PauseGame()
+    {
+        if (pausePanel == null || isPaused)
+            return;
+
+        isPaused = true;
+        pausePanel.SetActive(true);
+        Time.timeScale = 0f;
+        AudioListener.pause = true;
+        SetInput(false);
+        if (metronomeController != null)
+            metronomeController.PauseMetronome();
+
+        if (startButton != null)
+            startButton.interactable = false;
+        if (replayButton != null)
+            replayButton.interactable = false;
+    }
+
+    private void ResumeGame()
+    {
+        if (!isPaused)
+            return;
+
+        isPaused = false;
+        if (pausePanel != null)
+            pausePanel.SetActive(false);
+
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        if (metronomeController != null && currentState != GameState.GameOver)
+        {
+            if (currentState == GameState.ShowingSequence)
+                metronomeController.ResumeMetronome();
+            else
+                metronomeController.StopMetronome();
+        }
+
+        if (startButton != null)
+            startButton.interactable = currentState != GameState.ShowingSequence;
+        if (replayButton != null)
+            replayButton.interactable = replayButton.gameObject.activeSelf && currentState != GameState.ShowingSequence;
+
+        SetInput(currentState == GameState.PlayerTurn);
+    }
+
+    private void RestartScene()
+    {
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    private void LoadMainScene()
+    {
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        SceneManager.LoadScene("MainScene");
+    }
+
+    private static Button FindButton(Transform root, string objectName)
+    {
+        if (root == null)
+            return null;
+
+        Transform match = FindChild(root, objectName);
+        return match != null ? match.GetComponent<Button>() : null;
+    }
+
+    private static Button FindButtonInScene(string objectName)
+    {
+        GameObject found = GameObject.Find(objectName);
+        return found != null ? found.GetComponent<Button>() : null;
+    }
+
+    private static Transform FindChild(Transform root, string objectName)
+    {
+        if (root == null)
+            return null;
+
+        if (root.name == objectName)
+            return root;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform result = FindChild(root.GetChild(i), objectName);
+            if (result != null)
+                return result;
+        }
+
+        return null;
+    }
+
+    private IEnumerator FlashBoardSelection(int idx)
+    {
+        ShowOn(idx);
+        yield return new WaitForSeconds(GetBeatDuration() * soundDurationRatio);
+        ShowAllOff();
+    }
+
+    private float GetBeatDuration()
+    {
+        return 60f / Mathf.Max(1f, currentBPM);
     }
 }

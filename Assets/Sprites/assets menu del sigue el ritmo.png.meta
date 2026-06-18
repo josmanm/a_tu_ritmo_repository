@@ -173,10 +173,10 @@ TextureImporter:
       name: assets menu del sigue el ritmo_0
       rect:
         serializedVersion: 2
-        x: 87
-        y: 398
-        width: 790
-        height: 561
+        x: 74
+        y: 399
+        width: 351
+        height: 73
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -195,10 +195,10 @@ TextureImporter:
       name: assets menu del sigue el ritmo_1
       rect:
         serializedVersion: 2
-        x: 1084
-        y: 819
-        width: 141
-        height: 140
+        x: 75
+        y: 310
+        width: 350
+        height: 74
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -217,10 +217,10 @@ TextureImporter:
       name: assets menu del sigue el ritmo_2
       rect:
         serializedVersion: 2
-        x: 1252
-        y: 803
-        width: 160
-        height: 155
+        x: 75
+        y: 225
+        width: 350
+        height: 72
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -239,10 +239,10 @@ TextureImporter:
       name: assets menu del sigue el ritmo_3
       rect:
         serializedVersion: 2
-        x: 920
-        y: 589
-        width: 147
-        height: 156
+        x: 73
+        y: 138
+        width: 352
+        height: 75
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -261,10 +261,10 @@ TextureImporter:
       name: assets menu del sigue el ritmo_4
       rect:
         serializedVersion: 2
-        x: 1109
-        y: 590
-        width: 147
-        height: 156
+        x: 0
+        y: 99
+        width: 500
+        height: 503
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -275,226 +275,6 @@ TextureImporter:
       bones: []
       spriteID: 56e6b03c74f110b90800000000000000
       internalID: -7277501129778565531
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_5
-      rect:
-        serializedVersion: 2
-        x: 1295
-        y: 586
-        width: 147
-        height: 156
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 93fb250d263417840800000000000000
-      internalID: 5220027534780055353
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_6
-      rect:
-        serializedVersion: 2
-        x: 312
-        y: 388
-        width: 15
-        height: 6
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 26b79679d3a4cdd30800000000000000
-      internalID: 4457519359583681378
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_7
-      rect:
-        serializedVersion: 2
-        x: 920
-        y: 403
-        width: 147
-        height: 156
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 94464a016885aedb0800000000000000
-      internalID: -4761896323162807223
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_8
-      rect:
-        serializedVersion: 2
-        x: 935
-        y: 190
-        width: 147
-        height: 156
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: d44cf0239c8185f50800000000000000
-      internalID: 6870268483961078861
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_9
-      rect:
-        serializedVersion: 2
-        x: 1110
-        y: 398
-        width: 147
-        height: 156
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 384b5dff7eae4f940800000000000000
-      internalID: 5329142541236679811
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_10
-      rect:
-        serializedVersion: 2
-        x: 99
-        y: 222
-        width: 414
-        height: 110
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1cec8b3a41ea4f710800000000000000
-      internalID: 1726195960859119297
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_11
-      rect:
-        serializedVersion: 2
-        x: 543
-        y: 183
-        width: 362
-        height: 163
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 600079679f5d137f0800000000000000
-      internalID: -634490805069348858
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_12
-      rect:
-        serializedVersion: 2
-        x: 1296
-        y: 401
-        width: 147
-        height: 156
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: e2659059470a4c020800000000000000
-      internalID: 2361188527226050094
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_13
-      rect:
-        serializedVersion: 2
-        x: 1098
-        y: 202
-        width: 139
-        height: 137
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: eea60cf622892f650800000000000000
-      internalID: 6265237305296972526
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu del sigue el ritmo_14
-      rect:
-        serializedVersion: 2
-        x: 1274
-        y: 181
-        width: 157
-        height: 157
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1ae85815c505839c0800000000000000
-      internalID: -3947316715955319135
       vertices: []
       indices: 
       edges: []
