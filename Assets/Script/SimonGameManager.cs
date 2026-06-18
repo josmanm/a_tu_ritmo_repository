@@ -57,6 +57,7 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private Button menuButton;
     [SerializeField] private TMP_Text statusText;
     [SerializeField] private TMP_Text infoText;
+    [SerializeField] private Image statusIconImage;
     [SerializeField] private TMP_Text recordText;
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private Color scoreColor = new Color32(0xFF, 0xD9, 0x05, 0xFF);
@@ -103,6 +104,24 @@ public class SimonGameManager : MonoBehaviour
     [Header("Animacion de estado")]
     [SerializeField] private float popDuration = 0.25f;
     [SerializeField] private float popScale = 1.15f;
+    [SerializeField] private float shakeDuration = 0.22f;
+    [SerializeField] private float shakeDistance = 28f;
+    [SerializeField] private float overlayFlashDuration = 0.35f;
+    [SerializeField] private Vector2 statusMessageSize = new Vector2(1400f, 320f);
+    [SerializeField] private float statusMessageOffsetY = 0f;
+    [SerializeField] private float statusMessageMaxFontSize = 88f;
+    [SerializeField] private float statusMessageMinFontSize = 42f;
+    [SerializeField] private Vector2 statusIconSize = new Vector2(220f, 220f);
+    [SerializeField] private float statusIconOffsetY = 200f;
+    [SerializeField] private Color bgWarningColor = new Color(0.35f, 0.28f, 0.08f, 0.28f);
+    [SerializeField] private float sequenceIntroMessageSeconds = 1.5f;
+    [SerializeField] private float playerTurnMessageSeconds = 1.2f;
+    [SerializeField] private float feedbackMessageSeconds = 1.25f;
+    [SerializeField] private float gameOverMessageSeconds = 2.2f;
+    [SerializeField] private Sprite neutralStatusSprite;
+    [SerializeField] private Sprite successStatusSprite;
+    [SerializeField] private Sprite warningStatusSprite;
+    [SerializeField] private Sprite errorStatusSprite;
 
     [Header("Barra de tiempo")]
     [SerializeField] private Image timeBarFill;
@@ -134,6 +153,8 @@ public class SimonGameManager : MonoBehaviour
     private float currentBPM;
 
     private Coroutine statusAnim;
+    private Coroutine statusVisibilityRoutine;
+    private Coroutine overlayFlashRoutine;
     private Coroutine showSequenceRoutine;
     private Coroutine loseLifeRoutine;
 
@@ -164,6 +185,7 @@ public class SimonGameManager : MonoBehaviour
         ResolveBoardReferences();
         ResolvePauseReferences();
         ValidateReferences();
+        ConfigureStatusOverlay();
         BuildBoard(4);
         SetInput(false);
         ConfigureButtons();
@@ -182,7 +204,6 @@ public class SimonGameManager : MonoBehaviour
         RefreshRecordUI();
 
         SetStatus("Presiona JUGAR para comenzar", normalColor, animate: false);
-        SetInfo("");
     }
 
     private void Update()
@@ -193,8 +214,6 @@ public class SimonGameManager : MonoBehaviour
         if (currentState != GameState.PlayerTurn) return;
 
         currentInputTime -= Time.deltaTime;
-        float remaining = Mathf.Max(0, currentInputTime);
-        SetInfo($"Tiempo: {remaining:0.0}s");
 
         if (currentInputTime <= 0f)
         {
@@ -293,14 +312,13 @@ public class SimonGameManager : MonoBehaviour
         UpdateTempoForRound();
         ResetPlayerTimeLimit();
 
-        SetStatus($"Mira la secuencia y repitela tocando los colores", warningColor);
-        SetInfo($"Nivel {currentLevel}");
+        SetStatus($"Comienza el nivel {currentLevel}\nObserva la secuencia", warningColor);
 
         if (replayButton != null) replayButton.gameObject.SetActive(true);
 
-        showSequenceRoutine = StartCoroutine(ShowSequence());
         lives = maxLives;
         UpdateLivesUI();
+        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage($"Comienza el nivel {currentLevel}\nObserva la secuencia", warningColor, sequenceIntroMessageSeconds));
     }
 
     public void ReplaySequence()
@@ -314,8 +332,7 @@ public class SimonGameManager : MonoBehaviour
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
-        SetStatus("Escucha de nuevo", warningColor);
-        showSequenceRoutine = StartCoroutine(ShowSequence());
+        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage($"Escucha de nuevo\nNivel {currentLevel}", warningColor, sequenceIntroMessageSeconds));
     }
 
     private void AddStep()
@@ -332,7 +349,6 @@ public class SimonGameManager : MonoBehaviour
         SetInput(false);
         startButton.interactable = false;
         if (replayButton != null) replayButton.interactable = false;
-        SetInfo($"Nivel {currentLevel}");
 
         yield return new WaitForSeconds(0.4f);
 
@@ -360,13 +376,13 @@ public class SimonGameManager : MonoBehaviour
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
-        currentState = GameState.PlayerTurn;
+        currentState = GameState.Idle;
         playerIndex = 0;
 
-        ResetPlayerTimeLimit();
+        yield return StartCoroutine(ShowStatusThenHide($"Tu turno\nRepite la secuencia", normalColor, playerTurnMessageSeconds, animate: false));
 
-        SetStatus("Repite la secuencia tocando los colores", normalColor, animate: false);
-        SetInfo($"Nivel {currentLevel}");
+        ResetPlayerTimeLimit();
+        currentState = GameState.PlayerTurn;
         SetInput(true);
         startButton.interactable = true;
         if (replayButton != null) replayButton.interactable = true;
@@ -421,8 +437,7 @@ public class SimonGameManager : MonoBehaviour
             sfxSource.PlayOneShot(roundTransitionClip);
 
         currentLevel++;
-        SetStatus($"Excelente! Nivel {currentLevel}", successColor);
-        SetInfo($"Siguiente: Nivel {currentLevel}");
+        yield return StartCoroutine(ShowStatusThenHide($"Muy bien!\nNivel {currentLevel}", successColor, feedbackMessageSeconds));
 
         celebrationEffect.PlayLevelUpEffect();
 
@@ -433,7 +448,6 @@ public class SimonGameManager : MonoBehaviour
         UpdateTempoForRound();
         ResetPlayerTimeLimit();
 
-        SetStatus("Mira la secuencia y repitela tocando los colores", warningColor, animate: false);
         yield return StartCoroutine(ShowSequence());
     }
 
@@ -493,8 +507,8 @@ public class SimonGameManager : MonoBehaviour
         SaveRecordIfNeeded(nivelAlcanzado);
         RefreshRecordUI();
 
-        SetStatus($"Fin del juego! Nivel alcanzado: {nivelAlcanzado}", errorColor);
-        SetInfo("Presiona JUGAR para intentarlo de nuevo");
+        SetStatus($"Fin del juego\nLlegaste al nivel {nivelAlcanzado}\nPulsa JUGAR para intentarlo de nuevo", errorColor);
+        StartHideStatusCountdown(gameOverMessageSeconds);
 
         sequence.Clear();
         playerIndex = 0;
@@ -528,29 +542,74 @@ public class SimonGameManager : MonoBehaviour
     {
         if (statusText == null) return;
 
+        statusText.gameObject.SetActive(true);
         statusText.text = msg;
         statusText.color = color;
+        UpdateStatusIcon(color);
 
-        if (backgroundOverlay != null)
-        {
-            if (color == successColor)
-                backgroundOverlay.color = bgSuccessColor;
-            else if (color == errorColor)
-                backgroundOverlay.color = bgErrorColor;
-            else
-                backgroundOverlay.color = Color.clear;
-        }
+        PlayOverlayFlash(color);
 
         if (!animate) return;
 
         if (statusAnim != null) StopCoroutine(statusAnim);
-        statusAnim = StartCoroutine(StatusPop());
+
+        if (color == errorColor)
+            statusAnim = StartCoroutine(StatusShake());
+        else
+            statusAnim = StartCoroutine(StatusPop());
     }
 
-    private void SetInfo(string msg)
+    private IEnumerator ShowStatusThenHide(string msg, Color color, float visibleSeconds, bool animate = true)
     {
-        if (infoText == null) return;
-        infoText.text = msg;
+        SetStatus(msg, color, animate);
+
+        if (visibleSeconds > 0f)
+            yield return new WaitForSeconds(visibleSeconds);
+
+        HideStatus();
+    }
+
+    private IEnumerator BeginSequenceAfterMessage(string msg, Color color, float visibleSeconds)
+    {
+        yield return StartCoroutine(ShowStatusThenHide(msg, color, visibleSeconds));
+        showSequenceRoutine = StartCoroutine(ShowSequence());
+    }
+
+    private void StartHideStatusCountdown(float visibleSeconds)
+    {
+        if (statusVisibilityRoutine != null)
+            StopCoroutine(statusVisibilityRoutine);
+
+        statusVisibilityRoutine = StartCoroutine(HideStatusAfterDelay(visibleSeconds));
+    }
+
+    private IEnumerator HideStatusAfterDelay(float visibleSeconds)
+    {
+        if (visibleSeconds > 0f)
+            yield return new WaitForSeconds(visibleSeconds);
+
+        HideStatus();
+        statusVisibilityRoutine = null;
+    }
+
+    private void HideStatus()
+    {
+        if (statusText == null)
+            return;
+
+        if (statusAnim != null)
+        {
+            StopCoroutine(statusAnim);
+            statusAnim = null;
+        }
+
+        statusText.rectTransform.localScale = Vector3.one;
+        statusText.rectTransform.anchoredPosition = new Vector2(0f, statusMessageOffsetY);
+        statusText.gameObject.SetActive(false);
+        HideStatusIcon();
+
+        if (backgroundOverlay != null)
+            backgroundOverlay.color = Color.clear;
     }
 
     private IEnumerator StatusPop()
@@ -563,7 +622,7 @@ public class SimonGameManager : MonoBehaviour
         float t = 0f;
         while (t < popDuration)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             float k = t / popDuration;
             rt.localScale = Vector3.Lerp(original * 0.9f, original * popScale, k);
             yield return null;
@@ -572,13 +631,70 @@ public class SimonGameManager : MonoBehaviour
         t = 0f;
         while (t < popDuration)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             float k = t / popDuration;
             rt.localScale = Vector3.Lerp(original * popScale, original, k);
             yield return null;
         }
 
         rt.localScale = original;
+    }
+
+    private IEnumerator StatusShake()
+    {
+        RectTransform rt = statusText.rectTransform;
+        Vector2 original = rt.anchoredPosition;
+        float t = 0f;
+
+        while (t < shakeDuration)
+        {
+            t += Time.unscaledDeltaTime;
+            float normalized = 1f - Mathf.Clamp01(t / shakeDuration);
+            float offsetX = Mathf.Sin(t * 70f) * shakeDistance * normalized;
+            rt.anchoredPosition = original + new Vector2(offsetX, 0f);
+            yield return null;
+        }
+
+        rt.anchoredPosition = original;
+    }
+
+    private void PlayOverlayFlash(Color color)
+    {
+        if (backgroundOverlay == null)
+            return;
+
+        Color targetColor = Color.clear;
+        if (color == successColor)
+            targetColor = bgSuccessColor;
+        else if (color == errorColor)
+            targetColor = bgErrorColor;
+        else if (color == warningColor)
+            targetColor = bgWarningColor;
+
+        if (overlayFlashRoutine != null)
+            StopCoroutine(overlayFlashRoutine);
+
+        overlayFlashRoutine = StartCoroutine(FadeOverlay(targetColor));
+    }
+
+    private IEnumerator FadeOverlay(Color flashColor)
+    {
+        backgroundOverlay.color = flashColor;
+
+        if (flashColor == Color.clear)
+            yield break;
+
+        float t = 0f;
+        while (t < overlayFlashDuration)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / overlayFlashDuration);
+            backgroundOverlay.color = Color.Lerp(flashColor, Color.clear, k);
+            yield return null;
+        }
+
+        backgroundOverlay.color = Color.clear;
+        overlayFlashRoutine = null;
     }
 
     private void ShowOn(int idx)
@@ -654,13 +770,10 @@ public class SimonGameManager : MonoBehaviour
         if (sfxSource != null) sfxSource.Stop();
         if (failClip != null && sfxSource != null) sfxSource.PlayOneShot(failClip);
 
-        SetStatus($"{reason}! Te quedan {lives} vidas", errorColor);
-        SetInfo($"Nivel {currentLevel}");
+        yield return StartCoroutine(ShowStatusThenHide($"{reason}\nTe quedan {lives} vidas", errorColor, feedbackMessageSeconds));
         ShowAllOff();
 
         playerIndex = 0;
-
-        yield return new WaitForSeconds(1f);
 
         showSequenceRoutine = StartCoroutine(ShowSequence());
         loseLifeRoutine = null;
@@ -967,6 +1080,97 @@ public class SimonGameManager : MonoBehaviour
         }
     }
 
+    private void ConfigureStatusOverlay()
+    {
+        if (statusText == null)
+            return;
+
+        RectTransform statusRect = statusText.rectTransform;
+        statusRect.anchorMin = new Vector2(0.5f, 0.5f);
+        statusRect.anchorMax = new Vector2(0.5f, 0.5f);
+        statusRect.pivot = new Vector2(0.5f, 0.5f);
+        statusRect.anchoredPosition = new Vector2(0f, statusMessageOffsetY);
+        statusRect.sizeDelta = statusMessageSize;
+
+        statusText.gameObject.SetActive(true);
+        statusText.alignment = TextAlignmentOptions.Center;
+        statusText.raycastTarget = false;
+        statusText.textWrappingMode = TextWrappingModes.Normal;
+        statusText.overflowMode = TextOverflowModes.Ellipsis;
+        statusText.enableAutoSizing = true;
+        statusText.fontSizeMax = statusMessageMaxFontSize;
+        statusText.fontSizeMin = statusMessageMinFontSize;
+        statusText.fontStyle = FontStyles.Bold;
+
+        ConfigureStatusIcon();
+
+        if (infoText != null)
+            infoText.gameObject.SetActive(false);
+
+        if (backgroundOverlay != null)
+        {
+            backgroundOverlay.raycastTarget = false;
+            backgroundOverlay.color = Color.clear;
+        }
+
+        statusText.gameObject.SetActive(false);
+    }
+
+    private void ConfigureStatusIcon()
+    {
+        if (statusIconImage == null)
+            return;
+
+        RectTransform iconRect = statusIconImage.rectTransform;
+        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+        iconRect.pivot = new Vector2(0.5f, 0.5f);
+        iconRect.anchoredPosition = new Vector2(0f, statusMessageOffsetY + statusIconOffsetY);
+        iconRect.sizeDelta = statusIconSize;
+        statusIconImage.preserveAspect = true;
+        statusIconImage.raycastTarget = false;
+        statusIconImage.gameObject.SetActive(false);
+    }
+
+    private void UpdateStatusIcon(Color color)
+    {
+        if (statusIconImage == null)
+            return;
+
+        Sprite iconSprite = GetStatusSprite(color);
+        if (iconSprite == null)
+        {
+            statusIconImage.gameObject.SetActive(false);
+            return;
+        }
+
+        statusIconImage.sprite = iconSprite;
+        statusIconImage.color = Color.white;
+        statusIconImage.gameObject.SetActive(true);
+    }
+
+    private void HideStatusIcon()
+    {
+        if (statusIconImage == null)
+            return;
+
+        statusIconImage.gameObject.SetActive(false);
+    }
+
+    private Sprite GetStatusSprite(Color color)
+    {
+        if (color == successColor)
+            return successStatusSprite;
+
+        if (color == errorColor)
+            return errorStatusSprite;
+
+        if (color == warningColor)
+            return warningStatusSprite != null ? warningStatusSprite : neutralStatusSprite;
+
+        return neutralStatusSprite;
+    }
+
     private void PauseGame()
     {
         if (pausePanel == null || isPaused)
@@ -984,6 +1188,8 @@ public class SimonGameManager : MonoBehaviour
             startButton.interactable = false;
         if (replayButton != null)
             replayButton.interactable = false;
+
+        SetStatus("Pausa", warningColor, animate: false);
     }
 
     private void ResumeGame()
@@ -1011,6 +1217,11 @@ public class SimonGameManager : MonoBehaviour
             replayButton.interactable = replayButton.gameObject.activeSelf && currentState != GameState.ShowingSequence;
 
         SetInput(currentState == GameState.PlayerTurn);
+
+        if (currentState == GameState.PlayerTurn)
+            HideStatus();
+        else if (currentState == GameState.ShowingSequence)
+            HideStatus();
     }
 
     private void RestartScene()

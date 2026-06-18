@@ -20,14 +20,14 @@ Juego de memoria visual donde el jugador debe repetir secuencias de colores most
 - Efectos visuales y sonoros
 - Tablero adaptativo (4, 5 o 7 piezas según el nivel)
 
-### Rhythm (RhythmScene)
-Juego de ritmo con notas que caen en 3 carriles.
+### Basic Rhythm (BasicrhythmScene)
+Juego educativo de ritmo con figuras musicales y un tambor interactivo.
 
 **Características:**
-- 3 carriles con notas de diferentes colores
-- Sistema de puntuación por precisión
-- Ventana de golpe personalizable
-- Feedback visual inmediato
+- Tutorial progresivo
+- Patrones de figuras y silencios
+- Puntuación y sistema de vidas
+- Feedback visual y auditivo
 
 ### TempoTap (TempoTapScene)
 Juego de ritmo que combina tapping con un runner 2D.
@@ -45,13 +45,13 @@ Juego de ritmo que combina tapping con un runner 2D.
 Assets/
 ├── Script/              # Scripts C# del juego
 │   ├── SimonGameManager.cs
-│   ├── RhythmGameManager.cs
+│   ├── BasicRhythmGameManager.cs
 │   ├── TempoTapGameManager.cs
 │   └── ...
 ├── Scenes/              # Escenas del juego
 │   ├── MainScene.unity
 │   ├── SimonScene.unity
-│   ├── RhythmScene.unity
+│   ├── BasicrhythmScene.unity
 │   └── TempoTapScene.unity
 ├── Audio/               # Archivos de audio
 └── Settings/            # Configuración del proyecto
@@ -66,7 +66,7 @@ Assets/
 ## Controles
 
 - **Simon**: Click en las piezas del tablero
-- **Rhythm**: Click en los botones de los carriles
+- **Basic Rhythm**: Click/Tap en el tambor siguiendo el patron
 - **TempoTap**: Click/Tap en cualquier lugar de la pantalla
 
 ## Construir para Web
