@@ -84,6 +84,27 @@ public class BasicRhythmGameManager : MonoBehaviour
     [SerializeField] private float drumPulseScale = 1.08f;
     [SerializeField] private float drumPulseDuration = 0.12f;
 
+    [Header("UI Juice")]
+    [SerializeField] private float feedbackPanelAlpha = 0.14f;
+    [SerializeField] private float feedbackPopScale = 1.06f;
+    [SerializeField] private float feedbackAnimDuration = 0.14f;
+    [SerializeField] private float hudPopScale = 1.08f;
+    [SerializeField] private float hudAnimDuration = 0.12f;
+    [SerializeField] private float drumReadyPulseScale = 1.03f;
+    [SerializeField] private float drumReadyPulseSpeed = 4.6f;
+    [SerializeField] private int focusedPatternThreshold = 5;
+    [SerializeField] private float focusedPatternIconSize = 240f;
+    [SerializeField] private Vector2 focusedPatternPosition = new Vector2(0f, 40f);
+    [SerializeField] private Vector2 focusedPatternAreaSize = new Vector2(760f, 360f);
+    [SerializeField] private float focusedBlockSlideDistance = 90f;
+    [SerializeField] private float focusedBlockTransitionDuration = 0.18f;
+    [SerializeField] private float activeBlockFillShift = 28f;
+    [SerializeField] private float noteResultHoldSeconds = 0.12f;
+    [SerializeField] private float statusMessageDuration = 0.45f;
+    [SerializeField] private float statusMessageLongDuration = 0.65f;
+    [SerializeField] private float statusMessagePopScale = 1.08f;
+    [SerializeField] private float statusMessageAnimDuration = 0.16f;
+
     private readonly List<FigureDefinition> figures = new List<FigureDefinition>();
     private readonly List<Image> patternIcons = new List<Image>();
     private readonly List<Image> patternFillImages = new List<Image>();
@@ -107,9 +128,31 @@ public class BasicRhythmGameManager : MonoBehaviour
     private AudioSource voiceSource;
     private Image drumButtonImage;
     private Color drumButtonBaseColor = Color.white;
+    private PausePanelView pausePanelView;
+    private Canvas rootCanvas;
+    private TMP_Text statusOverlayText;
+    private CanvasGroup statusOverlayGroup;
+    private RectTransform statusOverlayRect;
+    private RectTransform feedbackPanelRect;
+    private Image feedbackPanelImage;
+    private RectTransform scorePanelRect;
+    private RectTransform levelPanelRect;
+    private RectTransform livesPanelRect;
+    private TMP_Text focusedBlockProgressText;
+    private Vector3 feedbackPanelBaseScale = Vector3.one;
+    private Vector3 scorePanelBaseScale = Vector3.one;
+    private Vector3 levelPanelBaseScale = Vector3.one;
+    private Vector3 livesPanelBaseScale = Vector3.one;
 
     private Coroutine roundRoutine;
     private Coroutine drumPulseRoutine;
+    private Coroutine drumReadyRoutine;
+    private Coroutine feedbackAnimRoutine;
+    private Coroutine statusOverlayRoutine;
+    private Coroutine scoreHudRoutine;
+    private Coroutine levelHudRoutine;
+    private Coroutine livesHudRoutine;
+    private Coroutine focusedBlockTransitionRoutine;
     private bool waitingForInput;
     private float inputPhaseStartTime;
     private int score;
@@ -133,6 +176,15 @@ public class BasicRhythmGameManager : MonoBehaviour
     private bool tutorialFillWarmupAttemptCompleted;
     private int currentNoteTapCount;
     private int sustainedBeatCuesPlayed;
+    private int lastShownScore = -1;
+    private int lastShownLevel = -999;
+    private int lastShownLives = -1;
+    private bool useFocusedPatternPresentation;
+    private readonly List<int> patternBlockIndexByNote = new List<int>();
+    private readonly List<Vector2> focusedBasePositions = new List<Vector2>();
+    private int lastFocusedBlockIndex = -1;
+    private bool noteTransitionLocked;
+    private bool isShowingDemoPattern;
 
     private void Start()
     {
@@ -143,6 +195,8 @@ public class BasicRhythmGameManager : MonoBehaviour
         BuildFigureDefinitions();
         EnsureAudioSource();
         EnsureDrumInput();
+        EnsureStatusOverlay();
+        EnsureFocusedBlockProgressText();
 
         score = 0;
         level = 0;
@@ -176,6 +230,9 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
 
         if (InTutorialDrumWarmup() || InTutorialFillWarmup())
+            return;
+
+        if (noteTransitionLocked)
             return;
 
         FigureDefinition currentNote = GetCurrentNote();
@@ -232,7 +289,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (HandleTutorialWarmupTap())
             return;
 
-        if (isPaused || !waitingForInput)
+        if (isPaused || !waitingForInput || noteTransitionLocked)
             return;
 
         FigureDefinition currentNote = GetCurrentNote();
@@ -306,7 +363,7 @@ public class BasicRhythmGameManager : MonoBehaviour
                 roundSuccessfulHits = 0;
                 inputPhaseStartTime = Time.time;
 
-                drumButton.interactable = true;
+                SetDrumInteractable(true);
                 ResetPatternVisuals(false);
 
                 yield return new WaitUntil(() => attemptFinished || lives <= 0);
@@ -324,11 +381,16 @@ public class BasicRhythmGameManager : MonoBehaviour
         BuildCurrentPattern();
         noteCountInPattern = currentPattern.Count;
         tutorialDemoShownForCurrentStep = false;
+        currentNoteIndex = 0;
         currentNoteTapCount = 0;
         sustainedBeatCuesPlayed = 0;
+        lastFocusedBlockIndex = -1;
+
+        if (focusedBlockProgressText != null)
+            focusedBlockProgressText.gameObject.SetActive(false);
 
         BuildPatternVisuals();
-        drumButton.interactable = false;
+        SetDrumInteractable(false);
         drumButton.transform.localScale = Vector3.one;
     }
 
@@ -336,6 +398,7 @@ public class BasicRhythmGameManager : MonoBehaviour
     {
         SetFeedback(ComposeFeedback(GetDemoInstruction()), normalFeedbackColor);
         ResetPatternVisuals(true);
+        isShowingDemoPattern = true;
 
         for (int i = 0; i < noteCountInPattern; i++)
         {
@@ -348,6 +411,9 @@ public class BasicRhythmGameManager : MonoBehaviour
             HighlightPatternIcon(i, noteDimColor);
             SetFillAmount(i, 0f);
         }
+
+        isShowingDemoPattern = false;
+        ResetPatternPositions();
     }
 
     private IEnumerator AnimateFillForDemo(int noteIndex, FigureDefinition note, float duration)
@@ -362,18 +428,20 @@ public class BasicRhythmGameManager : MonoBehaviour
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            SetFillAmount(noteIndex, Mathf.Clamp01(elapsed / duration));
+            float progress = Mathf.Clamp01(elapsed / duration);
+            SetFillAmount(noteIndex, progress);
+            SetActiveBlockFillShift(noteIndex, progress);
 
             if (UsesSegmentedTapFigure(note))
             {
-                float holdProgress = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
-                UpdateSegmentedTapCues(note, holdProgress);
+                UpdateSegmentedTapCues(note, progress);
             }
 
             yield return null;
         }
 
         SetFillAmount(noteIndex, 1f);
+        SetActiveBlockFillShift(noteIndex, 1f);
 
         if (UsesSegmentedTapFigure(note))
         {
@@ -401,13 +469,13 @@ public class BasicRhythmGameManager : MonoBehaviour
     private IEnumerator RunDrumDiscoveryWarmup()
     {
         tutorialDrumWarmupRemaining = 5;
-        drumButton.interactable = true;
+        SetDrumInteractable(true);
         SetFeedback("Toca el tambor 5 veces", normalFeedbackColor);
 
         while (tutorialDrumWarmupRemaining > 0)
             yield return null;
 
-        drumButton.interactable = false;
+        SetDrumInteractable(false);
         yield return new WaitForSeconds(0.25f);
     }
 
@@ -423,7 +491,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         currentPatternBlockNoteCounts.Add(1);
         noteCountInPattern = 1;
         BuildPatternVisuals();
-        drumButton.interactable = true;
+        SetDrumInteractable(true);
 
         tutorialFillWarmupRemaining = 3;
         while (tutorialFillWarmupRemaining > 0)
@@ -458,7 +526,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         }
 
         tutorialFillWarmupWaitingForTap = false;
-        drumButton.interactable = false;
+        SetDrumInteractable(false);
     }
 
     private bool HandleTutorialWarmupTap()
@@ -504,6 +572,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
 
         float beatDuration = GetBeatDuration();
+        ResetPatternPositions();
 
         for (int i = 0; i < noteCountInPattern; i++)
         {
@@ -518,6 +587,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             {
                 float progress = Mathf.Clamp01((currentTime - noteStart) / Mathf.Max(0.01f, noteDuration));
                 SetFillAmount(i, progress);
+                SetActiveBlockFillShift(i, progress);
             }
             else
             {
@@ -570,7 +640,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
         }
 
-        AdvanceToNextNote();
+        QueueAdvanceToNextNote();
     }
 
     private void EvaluateSegmentedTap(float tapTime)
@@ -602,7 +672,7 @@ public class BasicRhythmGameManager : MonoBehaviour
 
         roundSuccessfulHits++;
         SetPatternResultColor(currentNoteIndex, successFeedbackColor, true);
-        AdvanceToNextNote();
+        QueueAdvanceToNextNote();
     }
 
     private void CompleteSilenceNote()
@@ -613,7 +683,7 @@ public class BasicRhythmGameManager : MonoBehaviour
 
         roundSuccessfulHits++;
         SetPatternResultColor(currentNoteIndex, successFeedbackColor, true);
-        AdvanceToNextNote();
+        QueueAdvanceToNextNote(true);
     }
 
     private void CompletePatternSuccess()
@@ -628,7 +698,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (tutorialActive)
         {
             tutorialStepIndex++;
-            if (tutorialStepIndex >= 4)
+            if (tutorialStepIndex >= 5)
             {
                 tutorialActive = false;
                 level = 1;
@@ -663,7 +733,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (drumButton != null)
         {
             drumButton.transform.localScale = Vector3.one;
-            drumButton.interactable = false;
+            SetDrumInteractable(false);
         }
 
         if (currentNoteIndex >= 0 && currentNoteIndex < patternIcons.Count)
@@ -677,7 +747,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         PulseDrum(failFeedbackColor);
         SetFeedback(ComposeFeedback(reason), failFeedbackColor);
 
-        AdvanceToNextNote(true);
+        QueueAdvanceToNextNote(true);
     }
 
     private void AdvanceToNextNote(bool resetTimingWindow = false)
@@ -692,13 +762,35 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
         }
 
+        if (useFocusedPatternPresentation)
+            UpdateFocusedPatternVisibility(currentNoteIndex);
+
         if (drumButton != null)
-            drumButton.interactable = true;
+            SetDrumInteractable(true);
 
         if (resetTimingWindow)
             inputPhaseStartTime = Time.time + failureAdvanceDelay - GetPatternBeatsBefore(currentNoteIndex) * GetBeatDuration();
 
         SetFeedback(ComposeFeedback(GetInputInstruction()), normalFeedbackColor);
+    }
+
+    private void QueueAdvanceToNextNote(bool resetTimingWindow = false)
+    {
+        if (noteTransitionLocked)
+            return;
+
+        StartCoroutine(AdvanceToNextNoteAfterDelay(resetTimingWindow));
+    }
+
+    private IEnumerator AdvanceToNextNoteAfterDelay(bool resetTimingWindow)
+    {
+        noteTransitionLocked = true;
+        if (drumButton != null)
+            SetDrumInteractable(false);
+
+        yield return new WaitForSeconds(noteResultHoldSeconds);
+        AdvanceToNextNote(resetTimingWindow);
+        noteTransitionLocked = false;
     }
 
     private void FinishCurrentAttempt()
@@ -707,7 +799,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         attemptFinished = true;
 
         if (drumButton != null)
-            drumButton.interactable = false;
+            SetDrumInteractable(false);
 
         int requiredHits = GetRequiredHitsForPattern();
         if (roundSuccessfulHits >= requiredHits)
@@ -715,6 +807,9 @@ public class BasicRhythmGameManager : MonoBehaviour
             CompletePatternSuccess();
             return;
         }
+
+        if (tutorialActive)
+            tutorialDemoShownForCurrentStep = false;
 
         lives--;
         UpdateHud();
@@ -733,6 +828,9 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private int GetRequiredHitsForPattern()
     {
+        if (tutorialActive)
+            return noteCountInPattern;
+
         if (!tutorialActive && patternMeasures > 1)
             return Mathf.Clamp(Mathf.CeilToInt(noteCountInPattern * longPatternRequiredHitRatio), 1, noteCountInPattern);
 
@@ -755,6 +853,7 @@ public class BasicRhythmGameManager : MonoBehaviour
     {
         currentPattern.Clear();
         currentPatternBlockNoteCounts.Clear();
+        patternBlockIndexByNote.Clear();
 
         if (tutorialActive)
         {
@@ -768,6 +867,9 @@ public class BasicRhythmGameManager : MonoBehaviour
                     break;
                 case 2:
                     AddPatternBlock(FigureType.Negra, 4);
+                    break;
+                case 3:
+                    AddPatternBlock(FigureType.Silencio, 4);
                     break;
                 default:
                     AddPatternBlock(FigureType.Corchea, 8);
@@ -804,8 +906,13 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (figure == null)
             return;
 
+        int blockIndex = currentPatternBlockNoteCounts.Count;
+
         for (int i = 0; i < count; i++)
+        {
             currentPattern.Add(figure);
+            patternBlockIndexByNote.Add(blockIndex);
+        }
 
         currentPatternBlockNoteCounts.Add(count);
     }
@@ -851,6 +958,14 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
 
         figureIconTemplate.gameObject.SetActive(false);
+
+        useFocusedPatternPresentation = noteCountInPattern >= focusedPatternThreshold;
+        if (useFocusedPatternPresentation)
+        {
+            BuildFocusedPatternVisuals();
+            ResetPatternVisuals(true);
+            return;
+        }
 
         RectTransform templateRect = figureIconTemplate.rectTransform;
         float availableWidth = Mathf.Max(560f, rhythmPanel.rect.width - 90f);
@@ -913,15 +1028,67 @@ public class BasicRhythmGameManager : MonoBehaviour
                 iconRect.anchoredPosition = new Vector2(blockX + localX, blockY + localY);
                 iconRect.sizeDelta = new Vector2(iconSize, iconSize);
 
+                FigureDefinition patternNote = GetPatternNoteAt(patternIndex);
                 patternIcons.Add(icon);
                 patternFillImages.Add(CreateFillImage(icon));
+                focusedBasePositions.Add(iconRect.anchoredPosition);
 
-                if (UsesSegmentedTapFigure(GetPatternNoteAt(patternIndex)))
-                    CreateSegmentDividers(icon, GetRequiredTapCount(GetPatternNoteAt(patternIndex)));
+                if (UsesSegmentedTapFigure(patternNote))
+                    CreateSegmentDividers(icon, GetRequiredTapCount(patternNote));
             }
         }
 
         ResetPatternVisuals(true);
+    }
+
+    private void BuildFocusedPatternVisuals()
+    {
+        focusedBasePositions.Clear();
+        lastFocusedBlockIndex = -1;
+
+        int patternIndex = 0;
+        for (int blockIndex = 0; blockIndex < currentPatternBlockNoteCounts.Count; blockIndex++)
+        {
+            int notesInBlock = currentPatternBlockNoteCounts[blockIndex];
+            int columns = Mathf.Min(4, Mathf.Max(1, notesInBlock));
+            int rows = Mathf.CeilToInt(notesInBlock / 4f);
+            float cellWidth = focusedPatternAreaSize.x / columns;
+            float cellHeight = focusedPatternAreaSize.y / rows;
+            float iconSize = Mathf.Clamp(Mathf.Min(cellWidth, cellHeight) - iconSpacing, 96f, focusedPatternIconSize);
+                float totalHeight = rows * iconSize + (rows - 1) * iconSpacing;
+
+            for (int noteIndex = 0; noteIndex < notesInBlock && patternIndex < noteCountInPattern; noteIndex++, patternIndex++)
+            {
+                Image icon = Instantiate(figureIconTemplate, rhythmPanel);
+                icon.name = "PatternIcon_" + patternIndex;
+                icon.sprite = GetVisualSpriteForPatternIndex(patternIndex, noteIndex);
+                icon.preserveAspect = true;
+                icon.gameObject.SetActive(true);
+
+                RectTransform iconRect = icon.rectTransform;
+                iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+                iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+                iconRect.pivot = new Vector2(0.5f, 0.5f);
+
+                int row = noteIndex / 4;
+                int column = noteIndex % 4;
+                float rowItems = Mathf.Min(4, notesInBlock - row * 4);
+                float rowWidth = rowItems * iconSize + (rowItems - 1) * iconSpacing;
+                float localX = -rowWidth * 0.5f + iconSize * 0.5f + column * (iconSize + iconSpacing);
+                float localY = ((rows - 1) * (iconSize + iconSpacing) * 0.5f) - row * (iconSize + iconSpacing);
+                Vector2 anchored = focusedPatternPosition + new Vector2(localX, localY);
+                iconRect.anchoredPosition = anchored;
+                iconRect.sizeDelta = new Vector2(iconSize, iconSize);
+
+                FigureDefinition patternNote = GetPatternNoteAt(patternIndex);
+                patternIcons.Add(icon);
+                patternFillImages.Add(CreateFillImage(icon));
+                focusedBasePositions.Add(anchored);
+
+                if (UsesSegmentedTapFigure(patternNote))
+                    CreateSegmentDividers(icon, GetRequiredTapCount(patternNote));
+            }
+        }
     }
 
     private void ClearPatternVisuals()
@@ -934,6 +1101,7 @@ public class BasicRhythmGameManager : MonoBehaviour
 
         patternIcons.Clear();
         patternFillImages.Clear();
+        focusedBasePositions.Clear();
     }
 
     private Sprite GetVisualSpriteForPatternIndex(int patternIndex, int indexWithinBlock)
@@ -963,6 +1131,9 @@ public class BasicRhythmGameManager : MonoBehaviour
             SetFillAmount(i, 0f);
         }
 
+        if (useFocusedPatternPresentation)
+            UpdateFocusedPatternVisibility(0);
+
         UpdateTimingCue(false);
     }
 
@@ -972,6 +1143,9 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
 
         patternIcons[index].color = color;
+
+        if (useFocusedPatternPresentation)
+            UpdateFocusedPatternVisibility(index);
     }
 
     private void SetPatternResultColor(int index, Color color, bool fillFully)
@@ -997,6 +1171,217 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
 
         patternFillImages[index].color = color;
+    }
+
+    private void UpdateFocusedPatternVisibility(int activeIndex)
+    {
+        if (!useFocusedPatternPresentation)
+            return;
+
+        int activeBlockIndex = GetPatternBlockIndex(activeIndex);
+
+        if (activeBlockIndex != lastFocusedBlockIndex)
+        {
+            lastFocusedBlockIndex = activeBlockIndex;
+            UpdateFocusedBlockProgress(activeBlockIndex);
+            if (focusedBlockTransitionRoutine != null)
+            {
+                StopCoroutine(focusedBlockTransitionRoutine);
+                focusedBlockTransitionRoutine = null;
+            }
+
+            if (isShowingDemoPattern)
+                focusedBlockTransitionRoutine = StartCoroutine(AnimateFocusedBlockTransition(activeBlockIndex));
+            else
+                ApplyFocusedBlockVisibilityInstant(activeBlockIndex);
+
+            return;
+        }
+
+        ApplyFocusedBlockVisibilityInstant(activeBlockIndex);
+    }
+
+    private void ApplyFocusedBlockVisibilityInstant(int activeBlockIndex)
+    {
+        for (int i = 0; i < patternIcons.Count; i++)
+        {
+            bool visible = GetPatternBlockIndex(i) == activeBlockIndex;
+            if (patternIcons[i] != null)
+            {
+                patternIcons[i].gameObject.SetActive(visible);
+                if (visible)
+                {
+                    patternIcons[i].rectTransform.anchoredPosition = focusedBasePositions[i];
+                    Color iconColor = patternIcons[i].color;
+                    iconColor.a = 1f;
+                    patternIcons[i].color = iconColor;
+                }
+            }
+
+            if (i < patternFillImages.Count && patternFillImages[i] != null)
+                patternFillImages[i].gameObject.SetActive(visible && patternFillImages[i].fillAmount > 0f);
+        }
+    }
+
+    private void ResetPatternPositions()
+    {
+        int count = Mathf.Min(patternIcons.Count, focusedBasePositions.Count);
+        for (int i = 0; i < count; i++)
+        {
+            if (patternIcons[i] != null)
+                patternIcons[i].rectTransform.anchoredPosition = focusedBasePositions[i];
+        }
+    }
+
+    private void SetActiveBlockFillShift(int activeIndex, float progress)
+    {
+        int activeBlockIndex = GetPatternBlockIndex(activeIndex);
+        if (activeBlockIndex < 0)
+            return;
+
+        // Only apply shift for redonda (whole note)
+        FigureDefinition activeNote = GetPatternNoteAt(activeIndex);
+        if (activeNote == null || activeNote.type != FigureType.Redonda)
+            return;
+
+        float offset = activeBlockFillShift * Mathf.Clamp01(progress);
+        int count = Mathf.Min(patternIcons.Count, focusedBasePositions.Count);
+        for (int i = 0; i < count; i++)
+        {
+            if (patternIcons[i] == null || GetPatternBlockIndex(i) != activeBlockIndex)
+                continue;
+
+            patternIcons[i].rectTransform.anchoredPosition = focusedBasePositions[i] + new Vector2(offset, 0f);
+        }
+    }
+
+    private IEnumerator AnimateFocusedBlockTransition(int activeBlockIndex)
+    {
+        List<int> activeIndices = new List<int>();
+        for (int i = 0; i < patternIcons.Count; i++)
+        {
+            bool visible = GetPatternBlockIndex(i) == activeBlockIndex;
+            if (patternIcons[i] != null)
+            {
+                patternIcons[i].gameObject.SetActive(visible);
+                if (visible)
+                    activeIndices.Add(i);
+            }
+
+            if (i < patternFillImages.Count && patternFillImages[i] != null)
+                patternFillImages[i].gameObject.SetActive(visible && patternFillImages[i].fillAmount > 0f);
+        }
+
+        float elapsed = 0f;
+        while (elapsed < focusedBlockTransitionDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / focusedBlockTransitionDuration);
+            for (int i = 0; i < activeIndices.Count; i++)
+            {
+                int iconIndex = activeIndices[i];
+                if (patternIcons[iconIndex] == null)
+                    continue;
+
+                RectTransform rect = patternIcons[iconIndex].rectTransform;
+                Vector2 targetPosition = focusedBasePositions[iconIndex];
+                rect.anchoredPosition = Vector2.Lerp(targetPosition + new Vector2(focusedBlockSlideDistance, 0f), targetPosition, t);
+
+                Color iconColor = patternIcons[iconIndex].color;
+                iconColor.a = t;
+                patternIcons[iconIndex].color = iconColor;
+
+                if (iconIndex < patternFillImages.Count && patternFillImages[iconIndex] != null)
+                {
+                    Color fillColor = patternFillImages[iconIndex].color;
+                    fillColor.a = t * longNoteFillColor.a;
+                    patternFillImages[iconIndex].color = fillColor;
+                }
+            }
+
+            yield return null;
+        }
+
+        for (int i = 0; i < activeIndices.Count; i++)
+        {
+            int iconIndex = activeIndices[i];
+            if (patternIcons[iconIndex] == null)
+                continue;
+
+            patternIcons[iconIndex].rectTransform.anchoredPosition = focusedBasePositions[iconIndex];
+            Color iconColor = patternIcons[iconIndex].color;
+            iconColor.a = 1f;
+            patternIcons[iconIndex].color = iconColor;
+
+            if (iconIndex < patternFillImages.Count && patternFillImages[iconIndex] != null)
+            {
+                Color fillColor = patternFillImages[iconIndex].color;
+                fillColor.a = longNoteFillColor.a;
+                patternFillImages[iconIndex].color = fillColor;
+            }
+        }
+
+        focusedBlockTransitionRoutine = null;
+    }
+
+    private int GetPatternBlockIndex(int noteIndex)
+    {
+        if (noteIndex < 0 || noteIndex >= patternBlockIndexByNote.Count)
+            return -1;
+
+        return patternBlockIndexByNote[noteIndex];
+    }
+
+    private void EnsureFocusedBlockProgressText()
+    {
+        if (rhythmPanel == null)
+            return;
+
+        Transform existing = rhythmPanel.Find("FocusedBlockProgressText");
+        if (existing == null)
+        {
+            GameObject textObject = new GameObject("FocusedBlockProgressText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            RectTransform rect = textObject.GetComponent<RectTransform>();
+            rect.SetParent(rhythmPanel, false);
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = focusedPatternPosition + new Vector2(0f, -220f);
+            rect.sizeDelta = new Vector2(380f, 56f);
+
+            focusedBlockProgressText = textObject.GetComponent<TextMeshProUGUI>();
+            focusedBlockProgressText.alignment = TextAlignmentOptions.Center;
+            focusedBlockProgressText.enableAutoSizing = true;
+            focusedBlockProgressText.fontSizeMin = 22f;
+            focusedBlockProgressText.fontSizeMax = 34f;
+            focusedBlockProgressText.fontStyle = FontStyles.Bold;
+            focusedBlockProgressText.color = new Color(1f, 1f, 1f, 0.92f);
+            focusedBlockProgressText.raycastTarget = false;
+            if (feedbackText != null)
+                focusedBlockProgressText.font = feedbackText.font;
+        }
+        else
+        {
+            focusedBlockProgressText = existing.GetComponent<TMP_Text>();
+        }
+
+        if (focusedBlockProgressText != null)
+            focusedBlockProgressText.gameObject.SetActive(false);
+    }
+
+    private void UpdateFocusedBlockProgress(int activeBlockIndex)
+    {
+        if (focusedBlockProgressText == null)
+            return;
+
+        if (!useFocusedPatternPresentation || activeBlockIndex < 0)
+        {
+            focusedBlockProgressText.gameObject.SetActive(false);
+            return;
+        }
+
+        focusedBlockProgressText.gameObject.SetActive(true);
+        focusedBlockProgressText.text = "Bloque " + (activeBlockIndex + 1) + "/" + currentPatternBlockNoteCounts.Count;
     }
 
     private Image CreateFillImage(Image parentIcon)
@@ -1162,6 +1547,11 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private void UpdateHud()
     {
+        bool scoreChanged = lastShownScore != score;
+        int shownLevel = tutorialActive ? -1 : level;
+        bool levelChanged = lastShownLevel != shownLevel;
+        bool livesChanged = lastShownLives != lives;
+
         if (scoreText != null)
             scoreText.text = ""+score;
 
@@ -1180,21 +1570,44 @@ public class BasicRhythmGameManager : MonoBehaviour
             color.a = i < lives ? 1f : 0.25f;
             lifeImages[i].color = color;
         }
+
+        if (scoreChanged)
+            AnimateScorePanel();
+
+        if (levelChanged)
+            AnimateLevelPanel();
+
+        if (livesChanged)
+            AnimateLivesPanel();
+
+        lastShownScore = score;
+        lastShownLevel = shownLevel;
+        lastShownLives = lives;
     }
 
     private void SetFeedback(string message, Color color)
     {
-        if (feedbackText == null)
+        if (statusOverlayText == null)
             return;
 
-        feedbackText.text = message;
-        feedbackText.color = color;
+        RefreshFeedbackPanelStatus();
+
+        if (color == normalFeedbackColor && waitingForInput)
+        {
+            HideStatusOverlay();
+            return;
+        }
+
+        if (statusOverlayRoutine != null)
+            StopCoroutine(statusOverlayRoutine);
+
+        float duration = color == failFeedbackColor ? statusMessageLongDuration : statusMessageDuration;
+        statusOverlayRoutine = StartCoroutine(ShowStatusOverlay(message, color, duration));
     }
 
     private string ComposeFeedback(string status)
     {
-        int shownStep = noteCountInPattern <= 0 ? 0 : Mathf.Min(currentNoteIndex + 1, noteCountInPattern);
-        return status + "  " + shownStep + "/" + noteCountInPattern + "  Req " + GetRequiredHitsForPattern();
+        return status;
     }
 
     private void UpdateTimingCue(bool active)
@@ -1221,6 +1634,8 @@ public class BasicRhythmGameManager : MonoBehaviour
     {
         if (drumButton == null)
             return;
+
+        StopDrumReadyPulse();
 
         if (drumPulseRoutine != null)
             StopCoroutine(drumPulseRoutine);
@@ -1258,6 +1673,261 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (drumButtonImage != null)
             drumButtonImage.color = drumButtonBaseColor;
         drumPulseRoutine = null;
+
+        if (drumButton != null && drumButton.interactable)
+            StartDrumReadyPulse();
+    }
+
+    private IEnumerator AnimateFeedbackPanel()
+    {
+        if (feedbackPanelRect == null)
+            yield break;
+
+        float elapsed = 0f;
+        Vector3 peakScale = feedbackPanelBaseScale * feedbackPopScale;
+        while (elapsed < feedbackAnimDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / feedbackAnimDuration);
+            feedbackPanelRect.localScale = Vector3.Lerp(feedbackPanelBaseScale, peakScale, t);
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < feedbackAnimDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / feedbackAnimDuration);
+            feedbackPanelRect.localScale = Vector3.Lerp(peakScale, feedbackPanelBaseScale, t);
+            yield return null;
+        }
+
+        feedbackPanelRect.localScale = feedbackPanelBaseScale;
+        feedbackAnimRoutine = null;
+    }
+
+    private IEnumerator ShowStatusOverlay(string message, Color color, float visibleDuration)
+    {
+        if (statusOverlayText == null || statusOverlayGroup == null || statusOverlayRect == null)
+            yield break;
+
+        statusOverlayText.text = message;
+        statusOverlayText.color = color;
+        statusOverlayGroup.gameObject.SetActive(true);
+
+        float elapsed = 0f;
+        Vector3 baseScale = Vector3.one;
+        Vector3 peakScale = baseScale * statusMessagePopScale;
+        statusOverlayGroup.alpha = 0f;
+        statusOverlayRect.localScale = baseScale * 0.92f;
+
+        while (elapsed < statusMessageAnimDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / statusMessageAnimDuration);
+            statusOverlayGroup.alpha = t;
+            statusOverlayRect.localScale = Vector3.Lerp(baseScale * 0.92f, peakScale, t);
+            yield return null;
+        }
+
+        statusOverlayGroup.alpha = 1f;
+        statusOverlayRect.localScale = peakScale;
+
+        yield return new WaitForSecondsRealtime(visibleDuration);
+
+        elapsed = 0f;
+        while (elapsed < statusMessageAnimDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / statusMessageAnimDuration);
+            statusOverlayGroup.alpha = 1f - t;
+            statusOverlayRect.localScale = Vector3.Lerp(peakScale, baseScale, t);
+            yield return null;
+        }
+
+        HideStatusOverlay();
+        statusOverlayRoutine = null;
+    }
+
+    private void HideStatusOverlay()
+    {
+        if (statusOverlayGroup == null || statusOverlayRect == null)
+            return;
+
+        statusOverlayGroup.alpha = 0f;
+        statusOverlayRect.localScale = Vector3.one;
+        statusOverlayGroup.gameObject.SetActive(false);
+    }
+
+    private void EnsureStatusOverlay()
+    {
+        if (rootCanvas == null)
+            return;
+
+        Transform existing = rootCanvas.transform.Find("BasicRhythmStatusOverlay");
+        if (existing == null)
+        {
+            GameObject overlayObject = new GameObject("BasicRhythmStatusOverlay", typeof(RectTransform), typeof(CanvasGroup));
+            RectTransform rect = overlayObject.GetComponent<RectTransform>();
+            rect.SetParent(rootCanvas.transform, false);
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(0f, 40f);
+            rect.sizeDelta = new Vector2(1100f, 280f);
+
+            GameObject textObject = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            RectTransform textRect = textObject.GetComponent<RectTransform>();
+            textRect.SetParent(rect, false);
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            statusOverlayText = textObject.GetComponent<TextMeshProUGUI>();
+            statusOverlayText.alignment = TextAlignmentOptions.Center;
+            statusOverlayText.enableAutoSizing = true;
+            statusOverlayText.fontSizeMin = 34f;
+            statusOverlayText.fontSizeMax = 74f;
+            statusOverlayText.fontStyle = FontStyles.Bold;
+            statusOverlayText.textWrappingMode = TextWrappingModes.Normal;
+            statusOverlayText.raycastTarget = false;
+
+            if (feedbackText != null)
+                statusOverlayText.font = feedbackText.font;
+
+            statusOverlayGroup = overlayObject.GetComponent<CanvasGroup>();
+            statusOverlayRect = rect;
+        }
+        else
+        {
+            statusOverlayGroup = existing.GetComponent<CanvasGroup>();
+            statusOverlayRect = existing as RectTransform;
+            statusOverlayText = existing.GetComponentInChildren<TMP_Text>(true);
+        }
+
+        HideStatusOverlay();
+    }
+
+    private void RefreshFeedbackPanelStatus()
+    {
+        if (feedbackText == null)
+            return;
+
+        int requiredHits = GetRequiredHitsForPattern();
+        if (tutorialActive)
+            feedbackText.text = $"Objetivo: {requiredHits} aciertos";
+        else
+            feedbackText.text = $"Objetivo: {requiredHits} aciertos  |  Logrados: {roundSuccessfulHits}";
+
+        if (feedbackPanelImage != null)
+        {
+            Color panelColor = Color.white;
+            panelColor.a = feedbackPanelAlpha;
+            feedbackPanelImage.color = panelColor;
+        }
+
+        if (feedbackAnimRoutine != null)
+            StopCoroutine(feedbackAnimRoutine);
+
+        feedbackAnimRoutine = StartCoroutine(AnimateFeedbackPanel());
+    }
+
+    private void AnimateScorePanel()
+    {
+        scoreHudRoutine = RestartHudRoutine(scoreHudRoutine, scorePanelRect, scorePanelBaseScale);
+    }
+
+    private void AnimateLevelPanel()
+    {
+        levelHudRoutine = RestartHudRoutine(levelHudRoutine, levelPanelRect, levelPanelBaseScale);
+    }
+
+    private void AnimateLivesPanel()
+    {
+        livesHudRoutine = RestartHudRoutine(livesHudRoutine, livesPanelRect, livesPanelBaseScale);
+    }
+
+    private Coroutine RestartHudRoutine(Coroutine currentRoutine, RectTransform rect, Vector3 baseScale)
+    {
+        if (rect == null)
+            return currentRoutine;
+
+        if (currentRoutine != null)
+            StopCoroutine(currentRoutine);
+
+        return StartCoroutine(AnimateHudPanelRoutine(rect, baseScale));
+    }
+
+    private IEnumerator AnimateHudPanelRoutine(RectTransform rect, Vector3 baseScale)
+    {
+        float elapsed = 0f;
+        Vector3 peakScale = baseScale * hudPopScale;
+        while (elapsed < hudAnimDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / hudAnimDuration);
+            rect.localScale = Vector3.Lerp(baseScale, peakScale, t);
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < hudAnimDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / hudAnimDuration);
+            rect.localScale = Vector3.Lerp(peakScale, baseScale, t);
+            yield return null;
+        }
+
+        rect.localScale = baseScale;
+    }
+
+    private void SetDrumInteractable(bool value)
+    {
+        if (drumButton == null)
+            return;
+
+        drumButton.interactable = value;
+        if (value)
+            StartDrumReadyPulse();
+        else
+            StopDrumReadyPulse();
+    }
+
+    private void StartDrumReadyPulse()
+    {
+        if (drumButton == null || !drumButton.interactable || drumPulseRoutine != null || drumReadyRoutine != null)
+            return;
+
+        drumReadyRoutine = StartCoroutine(DrumReadyPulseRoutine());
+    }
+
+    private void StopDrumReadyPulse()
+    {
+        if (drumReadyRoutine != null)
+        {
+            StopCoroutine(drumReadyRoutine);
+            drumReadyRoutine = null;
+        }
+
+        if (drumButton != null)
+            drumButton.transform.localScale = Vector3.one;
+    }
+
+    private IEnumerator DrumReadyPulseRoutine()
+    {
+        while (drumButton != null && drumButton.interactable)
+        {
+            float pulse = 1f + Mathf.Sin(Time.unscaledTime * drumReadyPulseSpeed) * (drumReadyPulseScale - 1f);
+            drumButton.transform.localScale = Vector3.one * pulse;
+            yield return null;
+        }
+
+        if (drumButton != null)
+            drumButton.transform.localScale = Vector3.one;
+
+        drumReadyRoutine = null;
     }
 
     private void PlaySfx(AudioClip clip)
@@ -1361,7 +2031,18 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (canvas == null)
             return;
 
+        rootCanvas = canvas;
+
         feedbackText = FindText(canvas, "FeedbackText");
+        if (feedbackText != null)
+        {
+            feedbackPanelRect = feedbackText.rectTransform.parent as RectTransform;
+            if (feedbackPanelRect != null)
+            {
+                feedbackPanelBaseScale = feedbackPanelRect.localScale;
+                feedbackPanelImage = feedbackPanelRect.GetComponent<Image>();
+            }
+        }
         figureIconTemplate = FindImage(canvas, "FigureIcon");
         drumButton = FindButton(canvas, "DrumButton");
         menuButton = FindButton(canvas, "MenuButton");
@@ -1391,13 +2072,27 @@ public class BasicRhythmGameManager : MonoBehaviour
         Transform livesPanel = FindChild(canvas.transform, "LivesPanel");
 
         if (scorePanel != null)
+        {
             scoreText = scorePanel.GetComponentInChildren<TMP_Text>(true);
+            scorePanelRect = scorePanel as RectTransform;
+            if (scorePanelRect != null)
+                scorePanelBaseScale = scorePanelRect.localScale;
+        }
 
         if (levelPanel != null)
+        {
             levelText = levelPanel.GetComponentInChildren<TMP_Text>(true);
+            levelPanelRect = levelPanel as RectTransform;
+            if (levelPanelRect != null)
+                levelPanelBaseScale = levelPanelRect.localScale;
+        }
 
         if (livesPanel != null)
         {
+            livesPanelRect = livesPanel as RectTransform;
+            if (livesPanelRect != null)
+                livesPanelBaseScale = livesPanelRect.localScale;
+
             lifeImages = new[]
             {
                 FindImage(livesPanel, "Life1"),
@@ -1409,7 +2104,13 @@ public class BasicRhythmGameManager : MonoBehaviour
         HideLegacyFigurePlaceholders();
 
         if (pausePanel != null)
-            pausePanel.SetActive(false);
+        {
+            pausePanelView = pausePanel.GetComponent<PausePanelView>();
+            if (pausePanelView == null)
+                pausePanelView = pausePanel.AddComponent<PausePanelView>();
+
+            pausePanelView.InitializeHidden();
+        }
     }
 
     private void EnsureAudioSource()
@@ -1487,12 +2188,15 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
 
         isPaused = true;
-        pausePanel.SetActive(true);
+        if (pausePanelView != null)
+            pausePanelView.Show();
+        else
+            pausePanel.SetActive(true);
         Time.timeScale = 0f;
         AudioListener.pause = true;
 
         if (drumButton != null)
-            drumButton.interactable = false;
+            SetDrumInteractable(false);
     }
 
     private void ResumeGame()
@@ -1501,28 +2205,30 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
 
         isPaused = false;
-        if (pausePanel != null)
+        if (pausePanelView != null)
+            pausePanelView.Hide();
+        else if (pausePanel != null)
             pausePanel.SetActive(false);
 
         Time.timeScale = 1f;
         AudioListener.pause = false;
 
         if (drumButton != null)
-            drumButton.interactable = waitingForInput && lives > 0;
+            SetDrumInteractable(waitingForInput && lives > 0);
     }
 
     private void RestartScene()
     {
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        SceneTransitionController.ReloadCurrentScene();
     }
 
     private void LoadMainScene()
     {
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        SceneManager.LoadScene("MainScene");
+        SceneTransitionController.LoadScene("MainScene");
     }
 
     private bool ValidateReferences()

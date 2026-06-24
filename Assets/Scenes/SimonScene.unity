@@ -154,8 +154,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 10, y: -50}
-  m_SizeDelta: {x: 0, y: 90}
+  m_AnchoredPosition: {x: 0, y: -48}
+  m_SizeDelta: {x: 0, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &13933405
 MonoBehaviour:
@@ -242,7 +242,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &30187367
 RectTransform:
   m_ObjectHideFlags: 0
@@ -252,11 +252,12 @@ RectTransform:
   m_GameObject: {fileID: 30187366}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.81707305, y: 0.81707305, z: 0.81707305}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1337996938}
   - {fileID: 191907833}
+  - {fileID: 740892664}
   m_Father: {fileID: 741535924}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -487,6 +488,9 @@ GameObject:
   - component: {fileID: 80159870}
   - component: {fileID: 80159872}
   - component: {fileID: 80159871}
+  - component: {fileID: 80159875}
+  - component: {fileID: 80159874}
+  - component: {fileID: 80159873}
   m_Layer: 5
   m_Name: PausePanel
   m_TagString: Untagged
@@ -527,7 +531,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.39215687}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.24}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -552,6 +556,49 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 80159869}
   m_CullTransparentMesh: 1
+--- !u!114 &80159873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 80159869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58b05349695aabe428d341bc542abd1a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PausePanelView
+  contentRootName: PauseBox
+  overlayFadeDuration: 0.18
+--- !u!114 &80159874
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 80159869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6353bc9dc715aa040a02180f5be13742, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIPanelTransition
+  duration: 0.2
+  useScale: 1
+  hiddenScale: 0.96
+  useSlide: 1
+  hiddenOffset: {x: 0, y: -32}
+--- !u!225 &80159875
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 80159869}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &191907832
 GameObject:
   m_ObjectHideFlags: 0
@@ -819,6 +866,7 @@ GameObject:
   - component: {fileID: 221454160}
   - component: {fileID: 221454159}
   - component: {fileID: 221454158}
+  - component: {fileID: 221454162}
   m_Layer: 5
   m_Name: ZoneButton_4
   m_TagString: Untagged
@@ -862,6 +910,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &221454159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -944,6 +998,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 221454156}
   m_CullTransparentMesh: 1
+--- !u!114 &221454162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 221454156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &268966538
 GameObject:
   m_ObjectHideFlags: 0
@@ -1089,10 +1158,10 @@ RectTransform:
   - {fileID: 385954316}
   m_Father: {fileID: 2098173376}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 150, y: 0}
-  m_SizeDelta: {x: 200, y: 100}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 260, y: 110}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &321211732
 GameObject:
@@ -1276,6 +1345,10 @@ MonoBehaviour:
   gamesPanel: {fileID: 0}
   settingsPanel: {fileID: 0}
   backButton: {fileID: 0}
+  panelAccentDuration: 0.22
+  logoAccentScale: 1.08
+  buttonAccentScale: 1.1
+  logoShiftAmount: 34
 --- !u!4 &325027945
 Transform:
   m_ObjectHideFlags: 0
@@ -1303,6 +1376,7 @@ GameObject:
   - component: {fileID: 326494972}
   - component: {fileID: 326494971}
   - component: {fileID: 326494970}
+  - component: {fileID: 326494973}
   m_Layer: 5
   m_Name: CloseButton
   m_TagString: Untagged
@@ -1412,6 +1486,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 326494968}
   m_CullTransparentMesh: 1
+--- !u!114 &326494973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 326494968}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &349912509
 GameObject:
   m_ObjectHideFlags: 0
@@ -1425,6 +1514,7 @@ GameObject:
   - component: {fileID: 349912513}
   - component: {fileID: 349912512}
   - component: {fileID: 349912511}
+  - component: {fileID: 349912515}
   m_Layer: 5
   m_Name: ZoneButton_1
   m_TagString: Untagged
@@ -1468,6 +1558,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &349912512
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1550,6 +1646,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 349912509}
   m_CullTransparentMesh: 1
+--- !u!114 &349912515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 349912509}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &385954315
 GameObject:
   m_ObjectHideFlags: 0
@@ -1713,6 +1824,7 @@ GameObject:
   - component: {fileID: 417596624}
   - component: {fileID: 417596623}
   - component: {fileID: 417596622}
+  - component: {fileID: 417596626}
   m_Layer: 5
   m_Name: ZoneButton_2
   m_TagString: Untagged
@@ -1757,6 +1869,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &417596623
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1839,6 +1957,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 417596620}
   m_CullTransparentMesh: 1
+--- !u!114 &417596626
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 417596620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &440412159
 GameObject:
   m_ObjectHideFlags: 0
@@ -1989,6 +2122,7 @@ GameObject:
   - component: {fileID: 445438018}
   - component: {fileID: 445438017}
   - component: {fileID: 445438016}
+  - component: {fileID: 445438020}
   m_Layer: 5
   m_Name: ZoneButton_0
   m_TagString: Untagged
@@ -2032,6 +2166,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &445438017
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2114,6 +2254,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 445438014}
   m_CullTransparentMesh: 1
+--- !u!114 &445438020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445438014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &475319711
 GameObject:
   m_ObjectHideFlags: 0
@@ -2336,13 +2491,13 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 34
+  m_fontSize: 64.6
   m_fontSizeBase: 34
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 42
+  m_fontSizeMax: 88
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -2708,6 +2863,7 @@ GameObject:
   - component: {fileID: 537111294}
   - component: {fileID: 537111293}
   - component: {fileID: 537111292}
+  - component: {fileID: 537111296}
   m_Layer: 5
   m_Name: ZoneButton_4
   m_TagString: Untagged
@@ -2751,6 +2907,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &537111293
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2833,6 +2995,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 537111290}
   m_CullTransparentMesh: 1
+--- !u!114 &537111296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 537111290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &541775559
 GameObject:
   m_ObjectHideFlags: 0
@@ -2845,6 +3022,7 @@ GameObject:
   - component: {fileID: 541775563}
   - component: {fileID: 541775562}
   - component: {fileID: 541775561}
+  - component: {fileID: 541775564}
   m_Layer: 5
   m_Name: RestartButton
   m_TagString: Untagged
@@ -2954,6 +3132,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 541775559}
   m_CullTransparentMesh: 1
+--- !u!114 &541775564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 541775559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &581478990
 GameObject:
   m_ObjectHideFlags: 0
@@ -3104,6 +3297,7 @@ GameObject:
   - component: {fileID: 592088287}
   - component: {fileID: 592088286}
   - component: {fileID: 592088285}
+  - component: {fileID: 592088289}
   m_Layer: 5
   m_Name: ZoneButton_3
   m_TagString: Untagged
@@ -3147,6 +3341,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &592088286
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3229,6 +3429,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 592088283}
   m_CullTransparentMesh: 1
+--- !u!114 &592088289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592088283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &604286034
 GameObject:
   m_ObjectHideFlags: 0
@@ -3317,6 +3532,7 @@ GameObject:
   - component: {fileID: 608862885}
   - component: {fileID: 608862884}
   - component: {fileID: 608862883}
+  - component: {fileID: 608862887}
   m_Layer: 5
   m_Name: ZoneButton_3
   m_TagString: Untagged
@@ -3360,6 +3576,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &608862884
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3442,6 +3664,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 608862881}
   m_CullTransparentMesh: 1
+--- !u!114 &608862887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 608862881}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &719200082
 GameObject:
   m_ObjectHideFlags: 0
@@ -3653,6 +3890,143 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 732688244}
+  m_CullTransparentMesh: 1
+--- !u!1 &740892663
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 740892664}
+  - component: {fileID: 740892666}
+  - component: {fileID: 740892665}
+  m_Layer: 0
+  m_Name: BoardCenterRing
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!224 &740892664
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 740892663}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 30187367}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 330, y: 330}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &740892665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 740892663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: "\u25CC"
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 0.95, b: 0.7, a: 0}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: 0
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 220
+  m_fontSizeBase: 220
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 18
+  m_fontSizeMax: 72
+  m_fontStyle: 0
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_characterHorizontalScale: 1
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 0
+  m_ActiveFontFeatures: 6e72656b
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &740892666
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 740892663}
   m_CullTransparentMesh: 1
 --- !u!1 &741535923
 GameObject:
@@ -3920,6 +4294,7 @@ GameObject:
   - component: {fileID: 793089254}
   - component: {fileID: 793089253}
   - component: {fileID: 793089252}
+  - component: {fileID: 793089256}
   m_Layer: 5
   m_Name: ZoneButton_0
   m_TagString: Untagged
@@ -3963,6 +4338,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &793089253
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4045,6 +4426,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 793089250}
   m_CullTransparentMesh: 1
+--- !u!114 &793089256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793089250}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &829458925
 GameObject:
   m_ObjectHideFlags: 0
@@ -4165,6 +4561,7 @@ GameObject:
   - component: {fileID: 854463492}
   - component: {fileID: 854463491}
   - component: {fileID: 854463490}
+  - component: {fileID: 854463494}
   m_Layer: 5
   m_Name: ZoneButton_1
   m_TagString: Untagged
@@ -4208,6 +4605,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &854463491
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4290,6 +4693,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 854463488}
   m_CullTransparentMesh: 1
+--- !u!114 &854463494
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 854463488}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &885304518
 GameObject:
   m_ObjectHideFlags: 0
@@ -4302,6 +4720,7 @@ GameObject:
   - component: {fileID: 885304522}
   - component: {fileID: 885304521}
   - component: {fileID: 885304520}
+  - component: {fileID: 885304523}
   m_Layer: 5
   m_Name: TxtRecord
   m_TagString: Untagged
@@ -4411,6 +4830,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 885304518}
   m_CullTransparentMesh: 1
+--- !u!114 &885304523
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 885304518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &899921624
 GameObject:
   m_ObjectHideFlags: 0
@@ -4805,6 +5239,7 @@ GameObject:
   - component: {fileID: 1112562646}
   - component: {fileID: 1112562645}
   - component: {fileID: 1112562644}
+  - component: {fileID: 1112562648}
   m_Layer: 5
   m_Name: ZoneButton_2
   m_TagString: Untagged
@@ -4848,6 +5283,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &1112562645
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4930,6 +5371,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1112562642}
   m_CullTransparentMesh: 1
+--- !u!114 &1112562648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1112562642}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1116785803
 GameObject:
   m_ObjectHideFlags: 0
@@ -5082,7 +5538,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1124503565
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10015,6 +10471,7 @@ GameObject:
   - component: {fileID: 1133708367}
   - component: {fileID: 1133708366}
   - component: {fileID: 1133708365}
+  - component: {fileID: 1133708369}
   m_Layer: 5
   m_Name: ZoneButton_0
   m_TagString: Untagged
@@ -10040,7 +10497,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 120, y: 0}
   m_SizeDelta: {x: 160, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1133708365
@@ -10058,6 +10515,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &1133708366
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10140,6 +10603,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1133708363}
   m_CullTransparentMesh: 1
+--- !u!114 &1133708369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1133708363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1148371783
 GameObject:
   m_ObjectHideFlags: 0
@@ -10289,6 +10767,7 @@ GameObject:
   - component: {fileID: 1150367923}
   - component: {fileID: 1150367922}
   - component: {fileID: 1150367921}
+  - component: {fileID: 1150367924}
   m_Layer: 5
   m_Name: BtnExIt
   m_TagString: Untagged
@@ -10398,6 +10877,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1150367919}
   m_CullTransparentMesh: 1
+--- !u!114 &1150367924
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1150367919}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1159583157
 GameObject:
   m_ObjectHideFlags: 0
@@ -10901,6 +11395,7 @@ GameObject:
   - component: {fileID: 1221541058}
   - component: {fileID: 1221541057}
   - component: {fileID: 1221541056}
+  - component: {fileID: 1221541059}
   m_Layer: 5
   m_Name: ResumeButton
   m_TagString: Untagged
@@ -11010,6 +11505,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1221541054}
   m_CullTransparentMesh: 1
+--- !u!114 &1221541059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1221541054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1230693702
 GameObject:
   m_ObjectHideFlags: 0
@@ -11098,6 +11608,7 @@ GameObject:
   - component: {fileID: 1239859632}
   - component: {fileID: 1239859631}
   - component: {fileID: 1239859630}
+  - component: {fileID: 1239859634}
   m_Layer: 5
   m_Name: ZoneButton_6
   m_TagString: Untagged
@@ -11141,6 +11652,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &1239859631
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11223,6 +11740,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1239859628}
   m_CullTransparentMesh: 1
+--- !u!114 &1239859634
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1239859628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1261051989
 GameObject:
   m_ObjectHideFlags: 0
@@ -11461,6 +11993,7 @@ GameObject:
   - component: {fileID: 1333041536}
   - component: {fileID: 1333041535}
   - component: {fileID: 1333041534}
+  - component: {fileID: 1333041538}
   m_Layer: 5
   m_Name: ZoneButton_1
   m_TagString: Untagged
@@ -11504,6 +12037,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &1333041535
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11586,6 +12125,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1333041532}
   m_CullTransparentMesh: 1
+--- !u!114 &1333041538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333041532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1337996937
 GameObject:
   m_ObjectHideFlags: 0
@@ -16975,6 +17529,7 @@ GameObject:
   - component: {fileID: 1554881354}
   - component: {fileID: 1554881353}
   - component: {fileID: 1554881352}
+  - component: {fileID: 1554881356}
   m_Layer: 5
   m_Name: ZoneButton_5
   m_TagString: Untagged
@@ -17018,6 +17573,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &1554881353
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17100,6 +17661,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1554881350}
   m_CullTransparentMesh: 1
+--- !u!114 &1554881356
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554881350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1602662941
 GameObject:
   m_ObjectHideFlags: 0
@@ -17136,7 +17712,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 0, y: -100}
-  m_SizeDelta: {x: 600, y: 100}
+  m_SizeDelta: {x: 240, y: 26}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1602662943
 MonoBehaviour:
@@ -17151,7 +17727,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9, g: 0.9, b: 0.9, a: 0}
+  m_Color: {r: 0.16, g: 0.15, b: 0.22, a: 0.85}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -17456,6 +18032,7 @@ GameObject:
   - component: {fileID: 1664463126}
   - component: {fileID: 1664463125}
   - component: {fileID: 1664463124}
+  - component: {fileID: 1664463128}
   m_Layer: 5
   m_Name: ZoneButton_2
   m_TagString: Untagged
@@ -17499,6 +18076,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &1664463125
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17581,6 +18164,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1664463122}
   m_CullTransparentMesh: 1
+--- !u!114 &1664463128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1664463122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1671974453
 GameObject:
   m_ObjectHideFlags: 0
@@ -17942,6 +18540,7 @@ GameObject:
   - component: {fileID: 1752194990}
   - component: {fileID: 1752194989}
   - component: {fileID: 1752194988}
+  - component: {fileID: 1752194991}
   m_Layer: 5
   m_Name: MenuButton
   m_TagString: Untagged
@@ -17967,7 +18566,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 2.5892, y: -158}
-  m_SizeDelta: {x: 356.13, y: 80.2983}
+  m_SizeDelta: {x: 120, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1752194988
 MonoBehaviour:
@@ -18051,6 +18650,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752194986}
   m_CullTransparentMesh: 1
+--- !u!114 &1752194991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1752194986}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1758427131
 GameObject:
   m_ObjectHideFlags: 0
@@ -18347,17 +18961,17 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 26
+  m_fontSize: 38
   m_fontSizeBase: 26
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 24
+  m_fontSizeMax: 38
+  m_fontStyle: 1
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 1
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -18488,6 +19102,7 @@ GameObject:
   - component: {fileID: 1855715471}
   - component: {fileID: 1855715470}
   - component: {fileID: 1855715469}
+  - component: {fileID: 1855715473}
   m_Layer: 5
   m_Name: ZoneButton_3
   m_TagString: Untagged
@@ -18531,6 +19146,12 @@ MonoBehaviour:
   mainImage: {fileID: 0}
   zoneButton: {fileID: 0}
   labelText: {fileID: 0}
+  zoneOutline: {fileID: 0}
+  activeLabelScale: 1.2
+  activeLabelColor: {r: 1, g: 0.97, b: 0.78, a: 1}
+  pulseDuration: 0.12
+  outlineColor: {r: 1, g: 0.95, b: 0.55, a: 0.75}
+  outlineDistance: {x: 10, y: -10}
 --- !u!114 &1855715470
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18613,6 +19234,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1855715467}
   m_CullTransparentMesh: 1
+--- !u!114 &1855715473
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1855715467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1 &1874813364
 GameObject:
   m_ObjectHideFlags: 0
@@ -18855,7 +19491,7 @@ MonoBehaviour:
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 2
-  m_VerticalAlignment: 256
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -19517,8 +20153,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -225, y: -50}
-  m_SizeDelta: {x: 220, y: 90}
+  m_AnchoredPosition: {x: -210, y: -44}
+  m_SizeDelta: {x: 320, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2098173377
 MonoBehaviour:
@@ -19683,7 +20319,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.9803922, b: 0.9803922, a: 1}
+  m_Color: {r: 1, g: 0.93, b: 0.6, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -19768,29 +20404,36 @@ MonoBehaviour:
   - {fileID: 2113328732317559950, guid: 384cbad9adefadf4c89beb0dba48838b, type: 3}
   - {fileID: 3420044758849760049, guid: c9f6ff9c5b1cd8b4fbab3517e5a80e77, type: 3}
   - {fileID: 2564051613026845705, guid: 10c1932e5da9a22428ee05f2d57482a5, type: 3}
-  editorPreviewPieceCount: 4
+  editorPreviewPieceCount: 7
   colorPool:
   - name: Red
     label: D
     clip: {fileID: 8300000, guid: 8a9a0ce6b2f56b744b8def1273a51180, type: 3}
+    accentColor: {r: 1, g: 1, b: 1, a: 1}
   - name: Yellow
     label: G
     clip: {fileID: 8300000, guid: 7feb2d934fddb2a4eab9c3832b61d8b8, type: 3}
+    accentColor: {r: 1, g: 1, b: 1, a: 1}
   - name: Green
     label: C
     clip: {fileID: 8300000, guid: adced615a0984784dbb5fbcf073d4690, type: 3}
+    accentColor: {r: 1, g: 1, b: 1, a: 1}
   - name: Blue
     label: E
     clip: {fileID: 8300000, guid: df1da1eb8fbb28d419e5a1bb3262b702, type: 3}
+    accentColor: {r: 1, g: 1, b: 1, a: 1}
   - name: Morado
     label: F
     clip: {fileID: 8300000, guid: baf0c7b8235fa8343a6aa050eeac99fa, type: 3}
+    accentColor: {r: 1, g: 1, b: 1, a: 1}
   - name: Cafe
     label: A
     clip: {fileID: 8300000, guid: 88d1667780c4d5b4ab026bb665d069c1, type: 3}
+    accentColor: {r: 1, g: 1, b: 1, a: 1}
   - name: Naranja
     label: B
     clip: {fileID: 8300000, guid: 2fe7c79bc8ceef24d83dce5105541756, type: 3}
+    accentColor: {r: 1, g: 1, b: 1, a: 1}
   startButton: {fileID: 2147353620}
   replayButton: {fileID: 0}
   menuButton: {fileID: 1150367921}
@@ -19817,6 +20460,12 @@ MonoBehaviour:
   pauseBetweenRounds: 0.8
   playerResponseBeatWindow: 3
   minimumResponseTime: 1.5
+  levelsBeforeFiveColors: 7
+  levelsBeforeSevenColors: 14
+  useMusicalSequences: 1
+  musicalSequenceChance: 0.3
+  musicalSequenceStartLevel: 4
+  musicalSequences: []
   initialBPM: 60
   maximumBPM: 90
   bpmIncrease: 5
@@ -19837,7 +20486,7 @@ MonoBehaviour:
   statusMessageMaxFontSize: 88
   statusMessageMinFontSize: 42
   statusIconSize: {x: 220, y: 220}
-  statusIconOffsetY: 170
+  statusIconOffsetY: 200
   bgWarningColor: {r: 0.35, g: 0.28, b: 0.08, a: 0.28}
   sequenceIntroMessageSeconds: 1.5
   playerTurnMessageSeconds: 1.2
@@ -19847,6 +20496,25 @@ MonoBehaviour:
   successStatusSprite: {fileID: 6906699975731011009, guid: 90d5ac3c211cd1948b54bfb373764fd2, type: 3}
   warningStatusSprite: {fileID: -435409667562469070, guid: 90d5ac3c211cd1948b54bfb373764fd2, type: 3}
   errorStatusSprite: {fileID: -8174141812930980481, guid: 90d5ac3c211cd1948b54bfb373764fd2, type: 3}
+  statusFadeDuration: 0.18
+  statusHiddenScale: 0.92
+  statusIconPopScale: 1.08
+  pausePanelFadeDuration: 0.2
+  hudPopDuration: 0.16
+  hudPopScale: 1.1
+  criticalBarPulseScale: 1.06
+  boardObserveScale: 1.03
+  boardPlayerTurnScale: 1
+  boardIdleScale: 0.98
+  boardStateTransitionDuration: 0.18
+  boardSuccessScale: 1.08
+  boardShakeDistance: 22
+  boardShakeDuration: 0.22
+  boardRingColor: {r: 1, g: 0.95, b: 0.7, a: 0.9}
+  boardRingStartScale: 0.55
+  boardRingEndScale: 1.45
+  boardRingDuration: 0.45
+  boardRingFontSize: 220
   timeBarFill: {fileID: 2098806274}
   timeOkColor: {r: 1, g: 1, b: 1, a: 1}
   timeWarnColor: {r: 1, g: 0.85, b: 0.2, a: 1}
@@ -19888,6 +20556,7 @@ GameObject:
   - component: {fileID: 2147353622}
   - component: {fileID: 2147353621}
   - component: {fileID: 2147353620}
+  - component: {fileID: 2147353623}
   m_Layer: 5
   m_Name: Startbutton
   m_TagString: Untagged
@@ -20009,6 +20678,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2147353618}
   m_CullTransparentMesh: 1
+--- !u!114 &2147353623
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2147353618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b7fa57200d0ba4d9ceaa24e50c9441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonPulse
+  hoverScale: 1.04
+  pressedScale: 0.96
+  animationDuration: 0.08
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

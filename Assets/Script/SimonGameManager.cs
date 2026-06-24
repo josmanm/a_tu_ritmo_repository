@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -22,6 +23,14 @@ public class SimonGameManager : MonoBehaviour
         public string name;
         public string label;
         public AudioClip clip;
+        public Color accentColor = Color.white;
+    }
+
+    [System.Serializable]
+    private class MusicalSequence
+    {
+        public string name;
+        public List<int> notes = new List<int>();
     }
 
     [Header("Configuracion del tablero")]
@@ -86,6 +95,14 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private float pauseBetweenRounds = 0.8f;
     [SerializeField] private float playerResponseBeatWindow = 3f;
     [SerializeField] private float minimumResponseTime = 1.5f;
+    [SerializeField] private int levelsBeforeFiveColors = 7;
+    [SerializeField] private int levelsBeforeSevenColors = 14;
+
+    [Header("Secuencias musicales")]
+    [SerializeField] private bool useMusicalSequences = true;
+    [SerializeField] [Range(0f, 1f)] private float musicalSequenceChance = 0.3f;
+    [SerializeField] private int musicalSequenceStartLevel = 4;
+    [SerializeField] private List<MusicalSequence> musicalSequences = new List<MusicalSequence>();
 
     [Header("Tempo")]
     [SerializeField] private float initialBPM = 60f;
@@ -122,6 +139,27 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private Sprite successStatusSprite;
     [SerializeField] private Sprite warningStatusSprite;
     [SerializeField] private Sprite errorStatusSprite;
+
+    [Header("Pulido visual UI")]
+    [SerializeField] private float statusFadeDuration = 0.18f;
+    [SerializeField] private float statusHiddenScale = 0.92f;
+    [SerializeField] private float statusIconPopScale = 1.08f;
+    [SerializeField] private float pausePanelFadeDuration = 0.2f;
+    [SerializeField] private float hudPopDuration = 0.16f;
+    [SerializeField] private float hudPopScale = 1.1f;
+    [SerializeField] private float criticalBarPulseScale = 1.06f;
+    [SerializeField] private float boardObserveScale = 1.03f;
+    [SerializeField] private float boardPlayerTurnScale = 1f;
+    [SerializeField] private float boardIdleScale = 0.98f;
+    [SerializeField] private float boardStateTransitionDuration = 0.18f;
+    [SerializeField] private float boardSuccessScale = 1.08f;
+    [SerializeField] private float boardShakeDistance = 22f;
+    [SerializeField] private float boardShakeDuration = 0.22f;
+    [SerializeField] private Color boardRingColor = new Color(1f, 0.95f, 0.7f, 0.9f);
+    [SerializeField] private float boardRingStartScale = 0.55f;
+    [SerializeField] private float boardRingEndScale = 1.45f;
+    [SerializeField] private float boardRingDuration = 0.45f;
+    [SerializeField] private float boardRingFontSize = 220f;
 
     [Header("Barra de tiempo")]
     [SerializeField] private Image timeBarFill;
@@ -164,12 +202,31 @@ public class SimonGameManager : MonoBehaviour
     private readonly List<SimonZoneUI> activeZones = new List<SimonZoneUI>();
     private readonly List<Transform> discoveredZoneButtons = new List<Transform>();
     private Image activeBoardImage;
+    private RectTransform activeBoardRoot;
     private RectTransform activeZonesRoot;
     private int currentColorCount = 4;
+    private MusicalSequence activeMusicalSequence;
+    private int activeMusicalSequenceIndex;
+    private TMP_Text boardCenterRingText;
 
     private float lastTapTime = -1f;
     private float tapCooldown = 0.2f;
     private bool isPaused;
+    private bool isRoundTransitioning;
+    private PausePanelView pausePanelView;
+    private CanvasGroup pausePanelCanvasGroup;
+    private UIPanelTransition pausePanelTransition;
+    private Coroutine pausePanelRoutine;
+    private Coroutine scoreAnimRoutine;
+    private Coroutine timeBarPulseRoutine;
+    private Coroutine boardStateRoutine;
+    private Coroutine boardFeedbackRoutine;
+    private Coroutine boardRingRoutine;
+    private readonly Dictionary<int, Coroutine> lifeAnimRoutines = new Dictionary<int, Coroutine>();
+    private Vector3 scoreBaseScale = Vector3.one;
+    private Vector3 timeBarBaseScale = Vector3.one;
+    private Vector3 boardBaseScale = Vector3.one;
+    private Vector2 boardBaseAnchoredPosition = Vector2.zero;
 
     private void OnValidate()
     {
@@ -185,14 +242,23 @@ public class SimonGameManager : MonoBehaviour
         ResolveBoardReferences();
         ResolvePauseReferences();
         ValidateReferences();
+        EnsureDefaultMusicalSequences();
         ConfigureStatusOverlay();
+        ConfigurePausePanelVisuals();
         BuildBoard(4);
+        StartBoardStateTransition(boardIdleScale);
         SetInput(false);
         ConfigureButtons();
         currentBPM = initialBPM;
 
         if (pausePanel != null)
             pausePanel.SetActive(false);
+
+        if (scoreText != null)
+            scoreBaseScale = scoreText.rectTransform.localScale;
+
+        if (timeBarFill != null)
+            timeBarBaseScale = timeBarFill.rectTransform.localScale;
 
         startButton.interactable = true;
         if (replayButton != null)
@@ -234,8 +300,8 @@ public class SimonGameManager : MonoBehaviour
 
     private int GetColorCountForLevel(int level)
     {
-        if (level < 4) return 4;
-        if (level < 7) return 5;
+        if (level < levelsBeforeFiveColors) return 4;
+        if (level < levelsBeforeSevenColors) return 5;
         return 7;
     }
 
@@ -296,6 +362,7 @@ public class SimonGameManager : MonoBehaviour
     public void StartGame()
     {
         StopAllCoroutines();
+        ResetTransientVisualState();
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
@@ -304,6 +371,9 @@ public class SimonGameManager : MonoBehaviour
         score = 0;
         currentLevel = 1;
         currentBPM = initialBPM;
+        activeMusicalSequence = null;
+        activeMusicalSequenceIndex = 0;
+        isRoundTransitioning = false;
         RefreshScoreUI();
 
         BuildBoard(4);
@@ -326,9 +396,13 @@ public class SimonGameManager : MonoBehaviour
         if (isPaused)
             return;
 
+        if (isRoundTransitioning)
+            return;
+
         if (currentState != GameState.PlayerTurn && currentState != GameState.Idle) return;
 
         StopAllCoroutines();
+        ResetTransientVisualState();
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
@@ -337,7 +411,109 @@ public class SimonGameManager : MonoBehaviour
 
     private void AddStep()
     {
-        sequence.Add(Random.Range(0, activeZones.Count));
+        if (TryAddMusicalStep())
+            return;
+
+        sequence.Add(UnityEngine.Random.Range(0, activeZones.Count));
+    }
+
+    private bool TryAddMusicalStep()
+    {
+        int effectiveColorCount = GetColorCountForLevel(currentLevel);
+        if (!useMusicalSequences || currentLevel < musicalSequenceStartLevel || effectiveColorCount != 4)
+            return false;
+
+        if (activeMusicalSequence == null)
+        {
+            if (UnityEngine.Random.value > musicalSequenceChance)
+                return false;
+
+            List<MusicalSequence> availableSequences = GetPlayableMusicalSequences(effectiveColorCount);
+            if (availableSequences.Count == 0)
+                return false;
+
+            activeMusicalSequence = availableSequences[UnityEngine.Random.Range(0, availableSequences.Count)];
+            activeMusicalSequenceIndex = 0;
+        }
+
+        if (activeMusicalSequence.notes == null || activeMusicalSequence.notes.Count == 0)
+        {
+            activeMusicalSequence = null;
+            activeMusicalSequenceIndex = 0;
+            return false;
+        }
+
+        int note = activeMusicalSequence.notes[activeMusicalSequenceIndex];
+        sequence.Add(note);
+        activeMusicalSequenceIndex++;
+
+        if (activeMusicalSequenceIndex >= activeMusicalSequence.notes.Count)
+        {
+            activeMusicalSequence = null;
+            activeMusicalSequenceIndex = 0;
+        }
+
+        return true;
+    }
+
+    private List<MusicalSequence> GetPlayableMusicalSequences(int maxColorCount)
+    {
+        List<MusicalSequence> availableSequences = new List<MusicalSequence>();
+        for (int i = 0; i < musicalSequences.Count; i++)
+        {
+            MusicalSequence sequenceData = musicalSequences[i];
+            if (sequenceData == null || sequenceData.notes == null || sequenceData.notes.Count == 0)
+                continue;
+
+            bool canPlay = true;
+            for (int j = 0; j < sequenceData.notes.Count; j++)
+            {
+                if (sequenceData.notes[j] < 0 || sequenceData.notes[j] >= maxColorCount)
+                {
+                    canPlay = false;
+                    break;
+                }
+            }
+
+            if (canPlay)
+                availableSequences.Add(sequenceData);
+        }
+
+        return availableSequences;
+    }
+
+    private void EnsureDefaultMusicalSequences()
+    {
+        if (musicalSequences != null && musicalSequences.Count > 0)
+            return;
+
+        musicalSequences = new List<MusicalSequence>
+        {
+            CreateMusicalSequence("Do Re Mi Sol", 2, 0, 3, 1),
+            CreateMusicalSequence("Mi Do Re Do", 3, 2, 0, 2),
+            CreateMusicalSequence("Sol Mi Do Re", 1, 3, 2, 0),
+            CreateMusicalSequence("Do Do Mi Sol", 2, 2, 3, 1),
+            CreateMusicalSequence("Re Do Sol Mi", 0, 2, 1, 3),
+            CreateMusicalSequence("Mi Sol Mi Do", 3, 1, 3, 2),
+            CreateMusicalSequence("Do Re Do Mi Sol", 2, 0, 2, 3, 1),
+            CreateMusicalSequence("Sol Do Mi Do", 1, 2, 3, 2),
+            CreateMusicalSequence("Re Mi Sol Re", 0, 3, 1, 0),
+            CreateMusicalSequence("Do Mi Do Re Sol", 2, 3, 2, 0, 1),
+        };
+    }
+
+    private static MusicalSequence CreateMusicalSequence(string name, params int[] notes)
+    {
+        MusicalSequence sequence = new MusicalSequence
+        {
+            name = name,
+            notes = new List<int>()
+        };
+
+        if (notes != null)
+            sequence.notes.AddRange(notes);
+
+        return sequence;
     }
 
     private IEnumerator ShowSequence()
@@ -349,6 +525,7 @@ public class SimonGameManager : MonoBehaviour
         SetInput(false);
         startButton.interactable = false;
         if (replayButton != null) replayButton.interactable = false;
+        StartBoardStateTransition(boardObserveScale);
 
         yield return new WaitForSeconds(0.4f);
 
@@ -383,6 +560,7 @@ public class SimonGameManager : MonoBehaviour
 
         ResetPlayerTimeLimit();
         currentState = GameState.PlayerTurn;
+        StartBoardStateTransition(boardPlayerTurnScale);
         SetInput(true);
         startButton.interactable = true;
         if (replayButton != null) replayButton.interactable = true;
@@ -416,6 +594,7 @@ public class SimonGameManager : MonoBehaviour
 
         Vector3 piecePos = activeZones[idx].transform.position;
         celebrationEffect.PlayPerfectEffect(piecePos);
+        PlayBoardSuccessPulse();
 
         playerIndex++;
         ResetPlayerTimeLimit();
@@ -424,8 +603,11 @@ public class SimonGameManager : MonoBehaviour
         {
             score += 10;
             RefreshScoreUI();
+            AnimateScorePop();
+            PlayBoardCenterRing();
 
             currentState = GameState.Idle;
+            isRoundTransitioning = true;
             SetInput(false);
             StartCoroutine(NextRound());
         }
@@ -440,6 +622,7 @@ public class SimonGameManager : MonoBehaviour
         yield return StartCoroutine(ShowStatusThenHide($"Muy bien!\nNivel {currentLevel}", successColor, feedbackMessageSeconds));
 
         celebrationEffect.PlayLevelUpEffect();
+        PlayBoardSuccessPulse();
 
         yield return new WaitForSeconds(pauseBetweenRounds);
 
@@ -448,6 +631,7 @@ public class SimonGameManager : MonoBehaviour
         UpdateTempoForRound();
         ResetPlayerTimeLimit();
 
+        isRoundTransitioning = false;
         yield return StartCoroutine(ShowSequence());
     }
 
@@ -481,16 +665,25 @@ public class SimonGameManager : MonoBehaviour
         float pct = Mathf.Clamp01(currentInputTime / timeLimit);
         timeBarFill.fillAmount = pct;
 
-        if (pct <= lowThreshold) timeBarFill.color = timeLowColor;
-        else if (pct <= warnThreshold) timeBarFill.color = timeWarnColor;
-        else timeBarFill.color = timeOkColor;
+        if (pct <= lowThreshold)
+        {
+            timeBarFill.color = timeLowColor;
+            StartCriticalTimeBarPulse();
+        }
+        else
+        {
+            StopCriticalTimeBarPulse();
+            timeBarFill.color = pct <= warnThreshold ? timeWarnColor : timeOkColor;
+        }
     }
 
     private void GameOver(string reason)
     {
         StopAllCoroutines();
+        ResetTransientVisualState();
 
         currentState = GameState.GameOver;
+        isRoundTransitioning = false;
         SetInput(false);
         startButton.interactable = true;
         if (replayButton != null) replayButton.gameObject.SetActive(false);
@@ -509,6 +702,7 @@ public class SimonGameManager : MonoBehaviour
 
         SetStatus($"Fin del juego\nLlegaste al nivel {nivelAlcanzado}\nPulsa JUGAR para intentarlo de nuevo", errorColor);
         StartHideStatusCountdown(gameOverMessageSeconds);
+        StartBoardStateTransition(boardIdleScale);
 
         sequence.Clear();
         playerIndex = 0;
@@ -563,9 +757,12 @@ public class SimonGameManager : MonoBehaviour
     {
         SetStatus(msg, color, animate);
 
+        yield return StartCoroutine(AnimateStatusVisibility(show: true));
+
         if (visibleSeconds > 0f)
             yield return new WaitForSeconds(visibleSeconds);
 
+        yield return StartCoroutine(AnimateStatusVisibility(show: false));
         HideStatus();
     }
 
@@ -605,11 +802,69 @@ public class SimonGameManager : MonoBehaviour
 
         statusText.rectTransform.localScale = Vector3.one;
         statusText.rectTransform.anchoredPosition = new Vector2(0f, statusMessageOffsetY);
+        SetStatusAlpha(1f);
         statusText.gameObject.SetActive(false);
         HideStatusIcon();
 
         if (backgroundOverlay != null)
             backgroundOverlay.color = Color.clear;
+    }
+
+    private IEnumerator AnimateStatusVisibility(bool show)
+    {
+        if (statusText == null)
+            yield break;
+
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, statusFadeDuration);
+        float startAlpha = show ? 0f : 1f;
+        float endAlpha = show ? 1f : 0f;
+        float startScale = show ? statusHiddenScale : 1f;
+        float endScale = show ? 1f : statusHiddenScale;
+
+        if (show)
+        {
+            SetStatusAlpha(startAlpha);
+            SetStatusScale(startScale);
+        }
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / duration);
+            SetStatusAlpha(Mathf.Lerp(startAlpha, endAlpha, k));
+            SetStatusScale(Mathf.Lerp(startScale, endScale, k));
+            yield return null;
+        }
+
+        SetStatusAlpha(endAlpha);
+        SetStatusScale(endScale);
+    }
+
+    private void SetStatusAlpha(float alpha)
+    {
+        if (statusText != null)
+        {
+            Color textColor = statusText.color;
+            textColor.a = alpha;
+            statusText.color = textColor;
+        }
+
+        if (statusIconImage != null && statusIconImage.gameObject.activeSelf)
+        {
+            Color iconColor = statusIconImage.color;
+            iconColor.a = alpha;
+            statusIconImage.color = iconColor;
+        }
+    }
+
+    private void SetStatusScale(float scale)
+    {
+        if (statusText != null)
+            statusText.rectTransform.localScale = Vector3.one * scale;
+
+        if (statusIconImage != null && statusIconImage.gameObject.activeSelf)
+            statusIconImage.rectTransform.localScale = Vector3.one * Mathf.Lerp(scale, scale * statusIconPopScale, 0.35f);
     }
 
     private IEnumerator StatusPop()
@@ -704,6 +959,16 @@ public class SimonGameManager : MonoBehaviour
         Sprite litSprite = GetLitBoardSprite(currentColorCount, idx);
         if (activeBoardImage != null && litSprite != null)
             activeBoardImage.sprite = litSprite;
+
+        activeZones[idx].SetHighlighted(GetZoneAccentColor(idx));
+    }
+
+    private Color GetZoneAccentColor(int index)
+    {
+        if (index < 0 || index >= colorPool.Count || colorPool[index] == null)
+            return Color.white;
+
+        return colorPool[index].accentColor;
     }
 
     private void ShowAllOff()
@@ -746,6 +1011,7 @@ public class SimonGameManager : MonoBehaviour
     private IEnumerator LoseLifeRoutine(string reason)
     {
         currentState = GameState.Idle;
+        isRoundTransitioning = false;
 
         if (showSequenceRoutine != null)
         {
@@ -757,6 +1023,8 @@ public class SimonGameManager : MonoBehaviour
 
         lives--;
         UpdateLivesUI();
+        AnimateLifeLost(lives);
+        PlayBoardErrorFeedback();
 
         celebrationEffect.PlayErrorEffect(Vector3.zero);
 
@@ -797,6 +1065,322 @@ public class SimonGameManager : MonoBehaviour
             scoreText.text = score.ToString();
             scoreText.color = scoreColor;
         }
+    }
+
+    private void AnimateScorePop()
+    {
+        if (scoreText == null)
+            return;
+
+        if (scoreAnimRoutine != null)
+            StopCoroutine(scoreAnimRoutine);
+
+        scoreAnimRoutine = StartCoroutine(AnimateRectTransformPop(scoreText.rectTransform, scoreBaseScale, hudPopScale, hudPopDuration));
+    }
+
+    private void AnimateLifeLost(int emptyLifeIndex)
+    {
+        if (lifeIcons == null || emptyLifeIndex < 0 || emptyLifeIndex >= lifeIcons.Length)
+            return;
+
+        Image lifeImage = lifeIcons[emptyLifeIndex];
+        if (lifeImage == null)
+            return;
+
+        if (lifeAnimRoutines.TryGetValue(emptyLifeIndex, out Coroutine runningRoutine) && runningRoutine != null)
+            StopCoroutine(runningRoutine);
+
+        lifeAnimRoutines[emptyLifeIndex] = StartCoroutine(AnimateLifeIconLoss(emptyLifeIndex, lifeImage));
+    }
+
+    private IEnumerator AnimateLifeIconLoss(int iconIndex, Image lifeImage)
+    {
+        RectTransform rect = lifeImage.rectTransform;
+        Vector3 baseScale = rect.localScale;
+        Color baseColor = lifeImage.color;
+        float elapsed = 0f;
+
+        while (elapsed < hudPopDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / hudPopDuration);
+            rect.localScale = Vector3.Lerp(baseScale * 1.18f, baseScale, k);
+            lifeImage.color = Color.Lerp(errorColor, Color.white, k);
+            yield return null;
+        }
+
+        rect.localScale = baseScale;
+        lifeImage.color = baseColor;
+        lifeAnimRoutines[iconIndex] = null;
+    }
+
+    private IEnumerator AnimateRectTransformPop(RectTransform rect, Vector3 baseScaleValue, float targetScaleMultiplier, float duration)
+    {
+        if (rect == null)
+            yield break;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / duration);
+            rect.localScale = Vector3.Lerp(baseScaleValue, baseScaleValue * targetScaleMultiplier, k);
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / duration);
+            rect.localScale = Vector3.Lerp(baseScaleValue * targetScaleMultiplier, baseScaleValue, k);
+            yield return null;
+        }
+
+        rect.localScale = baseScaleValue;
+    }
+
+    private void StartCriticalTimeBarPulse()
+    {
+        if (timeBarFill == null || timeBarPulseRoutine != null)
+            return;
+
+        timeBarPulseRoutine = StartCoroutine(CriticalTimeBarPulseRoutine());
+    }
+
+    private void StopCriticalTimeBarPulse()
+    {
+        if (timeBarFill == null)
+            return;
+
+        if (timeBarPulseRoutine != null)
+        {
+            StopCoroutine(timeBarPulseRoutine);
+            timeBarPulseRoutine = null;
+        }
+
+        timeBarFill.rectTransform.localScale = timeBarBaseScale;
+    }
+
+    private void ResetTransientVisualState()
+    {
+        StopCriticalTimeBarPulse();
+        HideStatus();
+    }
+
+    private IEnumerator CriticalTimeBarPulseRoutine()
+    {
+        while (timeBarFill != null)
+        {
+            float pulse = 1f + Mathf.Sin(Time.unscaledTime * 12f) * (criticalBarPulseScale - 1f);
+            timeBarFill.rectTransform.localScale = timeBarBaseScale * pulse;
+            yield return null;
+        }
+
+        timeBarPulseRoutine = null;
+    }
+
+    private void StartBoardStateTransition(float targetScaleMultiplier)
+    {
+        if (activeBoardRoot == null)
+            return;
+
+        if (boardStateRoutine != null)
+            StopCoroutine(boardStateRoutine);
+
+        boardStateRoutine = StartCoroutine(AnimateBoardState(targetScaleMultiplier));
+    }
+
+    private IEnumerator AnimateBoardState(float targetScaleMultiplier)
+    {
+        if (activeBoardRoot == null)
+            yield break;
+
+        Vector3 startScale = activeBoardRoot.localScale;
+        Vector3 targetScale = boardBaseScale * targetScaleMultiplier;
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, boardStateTransitionDuration);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / duration);
+            activeBoardRoot.localScale = Vector3.Lerp(startScale, targetScale, k);
+            yield return null;
+        }
+
+        activeBoardRoot.localScale = targetScale;
+        boardStateRoutine = null;
+    }
+
+    private void PlayBoardSuccessPulse()
+    {
+        if (activeBoardRoot == null)
+            return;
+
+        if (boardFeedbackRoutine != null)
+            StopCoroutine(boardFeedbackRoutine);
+
+        boardFeedbackRoutine = StartCoroutine(AnimateBoardSuccessPulse());
+    }
+
+    private IEnumerator AnimateBoardSuccessPulse()
+    {
+        if (activeBoardRoot == null)
+            yield break;
+
+        Vector3 startScale = activeBoardRoot.localScale;
+        Vector3 peakScale = boardBaseScale * boardSuccessScale;
+        float elapsed = 0f;
+
+        while (elapsed < hudPopDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / hudPopDuration);
+            activeBoardRoot.localScale = Vector3.Lerp(startScale, peakScale, k);
+            yield return null;
+        }
+
+        elapsed = 0f;
+        Vector3 targetScale = boardBaseScale * (currentState == GameState.PlayerTurn ? boardPlayerTurnScale : boardObserveScale);
+        if (currentState == GameState.Idle || currentState == GameState.GameOver)
+            targetScale = boardBaseScale * boardIdleScale;
+
+        while (elapsed < hudPopDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / hudPopDuration);
+            activeBoardRoot.localScale = Vector3.Lerp(peakScale, targetScale, k);
+            yield return null;
+        }
+
+        activeBoardRoot.localScale = targetScale;
+        boardFeedbackRoutine = null;
+    }
+
+    private void PlayBoardErrorFeedback()
+    {
+        if (activeBoardRoot == null)
+            return;
+
+        if (boardFeedbackRoutine != null)
+            StopCoroutine(boardFeedbackRoutine);
+
+        boardFeedbackRoutine = StartCoroutine(AnimateBoardErrorShake());
+    }
+
+    private IEnumerator AnimateBoardErrorShake()
+    {
+        if (activeBoardRoot == null)
+            yield break;
+
+        Vector2 originalPosition = boardBaseAnchoredPosition;
+        float elapsed = 0f;
+
+        while (elapsed < boardShakeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float normalized = 1f - Mathf.Clamp01(elapsed / boardShakeDuration);
+            float offsetX = Mathf.Sin(elapsed * 75f) * boardShakeDistance * normalized;
+            activeBoardRoot.anchoredPosition = originalPosition + new Vector2(offsetX, 0f);
+            yield return null;
+        }
+
+        activeBoardRoot.anchoredPosition = originalPosition;
+        boardFeedbackRoutine = null;
+    }
+
+    private void PlayBoardCenterRing()
+    {
+        EnsureBoardCenterRing();
+        if (boardCenterRingText == null)
+            return;
+
+        if (boardRingRoutine != null)
+            StopCoroutine(boardRingRoutine);
+
+        boardRingRoutine = StartCoroutine(AnimateBoardCenterRing());
+    }
+
+    private void EnsureBoardCenterRing()
+    {
+        if (activeBoardRoot == null)
+            return;
+
+        Transform existingRing = activeBoardRoot.Find("BoardCenterRing");
+        if (existingRing != null)
+        {
+            boardCenterRingText = existingRing.GetComponent<TMP_Text>();
+        }
+
+        if (boardCenterRingText == null)
+        {
+            GameObject ringObject = new GameObject("BoardCenterRing", typeof(RectTransform));
+            RectTransform ringRect = ringObject.GetComponent<RectTransform>();
+            ringRect.SetParent(activeBoardRoot, false);
+            ringRect.anchorMin = new Vector2(0.5f, 0.5f);
+            ringRect.anchorMax = new Vector2(0.5f, 0.5f);
+            ringRect.pivot = new Vector2(0.5f, 0.5f);
+            ringRect.anchoredPosition = Vector2.zero;
+            ringRect.sizeDelta = new Vector2(boardRingFontSize * 1.5f, boardRingFontSize * 1.5f);
+
+            TextMeshProUGUI ringText = ringObject.AddComponent<TextMeshProUGUI>();
+            ringText.text = "◌";
+            ringText.alignment = TextAlignmentOptions.Center;
+            ringText.raycastTarget = false;
+            ringText.enableAutoSizing = false;
+            ringText.fontSize = boardRingFontSize;
+            ringText.color = boardRingColor;
+
+            if (statusText != null)
+                ringText.font = statusText.font;
+
+            boardCenterRingText = ringText;
+        }
+
+        if (boardCenterRingText != null)
+        {
+            boardCenterRingText.transform.SetParent(activeBoardRoot, false);
+            boardCenterRingText.rectTransform.anchoredPosition = Vector2.zero;
+            boardCenterRingText.rectTransform.localScale = Vector3.one * boardRingStartScale;
+            Color color = boardRingColor;
+            color.a = 0f;
+            boardCenterRingText.color = color;
+            boardCenterRingText.gameObject.SetActive(false);
+        }
+    }
+
+    private IEnumerator AnimateBoardCenterRing()
+    {
+        if (boardCenterRingText == null)
+            yield break;
+
+        RectTransform ringRect = boardCenterRingText.rectTransform;
+        Color startColor = boardRingColor;
+        startColor.a = 0f;
+        Color peakColor = boardRingColor;
+        Color endColor = boardRingColor;
+        endColor.a = 0f;
+
+        boardCenterRingText.gameObject.SetActive(true);
+        ringRect.localScale = Vector3.one * boardRingStartScale;
+        boardCenterRingText.color = startColor;
+
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, boardRingDuration);
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / duration);
+            ringRect.localScale = Vector3.one * Mathf.Lerp(boardRingStartScale, boardRingEndScale, k);
+            boardCenterRingText.color = Color.Lerp(k < 0.35f ? startColor : peakColor, k < 0.35f ? peakColor : endColor, k < 0.35f ? k / 0.35f : (k - 0.35f) / 0.65f);
+            yield return null;
+        }
+
+        boardCenterRingText.color = endColor;
+        ringRect.localScale = Vector3.one * boardRingStartScale;
+        boardCenterRingText.gameObject.SetActive(false);
+        boardRingRoutine = null;
     }
 
     private void UpdateBoardForLevel()
@@ -991,8 +1575,19 @@ public class SimonGameManager : MonoBehaviour
         SetBoardVisible(board7Root, pieceCount == 7);
 
         BoardReferences board = GetBoardReferences(pieceCount);
+        activeBoardRoot = board != null ? board.boardRoot : null;
         activeBoardImage = board != null ? board.baseBoardImage : null;
         activeZonesRoot = board != null ? board.zonesRoot : null;
+
+        if (activeBoardRoot != null)
+        {
+            boardBaseScale = activeBoardRoot.localScale;
+            boardBaseAnchoredPosition = activeBoardRoot.anchoredPosition;
+            activeBoardRoot.localScale = boardBaseScale * boardIdleScale;
+        }
+
+        EnsureBoardCenterRing();
+
         RefreshDiscoveredZones();
     }
 
@@ -1177,7 +1772,10 @@ public class SimonGameManager : MonoBehaviour
             return;
 
         isPaused = true;
-        pausePanel.SetActive(true);
+        if (pausePanelView != null)
+            pausePanelView.Show();
+        else
+            pausePanel.SetActive(true);
         Time.timeScale = 0f;
         AudioListener.pause = true;
         SetInput(false);
@@ -1189,10 +1787,22 @@ public class SimonGameManager : MonoBehaviour
         if (replayButton != null)
             replayButton.interactable = false;
 
-        SetStatus("Pausa", warningColor, animate: false);
+        if (pausePanelTransition == null)
+            StartPausePanelTransition(show: true);
     }
 
     private void ResumeGame()
+    {
+        if (!isPaused)
+            return;
+
+        if (pausePanelView != null)
+            pausePanelView.Hide(FinishResumeGame);
+        else
+            StartPausePanelTransition(show: false, onComplete: FinishResumeGame);
+    }
+
+    private void FinishResumeGame()
     {
         if (!isPaused)
             return;
@@ -1224,13 +1834,83 @@ public class SimonGameManager : MonoBehaviour
             HideStatus();
     }
 
+    private void ConfigurePausePanelVisuals()
+    {
+        if (pausePanel == null)
+            return;
+
+        pausePanelTransition = pausePanel.GetComponent<UIPanelTransition>();
+        pausePanelView = pausePanel.GetComponent<PausePanelView>();
+        pausePanelCanvasGroup = pausePanel.GetComponent<CanvasGroup>();
+        if (pausePanelCanvasGroup == null)
+            pausePanelCanvasGroup = pausePanel.AddComponent<CanvasGroup>();
+        if (pausePanelView == null)
+            pausePanelView = pausePanel.AddComponent<PausePanelView>();
+
+        pausePanelCanvasGroup.alpha = 0f;
+        pausePanelCanvasGroup.interactable = false;
+        pausePanelCanvasGroup.blocksRaycasts = false;
+
+        if (pausePanelView != null)
+            pausePanelView.InitializeHidden();
+    }
+
+    private void StartPausePanelTransition(bool show, Action onComplete = null)
+    {
+        if (pausePanelCanvasGroup == null)
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        if (pausePanelRoutine != null)
+            StopCoroutine(pausePanelRoutine);
+
+        pausePanelRoutine = StartCoroutine(AnimatePausePanel(show, onComplete));
+    }
+
+    private IEnumerator AnimatePausePanel(bool show, Action onComplete)
+    {
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, pausePanelFadeDuration);
+        float startAlpha = pausePanelCanvasGroup.alpha;
+        float endAlpha = show ? 1f : 0f;
+        RectTransform rect = pausePanel.transform as RectTransform;
+
+        if (rect != null)
+            rect.localScale = show ? Vector3.one * 0.96f : Vector3.one;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(elapsed / duration);
+            pausePanelCanvasGroup.alpha = Mathf.Lerp(startAlpha, endAlpha, k);
+            if (rect != null)
+            {
+                float scale = show ? Mathf.Lerp(0.96f, 1f, k) : Mathf.Lerp(1f, 0.96f, k);
+                rect.localScale = Vector3.one * scale;
+            }
+
+            yield return null;
+        }
+
+        pausePanelCanvasGroup.alpha = endAlpha;
+        pausePanelCanvasGroup.interactable = show;
+        pausePanelCanvasGroup.blocksRaycasts = show;
+        if (rect != null)
+            rect.localScale = Vector3.one;
+
+        pausePanelRoutine = null;
+        onComplete?.Invoke();
+    }
+
     private void RestartScene()
     {
         if (metronomeController != null)
             metronomeController.StopMetronome();
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        SceneTransitionController.ReloadCurrentScene();
     }
 
     private void LoadMainScene()
@@ -1239,7 +1919,7 @@ public class SimonGameManager : MonoBehaviour
             metronomeController.StopMetronome();
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        SceneManager.LoadScene("MainScene");
+        SceneTransitionController.LoadScene("MainScene");
     }
 
     private static Button FindButton(Transform root, string objectName)
