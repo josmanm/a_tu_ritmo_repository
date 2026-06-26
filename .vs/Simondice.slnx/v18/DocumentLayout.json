@@ -3,8 +3,8 @@
   "WorkspaceRootPath": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|d:\\josmanm\\cursos2025\\unity\\simondice\\assets\\script\\simongamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B4CD19DA-EE08-5225-FB19-1D0DFA4113DD}|Assembly-CSharp.csproj|solutionrelative:assets\\script\\simongamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\FirebaseManager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Script\\FirebaseManager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -19,14 +19,14 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "SimonGameManager.cs",
-              "DocumentMoniker": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\SimonGameManager.cs",
-              "RelativeDocumentMoniker": "Assets\\Script\\SimonGameManager.cs",
-              "ToolTip": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\SimonGameManager.cs",
-              "RelativeToolTip": "Assets\\Script\\SimonGameManager.cs",
-              "ViewState": "AgIAAEcDAAAAAAAAAAAqwFMDAAATAAAAAAAAAA==",
+              "Title": "FirebaseManager.cs",
+              "DocumentMoniker": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\FirebaseManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Script\\FirebaseManager.cs",
+              "ToolTip": "D:\\JosmanM\\Cursos2025\\Unity\\Simondice\\Assets\\Script\\FirebaseManager.cs",
+              "RelativeToolTip": "Assets\\Script\\FirebaseManager.cs",
+              "ViewState": "AgIAACAAAAAAAAAAAAAIwC4AAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-18T16:14:16.389Z",
+              "WhenOpened": "2026-06-26T00:00:36.694Z",
               "EditorCaption": ""
             }
           ]

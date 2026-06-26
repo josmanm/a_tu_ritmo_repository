@@ -3142,6 +3142,8 @@ MonoBehaviour:
   perfectToleranceBeats: 0.2
   goodToleranceBeats: 0.35
   maxLives: 3
+  maxConsecutiveFigureRepeats: 2
+  figureRecencyWeightStep: 0.75
   normalFeedbackColor: {r: 1, g: 1, b: 1, a: 1}
   successFeedbackColor: {r: 0.3, g: 0.85, b: 0.3, a: 1}
   failFeedbackColor: {r: 1, g: 0.35, b: 0.35, a: 1}
@@ -3171,6 +3173,17 @@ MonoBehaviour:
   statusMessageLongDuration: 1.6
   statusMessagePopScale: 1.08
   statusMessageAnimDuration: 0.16
+  successStatusSprite: {fileID: 6906699975731011009, guid: 90d5ac3c211cd1948b54bfb373764fd2, type: 3}
+  regularStatusSprite: {fileID: -435409667562469070, guid: 90d5ac3c211cd1948b54bfb373764fd2, type: 3}
+  failStatusSprite: {fileID: -8174141812930980481, guid: 90d5ac3c211cd1948b54bfb373764fd2, type: 3}
+  observeStatusSprite: {fileID: 0}
+  turnStatusSprite: {fileID: 0}
+  waitStatusSprite: {fileID: 0}
+  silenceStatusSprite: {fileID: 0}
+  roundCelebrationColor: {r: 1, g: 0.94, b: 0.72, a: 0.92}
+  perfectRoundCelebrationColor: {r: 1, g: 0.98, b: 0.82, a: 0.95}
+  tutorialCompletionCelebrationColor: {r: 0.78, g: 0.95, b: 1, a: 0.95}
+  roundCelebrationDuration: 0.42
 --- !u!1 &1397099553
 GameObject:
   m_ObjectHideFlags: 0

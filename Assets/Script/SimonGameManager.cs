@@ -227,6 +227,13 @@ public class SimonGameManager : MonoBehaviour
     private Vector3 timeBarBaseScale = Vector3.one;
     private Vector3 boardBaseScale = Vector3.one;
     private Vector2 boardBaseAnchoredPosition = Vector2.zero;
+    private float sfxBaseVolume = 1f;
+    private float attemptStartedAt;
+    private int attemptErrors;
+    private int attemptCorrectAnswers;
+    private int attemptLevelRepetitions;
+    private bool attemptReportSubmitted;
+    private string attemptExitReason = "completed";
 
     private void OnValidate()
     {
@@ -239,6 +246,7 @@ public class SimonGameManager : MonoBehaviour
 
     private void Start()
     {
+        GameSettings.EnsureInitialized();
         ResolveBoardReferences();
         ResolvePauseReferences();
         ValidateReferences();
@@ -250,6 +258,9 @@ public class SimonGameManager : MonoBehaviour
         SetInput(false);
         ConfigureButtons();
         currentBPM = initialBPM;
+
+        if (sfxSource != null)
+            sfxBaseVolume = sfxSource.volume;
 
         if (pausePanel != null)
             pausePanel.SetActive(false);
@@ -270,6 +281,17 @@ public class SimonGameManager : MonoBehaviour
         RefreshRecordUI();
 
         SetStatus("Presiona JUGAR para comenzar", normalColor, animate: false);
+        ApplyGameSettings();
+    }
+
+    private void OnEnable()
+    {
+        GameSettings.SettingsChanged += ApplyGameSettings;
+    }
+
+    private void OnDisable()
+    {
+        GameSettings.SettingsChanged -= ApplyGameSettings;
     }
 
     private void Update()
@@ -374,6 +396,12 @@ public class SimonGameManager : MonoBehaviour
         activeMusicalSequence = null;
         activeMusicalSequenceIndex = 0;
         isRoundTransitioning = false;
+        attemptStartedAt = Time.time;
+        attemptErrors = 0;
+        attemptCorrectAnswers = 0;
+        attemptLevelRepetitions = 0;
+        attemptReportSubmitted = false;
+        attemptExitReason = "completed";
         RefreshScoreUI();
 
         BuildBoard(4);
@@ -591,6 +619,7 @@ public class SimonGameManager : MonoBehaviour
 
         PlayColorSound(idx);
         TriggerHapticSuccess();
+        attemptCorrectAnswers++;
 
         Vector3 piecePos = activeZones[idx].transform.position;
         celebrationEffect.PlayPerfectEffect(piecePos);
@@ -642,7 +671,7 @@ public class SimonGameManager : MonoBehaviour
         currentBPM = Mathf.Min(maximumBPM, initialBPM + increaseSteps * bpmIncrease);
 
         if (metronomeController != null)
-            metronomeController.SetBpm(currentBPM);
+            metronomeController.SetBpm(currentBPM * GameSettings.GameplaySpeed);
     }
 
     private void ResetPlayerTimeLimit()
@@ -704,6 +733,8 @@ public class SimonGameManager : MonoBehaviour
         StartHideStatusCountdown(gameOverMessageSeconds);
         StartBoardStateTransition(boardIdleScale);
 
+        attemptExitReason = string.IsNullOrEmpty(reason) ? "game_over" : reason;
+        ReportAttempt(false);
         sequence.Clear();
         playerIndex = 0;
         currentLevel = 0;
@@ -1022,6 +1053,8 @@ public class SimonGameManager : MonoBehaviour
         SetInput(false);
 
         lives--;
+        attemptErrors++;
+        attemptLevelRepetitions++;
         UpdateLivesUI();
         AnimateLifeLost(lives);
         PlayBoardErrorFeedback();
@@ -1910,6 +1943,8 @@ public class SimonGameManager : MonoBehaviour
             metronomeController.StopMetronome();
         Time.timeScale = 1f;
         AudioListener.pause = false;
+        attemptExitReason = "restart";
+        ReportAttempt(false);
         SceneTransitionController.ReloadCurrentScene();
     }
 
@@ -1919,6 +1954,8 @@ public class SimonGameManager : MonoBehaviour
             metronomeController.StopMetronome();
         Time.timeScale = 1f;
         AudioListener.pause = false;
+        attemptExitReason = lives > 0 ? "return_to_menu" : "game_over_return";
+        ReportAttempt(lives > 0);
         SceneTransitionController.LoadScene("MainScene");
     }
 
@@ -1964,6 +2001,40 @@ public class SimonGameManager : MonoBehaviour
 
     private float GetBeatDuration()
     {
-        return 60f / Mathf.Max(1f, currentBPM);
+        return 60f / Mathf.Max(1f, currentBPM * GameSettings.GameplaySpeed);
+    }
+
+    private void ApplyGameSettings()
+    {
+        if (sfxSource != null)
+            sfxSource.volume = sfxBaseVolume * GameSettings.EffectsVolume;
+
+        if (metronomeController != null)
+            metronomeController.SetBpm(currentBPM * GameSettings.GameplaySpeed);
+    }
+
+    private void ReportAttempt(bool completed)
+    {
+        if (attemptReportSubmitted || GameReportManager.Instance == null || SessionManager.Instance == null || !SessionManager.Instance.HasActiveSession)
+            return;
+
+        attemptReportSubmitted = true;
+        AttemptReportData report = new AttemptReportData
+        {
+            miniGame = "simon_dice",
+            level = Mathf.Max(1, currentLevel),
+            difficulty = currentColorCount <= 4 ? "facil" : currentColorCount == 5 ? "media" : "dificil",
+            bpm = Mathf.RoundToInt(currentBPM * GameSettings.GameplaySpeed),
+            errors = attemptErrors,
+            correctAnswers = attemptCorrectAnswers,
+            levelRepetitions = attemptLevelRepetitions,
+            completed = completed,
+            timeSeconds = Mathf.Max(1, Mathf.RoundToInt(Time.time - attemptStartedAt)),
+            scoreFinal = score,
+            wasTutorial = false,
+            exitReason = attemptExitReason,
+        };
+
+        GameReportManager.Instance.ReportAttempt(report, null, error => Debug.LogWarning("Simon report error: " + error));
     }
 }

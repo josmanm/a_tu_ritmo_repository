@@ -1,8 +1,32 @@
 # Unity folders
-Library/
-Temp/
-Obj/
-Build/
-Builds/
-Logs/
-UserSettings/
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+Recordings/
+AtuRitmo/
+AtuRitmo.zip
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Generated project files
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+
+# OS
+.DS_Store
+Thumbs.db

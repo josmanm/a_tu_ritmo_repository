@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections;
+using TMPro;
 
 public class MenuManager : MonoBehaviour
 {
@@ -40,6 +41,14 @@ public class MenuManager : MonoBehaviour
     [Header("Optional")]
     [SerializeField] private Button backButton;
 
+    [Header("Settings Box")]
+    [SerializeField] private GameObject settingsBox;
+    [SerializeField] private Scrollbar musicScrollbar;
+    [SerializeField] private Scrollbar effectsScrollbar;
+    [SerializeField] private Scrollbar speedScrollbar;
+    [SerializeField] private Button closeSettingsButton;
+    [SerializeField] private Button resetSettingsButton;
+
     [Header("Panel Transition Juice")]
     [SerializeField] private float panelAccentDuration = 0.22f;
     [SerializeField] private float logoAccentScale = 1.08f;
@@ -63,19 +72,48 @@ public class MenuManager : MonoBehaviour
     private float playTransitionScale = 1f;
     private float settingsTransitionScale = 1f;
     private float exitTransitionScale = 1f;
+    private TMP_Text musicSettingsText;
+    private TMP_Text effectsSettingsText;
+    private TMP_Text speedSettingsText;
 
     private void Awake()
     {
+        EnsureCoreServices();
         ResolveReferences();
         ResolvePanelTransitions();
         CacheBaseTransforms();
+        ConfigureSettingsBox();
         InitializePanels();
+
+        ProfileMenuController profileMenu = FindFirstObjectByType<ProfileMenuController>(FindObjectsInactive.Include);
+        if (profileMenu == null)
+            gameObject.AddComponent<ProfileMenuController>();
 
         if (backButton != null)
         {
             backButton.onClick.RemoveAllListeners();
             backButton.onClick.AddListener(ShowMainOptions);
         }
+
+        if (closeSettingsButton != null)
+        {
+            closeSettingsButton.onClick.RemoveAllListeners();
+            closeSettingsButton.onClick.AddListener(ShowMainOptions);
+        }
+
+        if (resetSettingsButton != null)
+        {
+            resetSettingsButton.onClick.RemoveAllListeners();
+            resetSettingsButton.onClick.AddListener(ResetSettingsToDefaults);
+        }
+
+        GameSettings.SettingsChanged += RefreshSettingsBoxLabels;
+        RefreshSettingsBoxLabels();
+    }
+
+    private void OnDestroy()
+    {
+        GameSettings.SettingsChanged -= RefreshSettingsBoxLabels;
     }
 
     private void Update()
@@ -92,6 +130,19 @@ public class MenuManager : MonoBehaviour
 
     public void LoadScene(string sceneName)
     {
+        if (PlayerProfileManager.Instance == null || !PlayerProfileManager.Instance.HasActiveProfile)
+        {
+            ProfileMenuController profileMenu = FindFirstObjectByType<ProfileMenuController>(FindObjectsInactive.Include);
+            if (profileMenu != null)
+                profileMenu.Show();
+            return;
+        }
+
+        if (SessionManager.Instance != null && !SessionManager.Instance.HasActiveSession)
+        {
+            SessionManager.Instance.StartSessionForPlayer(PlayerProfileManager.Instance.ActiveProfile, null, null);
+        }
+
         SceneTransitionController.LoadScene(sceneName);
     }
 
@@ -145,6 +196,41 @@ public class MenuManager : MonoBehaviour
         if (settingsPanel == null)
             settingsPanel = GameObject.Find("SettingsPanel");
 
+        if (settingsBox == null)
+            settingsBox = GameObject.Find("SettingsBox");
+
+        if (musicScrollbar == null && settingsBox != null)
+            musicScrollbar = FindScrollbar(settingsBox.transform, "MusicaButton");
+
+        if (effectsScrollbar == null && settingsBox != null)
+            effectsScrollbar = FindScrollbar(settingsBox.transform, "EfectosButton");
+
+        if (speedScrollbar == null && settingsBox != null)
+            speedScrollbar = FindScrollbar(settingsBox.transform, "VelocidadButton");
+
+        if (closeSettingsButton == null && settingsBox != null)
+        {
+            Transform closeTransform = FindChild(settingsBox.transform, "CloseButton");
+            if (closeTransform != null)
+                closeSettingsButton = closeTransform.GetComponent<Button>();
+        }
+
+        if (resetSettingsButton == null && settingsBox != null)
+        {
+            Transform resetTransform = FindChild(settingsBox.transform, "ResetButton");
+            if (resetTransform != null)
+                resetSettingsButton = resetTransform.GetComponent<Button>();
+        }
+
+        if (musicSettingsText == null && settingsBox != null)
+            musicSettingsText = FindButtonLabel(settingsBox.transform, "MusicaButton");
+
+        if (effectsSettingsText == null && settingsBox != null)
+            effectsSettingsText = FindButtonLabel(settingsBox.transform, "EfectosButton");
+
+        if (speedSettingsText == null && settingsBox != null)
+            speedSettingsText = FindButtonLabel(settingsBox.transform, "VelocidadButton");
+
         if (backButton == null)
         {
             GameObject backButtonObject = GameObject.Find("BackButton");
@@ -165,6 +251,81 @@ public class MenuManager : MonoBehaviour
         SetPanelInstant(gamesPanel, gamesTransition, false);
         SetPanelInstant(settingsPanel, settingsTransition, false);
         SetBackButtonVisible(false);
+    }
+
+    private void ConfigureSettingsBox()
+    {
+        GameSettings.EnsureInitialized();
+
+        if (musicScrollbar != null)
+        {
+            musicScrollbar.onValueChanged.RemoveAllListeners();
+            musicScrollbar.size = 0.2f;
+            musicScrollbar.value = GameSettings.MusicVolume;
+            musicScrollbar.onValueChanged.AddListener(OnMusicScrollbarChanged);
+        }
+
+        if (effectsScrollbar != null)
+        {
+            effectsScrollbar.onValueChanged.RemoveAllListeners();
+            effectsScrollbar.size = 0.2f;
+            effectsScrollbar.value = GameSettings.EffectsVolume;
+            effectsScrollbar.onValueChanged.AddListener(OnEffectsScrollbarChanged);
+        }
+
+        if (speedScrollbar != null)
+        {
+            speedScrollbar.onValueChanged.RemoveAllListeners();
+            speedScrollbar.size = 0.2f;
+            speedScrollbar.value = Mathf.InverseLerp(0.75f, 1.5f, GameSettings.GameplaySpeed);
+            speedScrollbar.onValueChanged.AddListener(OnSpeedScrollbarChanged);
+        }
+
+        RefreshSettingsBoxLabels();
+    }
+
+    private void OnMusicScrollbarChanged(float value)
+    {
+        GameSettings.SetMusicVolume(value);
+    }
+
+    private void OnEffectsScrollbarChanged(float value)
+    {
+        GameSettings.SetEffectsVolume(value);
+    }
+
+    private void OnSpeedScrollbarChanged(float value)
+    {
+        float mapped = Mathf.Lerp(0.75f, 1.5f, value);
+        GameSettings.SetGameplaySpeed(mapped);
+    }
+
+    private void ResetSettingsToDefaults()
+    {
+        GameSettings.ResetDefaults();
+
+        if (musicScrollbar != null)
+            musicScrollbar.SetValueWithoutNotify(GameSettings.MusicVolume);
+
+        if (effectsScrollbar != null)
+            effectsScrollbar.SetValueWithoutNotify(GameSettings.EffectsVolume);
+
+        if (speedScrollbar != null)
+            speedScrollbar.SetValueWithoutNotify(Mathf.InverseLerp(0.75f, 1.5f, GameSettings.GameplaySpeed));
+
+        RefreshSettingsBoxLabels();
+    }
+
+    private void RefreshSettingsBoxLabels()
+    {
+        if (musicSettingsText != null)
+            musicSettingsText.text = $"{Mathf.RoundToInt(GameSettings.MusicVolume * 100f)}%";
+
+        if (effectsSettingsText != null)
+            effectsSettingsText.text = $"{Mathf.RoundToInt(GameSettings.EffectsVolume * 100f)}%";
+
+        if (speedSettingsText != null)
+            speedSettingsText.text = $"{Mathf.RoundToInt(GameSettings.GameplaySpeed * 100f)}%";
     }
 
     private void ResolvePanelTransitions()
@@ -365,9 +526,63 @@ public class MenuManager : MonoBehaviour
         return found != null ? found.GetComponent<RectTransform>() : null;
     }
 
+    private static Scrollbar FindScrollbar(Transform root, string parentName)
+    {
+        Transform parent = FindChild(root, parentName);
+        if (parent == null)
+            return null;
+
+        return parent.GetComponentInChildren<Scrollbar>(true);
+    }
+
+    private static TMP_Text FindButtonLabel(Transform root, string parentName)
+    {
+        Transform parent = FindChild(root, parentName);
+        if (parent == null)
+            return null;
+
+        return parent.GetComponentInChildren<TMP_Text>(true);
+    }
+
+    private static Transform FindChild(Transform root, string objectName)
+    {
+        if (root == null)
+            return null;
+
+        if (root.name == objectName)
+            return root;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform result = FindChild(root.GetChild(i), objectName);
+            if (result != null)
+                return result;
+        }
+
+        return null;
+    }
+
     private void SetBackButtonVisible(bool visible)
     {
         if (backButton != null)
             backButton.gameObject.SetActive(visible);
+    }
+
+    private void EnsureCoreServices()
+    {
+        EnsureSingleton<FirebaseManager>("FirebaseManager");
+        EnsureSingleton<PlayerProfileManager>("PlayerProfileManager");
+        EnsureSingleton<SessionManager>("SessionManager");
+        EnsureSingleton<GameReportManager>("GameReportManager");
+    }
+
+    private static T EnsureSingleton<T>(string objectName) where T : Component
+    {
+        T existing = FindFirstObjectByType<T>(FindObjectsInactive.Include);
+        if (existing != null)
+            return existing;
+
+        GameObject root = new GameObject(objectName);
+        return root.AddComponent<T>();
     }
 }

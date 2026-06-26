@@ -17,6 +17,8 @@ public class BackgroundMusicPlayer : MonoBehaviour
 
     private void Awake()
     {
+        GameSettings.EnsureInitialized();
+
         if (instance != null && instance != this)
         {
             Destroy(gameObject);
@@ -42,6 +44,7 @@ public class BackgroundMusicPlayer : MonoBehaviour
         audioSource.volume = GetVolumeForScene(SceneManager.GetActiveScene().name);
 
         SceneManager.sceneLoaded += HandleSceneLoaded;
+        GameSettings.SettingsChanged += HandleSettingsChanged;
 
         if (playOnAwake)
             Play();
@@ -50,7 +53,10 @@ public class BackgroundMusicPlayer : MonoBehaviour
     private void OnDestroy()
     {
         if (instance == this)
+        {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
+            GameSettings.SettingsChanged -= HandleSettingsChanged;
+        }
     }
 
     private void OnValidate()
@@ -59,7 +65,7 @@ public class BackgroundMusicPlayer : MonoBehaviour
             audioSource = GetComponent<AudioSource>();
 
         if (audioSource != null)
-            audioSource.volume = menuVolume;
+            audioSource.volume = menuVolume * GameSettings.MusicVolume;
     }
 
     public void Play()
@@ -81,7 +87,7 @@ public class BackgroundMusicPlayer : MonoBehaviour
         menuVolume = Mathf.Clamp01(newVolume);
 
         if (audioSource != null)
-            audioSource.volume = menuVolume;
+            audioSource.volume = menuVolume * GameSettings.MusicVolume;
     }
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -124,6 +130,19 @@ public class BackgroundMusicPlayer : MonoBehaviour
 
     private float GetVolumeForScene(string sceneName)
     {
-        return sceneName == "MainScene" ? menuVolume : gameplayVolume;
+        float baseVolume = sceneName == "MainScene" ? menuVolume : gameplayVolume;
+        return baseVolume * GameSettings.MusicVolume;
+    }
+
+    private void HandleSettingsChanged()
+    {
+        if (audioSource == null)
+            return;
+
+        float targetVolume = GetVolumeForScene(SceneManager.GetActiveScene().name);
+        if (volumeRoutine != null)
+            StopCoroutine(volumeRoutine);
+
+        volumeRoutine = StartCoroutine(AnimateVolume(targetVolume));
     }
 }

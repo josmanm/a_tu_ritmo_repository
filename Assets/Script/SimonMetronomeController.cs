@@ -24,6 +24,7 @@ public class SimonMetronomeController : MonoBehaviour
     private float elapsedInBeat;
     private Vector3 baseScale = Vector3.one;
     private int currentFrameIndex = -1;
+    private float baseClickVolume;
 
     private void Awake()
     {
@@ -31,7 +32,13 @@ public class SimonMetronomeController : MonoBehaviour
             baseScale = pendulum.localScale;
 
         if (metronomeAudioSource != null)
+        {
             metronomeAudioSource.playOnAwake = false;
+            baseClickVolume = metronomeClickVolume;
+        }
+
+        GameSettings.SettingsChanged += ApplyGameSettings;
+        ApplyGameSettings();
 
         SetIdleState();
     }
@@ -75,6 +82,11 @@ public class SimonMetronomeController : MonoBehaviour
 
         if (metronomeImage != null && normalizedTime > 0.12f)
             metronomeImage.color = idleColor;
+    }
+
+    private void OnDestroy()
+    {
+        GameSettings.SettingsChanged -= ApplyGameSettings;
     }
 
     public void SetBpm(float newBpm)
@@ -167,5 +179,10 @@ public class SimonMetronomeController : MonoBehaviour
         currentFrameIndex = frameIndex;
         metronomeImage.sprite = animationFrames[frameIndex];
         metronomeImage.preserveAspect = true;
+    }
+
+    private void ApplyGameSettings()
+    {
+        metronomeClickVolume = baseClickVolume * GameSettings.EffectsVolume;
     }
 }
