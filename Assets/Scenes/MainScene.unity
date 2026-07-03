@@ -805,7 +805,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 404, y: -70}
-  m_SizeDelta: {x: 399, y: 429}
+  m_SizeDelta: {x: 300, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &176139686
 MonoBehaviour:
@@ -883,7 +883,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -5821589366043852772, guid: 31cbcf7617190cf40bf2faabbe5ed5e5, type: 3}
+  m_Sprite: {fileID: -1082035180800209908, guid: 31cbcf7617190cf40bf2faabbe5ed5e5, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1685,9 +1685,6 @@ MonoBehaviour:
   logoFloatSpeed: 1
   logoWobbleAngle: 5
   logoWobbleSpeed: 0.7
-  buttonPulseScaleAmount: 0.08
-  buttonPulseSpeed: 1.5
-  buttonPhaseOffset: 0.8
   mainOptionsPanel: {fileID: 2056251923}
   gamesPanel: {fileID: 594445604}
   settingsPanel: {fileID: 1304874464}
@@ -1700,7 +1697,6 @@ MonoBehaviour:
   resetSettingsButton: {fileID: 2077125003}
   panelAccentDuration: 0.05
   logoAccentScale: 1.08
-  buttonAccentScale: 1.1
   logoShiftAmount: 34
 --- !u!4 &799382424
 Transform:
@@ -3917,7 +3913,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -399, y: -70}
-  m_SizeDelta: {x: 448, y: 426}
+  m_SizeDelta: {x: 300, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1917712788
 MonoBehaviour:
@@ -3995,7 +3991,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -3822856141357858322, guid: 31cbcf7617190cf40bf2faabbe5ed5e5, type: 3}
+  m_Sprite: {fileID: 6458754186736288211, guid: 31cbcf7617190cf40bf2faabbe5ed5e5, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -4567,7 +4563,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 7b91e9f66c0939440ab4e1c54cbf6856, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 0
+  m_Volume: 0.20339198
   m_Pitch: 1
   Loop: 0
   Mute: 0

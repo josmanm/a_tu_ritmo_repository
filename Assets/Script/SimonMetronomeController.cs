@@ -25,6 +25,7 @@ public class SimonMetronomeController : MonoBehaviour
     private Vector3 baseScale = Vector3.one;
     private int currentFrameIndex = -1;
     private float baseClickVolume;
+    private bool visualVisible = true;
 
     private void Awake()
     {
@@ -104,6 +105,17 @@ public class SimonMetronomeController : MonoBehaviour
         ApplyPulseFeedback();
     }
 
+    public void SetVisualVisible(bool visible)
+    {
+        visualVisible = visible;
+
+        if (metronomeImage != null)
+            metronomeImage.gameObject.SetActive(visible);
+
+        if (pendulum != null)
+            pendulum.gameObject.SetActive(visible);
+    }
+
     public void StopMetronome()
     {
         isRunning = false;
@@ -126,7 +138,7 @@ public class SimonMetronomeController : MonoBehaviour
 
     private void ApplyPulseFeedback()
     {
-        if (metronomeImage != null)
+        if (visualVisible && metronomeImage != null)
             metronomeImage.color = pulseColor;
 
         if (useMetronomeClick && metronomeAudioSource != null && metronomeClickClip != null)
@@ -138,6 +150,9 @@ public class SimonMetronomeController : MonoBehaviour
 
     private void SetIdleState()
     {
+        if (!visualVisible)
+            return;
+
         if (HasFrameAnimation())
         {
             SetFrame(0);

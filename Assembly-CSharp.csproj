@@ -57,6 +57,7 @@
     <Compile Include="Assets\Script\MenuManager.cs" />
     <Compile Include="Assets\Script\GameSettings.cs" />
     <Compile Include="Assets\Script\TempoTapGameManager.cs" />
+    <Compile Include="Assets\Script\TopHudPanelStyle.cs" />
     <Compile Include="Assets\Script\SimonCelebrationEffect.cs" />
     <Compile Include="Assets\Script\GameReportManager.cs" />
     <Compile Include="Assets\Script\BeatGuideUI.cs" />
@@ -65,6 +66,7 @@
     <Compile Include="Assets\Script\SessionManager.cs" />
     <Compile Include="Assets\Script\ObstacleMoverBeat.cs" />
     <Compile Include="Assets\Script\PausePanelView.cs" />
+    <Compile Include="Assets\Script\CompassGuideView.cs" />
     <Compile Include="Assets\Script\PulseOnBeat.cs" />
     <Compile Include="Assets\Script\SceneTransitionController.cs" />
     <Compile Include="Assets\Script\UIButtonPulse.cs" />

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class ProfileMenuController : MonoBehaviour
@@ -32,6 +33,9 @@ public class ProfileMenuController : MonoBehaviour
     private AvatarVisual selectedProfileAvatar;
     private readonly List<PlayerProfileData> loadedProfiles = new List<PlayerProfileData>();
     private bool waitingForFirebase;
+    private const float ProfileRowHeight = 72f;
+    private const float ProfileRowSpacing = 10f;
+    private const float ProfilesViewportHeight = 220f;
 
     private void Awake()
     {
@@ -46,6 +50,12 @@ public class ProfileMenuController : MonoBehaviour
 
     private void Start()
     {
+        if (SceneManager.GetActiveScene().name != "MainScene")
+        {
+            Destroy(this);
+            return;
+        }
+
         rootCanvas = FindFirstObjectByType<Canvas>(FindObjectsInactive.Include);
         if (rootCanvas == null)
             return;
@@ -55,11 +65,15 @@ public class ProfileMenuController : MonoBehaviour
             PlayerProfileManager.Instance.ActiveProfileChanged += HandleActiveProfileChanged;
 
         RefreshActiveProfileDisplay();
-        Show();
+        if (PlayerProfileManager.Instance == null || !PlayerProfileManager.Instance.HasActiveProfile)
+            Show();
     }
 
     private void OnDestroy()
     {
+        if (Instance == this)
+            Instance = null;
+
         if (PlayerProfileManager.Instance != null)
             PlayerProfileManager.Instance.ActiveProfileChanged -= HandleActiveProfileChanged;
     }
@@ -178,15 +192,8 @@ public class ProfileMenuController : MonoBehaviour
         profilesContent.anchorMax = new Vector2(1f, 1f);
         profilesContent.pivot = new Vector2(0.5f, 1f);
         profilesContent.anchoredPosition = Vector2.zero;
-        VerticalLayoutGroup layout = content.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 10f;
-        layout.childAlignment = TextAnchor.UpperCenter;
-        layout.childControlHeight = true;
-        layout.childControlWidth = true;
-        layout.childForceExpandHeight = false;
-        layout.childForceExpandWidth = true;
-        ContentSizeFitter fitter = content.AddComponent<ContentSizeFitter>();
-        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        profilesContent.offsetMin = new Vector2(0f, -ProfilesViewportHeight);
+        profilesContent.offsetMax = Vector2.zero;
 
         profilesScrollRect.viewport = profilesViewport;
         profilesScrollRect.content = profilesContent;
@@ -274,12 +281,12 @@ public class ProfileMenuController : MonoBehaviour
     private void CreateProfileEntry(PlayerProfileData profile)
     {
         GameObject row = CreateUiObject(profile.playerId, profilesContent, new Vector2(520f, 72f));
+        RectTransform rowRect = row.GetComponent<RectTransform>();
+        rowRect.anchorMin = new Vector2(0.5f, 1f);
+        rowRect.anchorMax = new Vector2(0.5f, 1f);
+        rowRect.pivot = new Vector2(0.5f, 1f);
         Image rowImage = row.AddComponent<Image>();
         rowImage.color = new Color(1f, 1f, 1f, 0.92f);
-        LayoutElement rowLayout = row.AddComponent<LayoutElement>();
-        rowLayout.preferredHeight = 72f;
-        rowLayout.minHeight = 72f;
-        rowLayout.preferredWidth = 520f;
         Button button = row.AddComponent<Button>();
         button.onClick.AddListener(() =>
         {
@@ -384,11 +391,11 @@ public class ProfileMenuController : MonoBehaviour
 
         ClearProfilesUi();
         TMP_Text text = CreateText(message, profilesContent, 24f, FontStyles.Bold);
+        text.rectTransform.anchorMin = new Vector2(0.5f, 1f);
+        text.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+        text.rectTransform.pivot = new Vector2(0.5f, 1f);
         text.rectTransform.sizeDelta = new Vector2(520f, 56f);
         text.color = waitingForFirebase ? new Color(0.2f, 0.45f, 0.78f, 1f) : new Color(0.7f, 0.2f, 0.2f, 1f);
-        LayoutElement rowLayout = text.gameObject.AddComponent<LayoutElement>();
-        rowLayout.preferredHeight = 56f;
-        rowLayout.minHeight = 56f;
         RebuildProfilesLayout();
     }
 
@@ -420,8 +427,24 @@ public class ProfileMenuController : MonoBehaviour
         if (profilesContent == null)
             return;
 
-        Canvas.ForceUpdateCanvases();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(profilesContent);
+        float contentHeight = ProfilesViewportHeight;
+        int rowCount = profilesContent.childCount;
+        if (rowCount > 0)
+            contentHeight = Mathf.Max(ProfilesViewportHeight, rowCount * ProfileRowHeight + (rowCount - 1) * ProfileRowSpacing);
+
+        profilesContent.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, contentHeight);
+        for (int i = 0; i < rowCount; i++)
+        {
+            RectTransform child = profilesContent.GetChild(i) as RectTransform;
+            if (child == null)
+                continue;
+
+            float height = i == 0 && rowCount == 1 && child.sizeDelta.y < ProfileRowHeight ? child.sizeDelta.y : ProfileRowHeight;
+            child.anchoredPosition = new Vector2(0f, -(i * (ProfileRowHeight + ProfileRowSpacing)));
+            child.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 520f);
+            child.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+        }
+
         if (profilesScrollRect != null)
             profilesScrollRect.verticalNormalizedPosition = 1f;
     }

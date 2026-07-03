@@ -1,28 +1,10 @@
 fileFormatVersion: 2
-guid: 31cbcf7617190cf40bf2faabbe5ed5e5
+guid: e36c9ee1afe154a4096442571f068f97
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 2639756742115083343
-    second: assets menu a tu ritmo juegos_0
-  - first:
-      213: -209592511489868166
-    second: assets menu a tu ritmo juegos_1
-  - first:
-      213: 6458754186736288211
-    second: assets menu a tu ritmo juegos_2
-  - first:
-      213: -3822856141357858322
-    second: assets menu a tu ritmo juegos_3
-  - first:
-      213: -4591995387625183110
-    second: assets menu a tu ritmo juegos_4
-  - first:
-      213: -1082035180800209908
-    second: assets menu a tu ritmo juegos_5
-  - first:
-      213: -5821589366043852772
-    second: assets menu a tu ritmo juegos_6
+      213: -1099915878929834952
+    second: asset de temporizados_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -131,35 +113,35 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: assets menu a tu ritmo juegos_2
+      name: asset de temporizados_0
       rect:
         serializedVersion: 2
-        x: 130
-        y: 523
-        width: 436
-        height: 494
+        x: 42
+        y: 651
+        width: 906
+        height: 133
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 407e478a15af0d2479439b75944468b9
-      internalID: 6458754186736288211
+      spriteID: 83c5391f5505cb0f0800000000000000
+      internalID: -1099915878929834952
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: assets menu a tu ritmo juegos_5
+      name: asset de temporizados_1
       rect:
         serializedVersion: 2
-        x: 134
-        y: 14
-        width: 432
-        height: 482
+        x: 63
+        y: 488
+        width: 866
+        height: 86
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -168,8 +150,52 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a48d64f08514c594f93a8265300ef3e8
-      internalID: -1082035180800209908
+      spriteID: 69f3d8a9803f27e469d3d5f363fe25b8
+      internalID: 2134170206
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: asset de temporizados_2
+      rect:
+        serializedVersion: 2
+        x: 138
+        y: 202
+        width: 183
+        height: 216
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b1e1d5e425e7dde45b369e446b186a3a
+      internalID: 513683162
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: asset de temporizados_3
+      rect:
+        serializedVersion: 2
+        x: 728
+        y: 235
+        width: 56
+        height: 110
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1bf3d84631104034db3c7aacc3d333a0
+      internalID: -983087469
       vertices: []
       indices: 
       edges: []
@@ -178,7 +204,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 7af6dbfaa6e689941aafb20899a080b0
+    spriteID: 4c6685640d38e30439712e515e33ab6d
     internalID: 0
     vertices: []
     indices: 
@@ -190,12 +216,10 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      assets menu a tu ritmo juegos_0: 2639756742115083343
-      assets menu a tu ritmo juegos_1: -209592511489868166
-      assets menu a tu ritmo juegos_2: 6458754186736288211
-      assets menu a tu ritmo juegos_3: -3822856141357858322
-      assets menu a tu ritmo juegos_4: -4591995387625183110
-      assets menu a tu ritmo juegos_5: -1082035180800209908
+      asset de temporizados_0: -1099915878929834952
+      asset de temporizados_1: 2134170206
+      asset de temporizados_2: 513683162
+      asset de temporizados_3: -983087469
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

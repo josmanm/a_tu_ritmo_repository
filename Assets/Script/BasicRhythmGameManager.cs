@@ -87,9 +87,6 @@ public class BasicRhythmGameManager : MonoBehaviour
     [SerializeField] private float drumPulseDuration = 0.12f;
 
     [Header("UI Juice")]
-    [SerializeField] private float feedbackPanelAlpha = 0.14f;
-    [SerializeField] private float feedbackPopScale = 1.06f;
-    [SerializeField] private float feedbackAnimDuration = 0.14f;
     [SerializeField] private float hudPopScale = 1.08f;
     [SerializeField] private float hudAnimDuration = 0.12f;
     [SerializeField] private float drumReadyPulseScale = 1.03f;
@@ -127,7 +124,6 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private TMP_Text scoreText;
     private TMP_Text levelText;
-    private TMP_Text feedbackText;
     private Image figureIconTemplate;
     private RectTransform rhythmPanel;
     private Button drumButton;
@@ -150,13 +146,10 @@ public class BasicRhythmGameManager : MonoBehaviour
     private CanvasGroup statusOverlayGroup;
     private RectTransform statusOverlayRect;
     private Image statusOverlayIconImage;
-    private RectTransform feedbackPanelRect;
-    private Image feedbackPanelImage;
     private RectTransform scorePanelRect;
     private RectTransform levelPanelRect;
     private RectTransform livesPanelRect;
     private TMP_Text focusedBlockProgressText;
-    private Vector3 feedbackPanelBaseScale = Vector3.one;
     private Vector3 scorePanelBaseScale = Vector3.one;
     private Vector3 levelPanelBaseScale = Vector3.one;
     private Vector3 livesPanelBaseScale = Vector3.one;
@@ -164,7 +157,6 @@ public class BasicRhythmGameManager : MonoBehaviour
     private Coroutine roundRoutine;
     private Coroutine drumPulseRoutine;
     private Coroutine drumReadyRoutine;
-    private Coroutine feedbackAnimRoutine;
     private Coroutine statusOverlayRoutine;
     private Coroutine scoreHudRoutine;
     private Coroutine levelHudRoutine;
@@ -1542,8 +1534,8 @@ public class BasicRhythmGameManager : MonoBehaviour
             focusedBlockProgressText.fontStyle = FontStyles.Bold;
             focusedBlockProgressText.color = new Color(1f, 1f, 1f, 0.92f);
             focusedBlockProgressText.raycastTarget = false;
-            if (feedbackText != null)
-                focusedBlockProgressText.font = feedbackText.font;
+            if (levelText != null)
+                focusedBlockProgressText.font = levelText.font;
         }
         else
         {
@@ -1593,8 +1585,8 @@ public class BasicRhythmGameManager : MonoBehaviour
             roundCelebrationRingText.fontSize = 220f;
             roundCelebrationRingText.color = roundCelebrationColor;
             roundCelebrationRingText.raycastTarget = false;
-            if (feedbackText != null)
-                roundCelebrationRingText.font = feedbackText.font;
+            if (levelText != null)
+                roundCelebrationRingText.font = levelText.font;
         }
         else
         {
@@ -1816,7 +1808,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         bool livesChanged = lastShownLives != lives;
 
         if (scoreText != null)
-            scoreText.text = ""+score;
+            scoreText.text = "Puntos " + score;
 
         if (levelText != null)
             levelText.text = tutorialActive ? "Tutorial" : "Nivel " + level;
@@ -1852,8 +1844,6 @@ public class BasicRhythmGameManager : MonoBehaviour
     {
         if (statusOverlayText == null)
             return;
-
-        RefreshFeedbackPanelStatus();
 
         if (color == normalFeedbackColor && waitingForInput)
         {
@@ -1939,34 +1929,6 @@ public class BasicRhythmGameManager : MonoBehaviour
 
         if (drumButton != null && drumButton.interactable)
             StartDrumReadyPulse();
-    }
-
-    private IEnumerator AnimateFeedbackPanel()
-    {
-        if (feedbackPanelRect == null)
-            yield break;
-
-        float elapsed = 0f;
-        Vector3 peakScale = feedbackPanelBaseScale * feedbackPopScale;
-        while (elapsed < feedbackAnimDuration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / feedbackAnimDuration);
-            feedbackPanelRect.localScale = Vector3.Lerp(feedbackPanelBaseScale, peakScale, t);
-            yield return null;
-        }
-
-        elapsed = 0f;
-        while (elapsed < feedbackAnimDuration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / feedbackAnimDuration);
-            feedbackPanelRect.localScale = Vector3.Lerp(peakScale, feedbackPanelBaseScale, t);
-            yield return null;
-        }
-
-        feedbackPanelRect.localScale = feedbackPanelBaseScale;
-        feedbackAnimRoutine = null;
     }
 
     private IEnumerator ShowStatusOverlay(string message, Color color, float visibleDuration)
@@ -2073,8 +2035,8 @@ public class BasicRhythmGameManager : MonoBehaviour
             statusOverlayText.raycastTarget = false;
             statusOverlayText.margin = new Vector4(32f, 120f, 32f, 0f);
 
-            if (feedbackText != null)
-                statusOverlayText.font = feedbackText.font;
+            if (levelText != null)
+                statusOverlayText.font = levelText.font;
 
             statusOverlayGroup = overlayObject.GetComponent<CanvasGroup>();
             statusOverlayRect = rect;
@@ -2131,30 +2093,6 @@ public class BasicRhythmGameManager : MonoBehaviour
             return waitStatusSprite;
 
         return regularStatusSprite;
-    }
-
-    private void RefreshFeedbackPanelStatus()
-    {
-        if (feedbackText == null)
-            return;
-
-        int requiredHits = GetRequiredHitsForPattern();
-        if (tutorialActive)
-            feedbackText.text = $"Objetivo: {requiredHits} aciertos";
-        else
-            feedbackText.text = $"Objetivo: {requiredHits} aciertos  |  Logrados: {roundSuccessfulHits}";
-
-        if (feedbackPanelImage != null)
-        {
-            Color panelColor = Color.white;
-            panelColor.a = feedbackPanelAlpha;
-            feedbackPanelImage.color = panelColor;
-        }
-
-        if (feedbackAnimRoutine != null)
-            StopCoroutine(feedbackAnimRoutine);
-
-        feedbackAnimRoutine = StartCoroutine(AnimateFeedbackPanel());
     }
 
     private void AnimateScorePanel()
@@ -2350,26 +2288,18 @@ public class BasicRhythmGameManager : MonoBehaviour
     {
         Canvas canvas = GetComponent<Canvas>();
         if (canvas == null)
-            canvas = FindObjectOfType<Canvas>();
+            canvas = FindFirstObjectByType<Canvas>();
 
         if (canvas == null)
             return;
 
         rootCanvas = canvas;
+        Transform topHudPanel = FindChild(canvas.transform, "TopHudPanel");
+        ApplyTopHudStyle(topHudPanel);
 
-        feedbackText = FindText(canvas, "FeedbackText");
-        if (feedbackText != null)
-        {
-            feedbackPanelRect = feedbackText.rectTransform.parent as RectTransform;
-            if (feedbackPanelRect != null)
-            {
-                feedbackPanelBaseScale = feedbackPanelRect.localScale;
-                feedbackPanelImage = feedbackPanelRect.GetComponent<Image>();
-            }
-        }
         figureIconTemplate = FindImage(canvas, "FigureIcon");
         drumButton = FindButton(canvas, "DrumButton");
-        menuButton = FindButton(canvas, "MenuButton");
+        menuButton = FindButton(topHudPanel, "MenuButton") ?? FindButton(canvas, "MenuButton");
         Transform pausePanelTransform = FindChild(canvas.transform, "PausePanel");
         if (pausePanelTransform != null)
         {
@@ -2391,9 +2321,9 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (rhythmPanelTransform != null)
             rhythmPanel = rhythmPanelTransform as RectTransform;
 
-        Transform scorePanel = FindChild(canvas.transform, "ScorePanel");
-        Transform levelPanel = FindChild(canvas.transform, "LevelPanel");
-        Transform livesPanel = FindChild(canvas.transform, "LivesPanel");
+        Transform scorePanel = FindChild(topHudPanel, "ScorePanel") ?? FindChild(canvas.transform, "ScorePanel");
+        Transform levelPanel = FindChild(topHudPanel, "LevelPanel") ?? FindChild(canvas.transform, "LevelPanel");
+        Transform livesPanel = FindChild(topHudPanel, "LivesPanel") ?? FindChild(canvas.transform, "LivesPanel");
 
         if (scorePanel != null)
         {
@@ -2417,12 +2347,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             if (livesPanelRect != null)
                 livesPanelBaseScale = livesPanelRect.localScale;
 
-            lifeImages = new[]
-            {
-                FindImage(livesPanel, "Life1"),
-                FindImage(livesPanel, "Life2"),
-                FindImage(livesPanel, "Life3"),
-            };
+            lifeImages = FindLifeImages(livesPanel);
         }
 
         HideLegacyFigurePlaceholders();
@@ -2581,21 +2506,15 @@ public class BasicRhythmGameManager : MonoBehaviour
             valid = false;
         }
 
-        if (feedbackText == null)
-        {
-            Debug.LogError("BasicRhythmGameManager: Falta FeedbackText.");
-            valid = false;
-        }
-
         if (drumButton == null)
         {
             Debug.LogError("BasicRhythmGameManager: Falta DrumButton.");
             valid = false;
         }
 
-        if (scoreText == null || levelText == null)
+        if (scoreText == null)
         {
-            Debug.LogError("BasicRhythmGameManager: No se pudo resolver ScoreText o LevelText.");
+            Debug.LogError("BasicRhythmGameManager: No se pudo resolver ScoreText.");
             valid = false;
         }
 
@@ -2634,6 +2553,9 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private static TMP_Text FindText(Component root, string objectName)
     {
+        if (root == null)
+            return null;
+
         TMP_Text[] texts = root.GetComponentsInChildren<TMP_Text>(true);
         for (int i = 0; i < texts.Length; i++)
         {
@@ -2646,6 +2568,9 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private static Image FindImage(Component root, string objectName)
     {
+        if (root == null)
+            return null;
+
         Image[] images = root.GetComponentsInChildren<Image>(true);
         for (int i = 0; i < images.Length; i++)
         {
@@ -2658,6 +2583,9 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private static Button FindButton(Component root, string objectName)
     {
+        if (root == null)
+            return null;
+
         Button[] buttons = root.GetComponentsInChildren<Button>(true);
         for (int i = 0; i < buttons.Length; i++)
         {
@@ -2670,6 +2598,9 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private static Transform FindChild(Transform root, string objectName)
     {
+        if (root == null)
+            return null;
+
         for (int i = 0; i < root.childCount; i++)
         {
             Transform child = root.GetChild(i);
@@ -2682,6 +2613,33 @@ public class BasicRhythmGameManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static Image[] FindLifeImages(Transform livesPanel)
+    {
+        Image[] namedLives =
+        {
+            FindImage(livesPanel, "Life1"),
+            FindImage(livesPanel, "Life2"),
+            FindImage(livesPanel, "Life3"),
+        };
+
+        if (namedLives[0] != null || namedLives[1] != null || namedLives[2] != null)
+            return namedLives;
+
+        return livesPanel != null ? livesPanel.GetComponentsInChildren<Image>(true) : new Image[0];
+    }
+
+    private static void ApplyTopHudStyle(Transform topHud)
+    {
+        if (topHud == null)
+            return;
+
+        TopHudPanelStyle style = topHud.GetComponent<TopHudPanelStyle>();
+        if (style == null)
+            style = topHud.gameObject.AddComponent<TopHudPanelStyle>();
+
+        style.Apply();
     }
 
     private void HideLegacyFigurePlaceholders()

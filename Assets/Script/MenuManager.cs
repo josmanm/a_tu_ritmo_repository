@@ -29,9 +29,6 @@ public class MenuManager : MonoBehaviour
     [SerializeField] private float logoFloatSpeed = 0.8f;
     [SerializeField] private float logoWobbleAngle = 2f;
     [SerializeField] private float logoWobbleSpeed = 0.7f;
-    [SerializeField] private float buttonPulseScaleAmount = 0.03f;
-    [SerializeField] private float buttonPulseSpeed = 0.9f;
-    [SerializeField] private float buttonPhaseOffset = 0.45f;
 
     [Header("Panels")]
     [SerializeField] private GameObject mainOptionsPanel;
@@ -52,15 +49,11 @@ public class MenuManager : MonoBehaviour
     [Header("Panel Transition Juice")]
     [SerializeField] private float panelAccentDuration = 0.22f;
     [SerializeField] private float logoAccentScale = 1.08f;
-    [SerializeField] private float buttonAccentScale = 1.1f;
     [SerializeField] private float logoShiftAmount = 34f;
 
     private Vector2 logoBasePosition;
     private Quaternion logoBaseRotation;
     private Vector3 logoBaseScale = Vector3.one;
-    private Vector3 playBaseScale = Vector3.one;
-    private Vector3 settingsBaseScale = Vector3.one;
-    private Vector3 exitBaseScale = Vector3.one;
     private UIPanelTransition mainOptionsTransition;
     private UIPanelTransition gamesTransition;
     private UIPanelTransition settingsTransition;
@@ -69,9 +62,6 @@ public class MenuManager : MonoBehaviour
     private Vector2 logoTransitionOffset = Vector2.zero;
     private float logoTransitionRotation;
     private float logoTransitionScale = 1f;
-    private float playTransitionScale = 1f;
-    private float settingsTransitionScale = 1f;
-    private float exitTransitionScale = 1f;
     private TMP_Text musicSettingsText;
     private TMP_Text effectsSettingsText;
     private TMP_Text speedSettingsText;
@@ -123,9 +113,6 @@ public class MenuManager : MonoBehaviour
 
         float time = Time.unscaledTime;
         AnimateLogo(time);
-        AnimateButton(playButtonRect, playBaseScale, time, 0f);
-        AnimateButton(settingsButtonRect, settingsBaseScale, time, buttonPhaseOffset);
-        AnimateButton(exitButtonRect, exitBaseScale, time, buttonPhaseOffset * 2f);
     }
 
     public void LoadScene(string sceneName)
@@ -413,14 +400,6 @@ public class MenuManager : MonoBehaviour
             logoBaseScale = logoRect.localScale;
         }
 
-        if (playButtonRect != null)
-            playBaseScale = playButtonRect.localScale;
-
-        if (settingsButtonRect != null)
-            settingsBaseScale = settingsButtonRect.localScale;
-
-        if (exitButtonRect != null)
-            exitBaseScale = exitButtonRect.localScale;
     }
 
     private void AnimateLogo(float time)
@@ -434,23 +413,6 @@ public class MenuManager : MonoBehaviour
         logoRect.anchoredPosition = logoBasePosition + logoTransitionOffset + new Vector2(0f, floatOffset);
         logoRect.localRotation = logoBaseRotation * Quaternion.Euler(0f, 0f, wobbleOffset + logoTransitionRotation);
         logoRect.localScale = logoBaseScale * logoTransitionScale;
-    }
-
-    private void AnimateButton(RectTransform buttonRect, Vector3 baseScale, float time, float phase)
-    {
-        if (buttonRect == null)
-            return;
-
-        float pulse = Mathf.Sin((time + phase) * buttonPulseSpeed) * buttonPulseScaleAmount;
-        float accentScale = 1f;
-        if (buttonRect == playButtonRect)
-            accentScale = playTransitionScale;
-        else if (buttonRect == settingsButtonRect)
-            accentScale = settingsTransitionScale;
-        else if (buttonRect == exitButtonRect)
-            accentScale = exitTransitionScale;
-
-        buttonRect.localScale = baseScale * (1f + pulse) * accentScale;
     }
 
     private void StartMenuAccent(MenuPanelState panelState)
@@ -478,24 +440,17 @@ public class MenuManager : MonoBehaviour
         };
 
         float targetLogoScale = panelState == MenuPanelState.MainOptions ? logoAccentScale : 1.02f;
-        float targetPlayScale = panelState == MenuPanelState.MainOptions ? buttonAccentScale : 1f;
-        float targetSettingsScale = panelState == MenuPanelState.Settings ? buttonAccentScale : 1f;
-        float targetExitScale = panelState == MenuPanelState.MainOptions ? 1.04f : 1f;
+        yield return StartCoroutine(AnimateMenuAccentPhase(targetOffset, targetRotation, targetLogoScale));
 
-        yield return StartCoroutine(AnimateMenuAccentPhase(targetOffset, targetRotation, targetLogoScale, targetPlayScale, targetSettingsScale, targetExitScale));
-
-        yield return StartCoroutine(AnimateMenuAccentPhase(targetOffset * 0.2f, targetRotation * 0.2f, 1f, 1f, 1f, 1f));
+        yield return StartCoroutine(AnimateMenuAccentPhase(targetOffset * 0.2f, targetRotation * 0.2f, 1f));
         menuAccentRoutine = null;
     }
 
-    private IEnumerator AnimateMenuAccentPhase(Vector2 targetOffset, float targetRotation, float targetLogoScale, float targetPlayScale, float targetSettingsScale, float targetExitScale)
+    private IEnumerator AnimateMenuAccentPhase(Vector2 targetOffset, float targetRotation, float targetLogoScale)
     {
         Vector2 startOffset = logoTransitionOffset;
         float startRotation = logoTransitionRotation;
         float startLogoScale = logoTransitionScale;
-        float startPlayScale = playTransitionScale;
-        float startSettingsScale = settingsTransitionScale;
-        float startExitScale = exitTransitionScale;
         float elapsed = 0f;
         float duration = Mathf.Max(0.01f, panelAccentDuration);
 
@@ -506,18 +461,12 @@ public class MenuManager : MonoBehaviour
             logoTransitionOffset = Vector2.Lerp(startOffset, targetOffset, k);
             logoTransitionRotation = Mathf.Lerp(startRotation, targetRotation, k);
             logoTransitionScale = Mathf.Lerp(startLogoScale, targetLogoScale, k);
-            playTransitionScale = Mathf.Lerp(startPlayScale, targetPlayScale, k);
-            settingsTransitionScale = Mathf.Lerp(startSettingsScale, targetSettingsScale, k);
-            exitTransitionScale = Mathf.Lerp(startExitScale, targetExitScale, k);
             yield return null;
         }
 
         logoTransitionOffset = targetOffset;
         logoTransitionRotation = targetRotation;
         logoTransitionScale = targetLogoScale;
-        playTransitionScale = targetPlayScale;
-        settingsTransitionScale = targetSettingsScale;
-        exitTransitionScale = targetExitScale;
     }
 
     private static RectTransform FindRectTransformInScene(string objectName)
