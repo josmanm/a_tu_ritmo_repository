@@ -7,6 +7,10 @@ public class BeatController : MonoBehaviour
     [Range(40, 160)] public float bpm = 80f;
     public bool startOnPlay = true;
 
+    [Header("Scheduling")]
+    [Min(0.05f)] public float startDelaySeconds = 0.35f;
+    [Min(0.01f)] public float scheduleAheadSeconds = 0.1f;
+
     [Header("Audio")]
     public AudioSource audioSource;
     public AudioClip metronomeClick;
@@ -16,15 +20,18 @@ public class BeatController : MonoBehaviour
     public double NextBeatDspTime => nextBeatTime;
     public double IntervalSec => interval;
     public double LastBeatDspTime { get; private set; }
+    public bool IsRunning => running;
 
     double interval;
     double nextBeatTime;
+    double scheduledBeatTime;
     bool running;
     bool hasProducedFirstBeat;
+    bool nextBeatScheduled;
 
     void Start()
     {
-        interval = 60.0 / bpm;
+        RecalculateInterval();
 
         if (startOnPlay)
             StartBeats();
@@ -32,17 +39,20 @@ public class BeatController : MonoBehaviour
 
     public void StartBeats()
     {
-        interval = 60.0 / bpm;
+        RecalculateInterval();
         running = true;
         hasProducedFirstBeat = false;
+        nextBeatScheduled = false;
 
-        nextBeatTime = AudioSettings.dspTime + 0.2;
+        nextBeatTime = AudioSettings.dspTime + startDelaySeconds;
+        scheduledBeatTime = nextBeatTime;
         LastBeatDspTime = nextBeatTime - interval;
     }
 
     public void StopBeats()
     {
         running = false;
+        nextBeatScheduled = false;
     }
 
     void Update()
@@ -51,18 +61,29 @@ public class BeatController : MonoBehaviour
 
         double dsp = AudioSettings.dspTime;
 
-        if (dsp >= nextBeatTime)
+        if (!nextBeatScheduled && dsp + scheduleAheadSeconds >= nextBeatTime)
         {
-            hasProducedFirstBeat = true;
-            LastBeatDspTime = nextBeatTime;
+            scheduledBeatTime = nextBeatTime;
+            nextBeatScheduled = true;
 
-            if (audioSource && metronomeClick)
-                audioSource.PlayOneShot(metronomeClick);
-
-            OnBeat?.Invoke(LastBeatDspTime);
-
-            nextBeatTime += interval;
+            if (audioSource != null && metronomeClick != null)
+            {
+                audioSource.clip = metronomeClick;
+                audioSource.PlayScheduled(scheduledBeatTime);
+            }
         }
+
+        if (!nextBeatScheduled || dsp < scheduledBeatTime)
+        {
+            return;
+        }
+
+        hasProducedFirstBeat = true;
+        LastBeatDspTime = scheduledBeatTime;
+        OnBeat?.Invoke(LastBeatDspTime);
+
+        nextBeatTime = scheduledBeatTime + interval;
+        nextBeatScheduled = false;
     }
 
     public float GetSignedDeltaToNearestBeatMs(double dspTime, out double nearestBeatTime)
@@ -85,5 +106,15 @@ public class BeatController : MonoBehaviour
 
         nearestBeatTime = previousDelta <= nextDelta ? previousBeatTime : nextBeatTime;
         return (float)((dspTime - nearestBeatTime) * 1000.0);
+    }
+
+    void OnValidate()
+    {
+        RecalculateInterval();
+    }
+
+    void RecalculateInterval()
+    {
+        interval = 60.0 / bpm;
     }
 }

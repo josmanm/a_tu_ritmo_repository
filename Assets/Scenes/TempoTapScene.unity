@@ -1127,8 +1127,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: 0, y: 210}
+  m_SizeDelta: {x: 210, y: 210}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1015933405
 MonoBehaviour:
@@ -1143,7 +1143,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BeatGuideUI
   beat: {fileID: 1921002567}
-  guideFill: {fileID: 1015933406}
+  guideFill: {fileID: 0}
+  proceduralGuide: {fileID: 1015933406}
+  idleFillAmount: 0
 --- !u!114 &1015933406
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1153,27 +1155,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 1015933403}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: b7d67a6796984ef8999a67f743c7cf9d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_EditorClassIdentifier: Assembly-CSharp::RadialBeatIndicatorGraphic
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 2554500076287230841, guid: f10e8ce9476a5c8498019c459b8a82c3, type: 3}
-  m_Type: 3
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 2
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  progress: 0
+  ringThickness: 0.18
+  segments: 96
+  baseRingColor: {r: 1, g: 1, b: 1, a: 0.14}
+  earlyZoneColor: {r: 1, g: 0.82, b: 0.15, a: 0.55}
+  perfectZoneColor: {r: 0.2, g: 1, b: 0.38, a: 0.75}
+  progressRingColor: {r: 0.2, g: 0.95, b: 1, a: 1}
+  clockwise: 1
+  earlyZoneStart: 0.75
+  perfectZoneStart: 0.9
+  flashDuration: 0.16
+  flashIntensity: 1.35
 --- !u!222 &1015933407
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1319,59 +1323,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1090256711}
   m_CullTransparentMesh: 1
---- !u!1 &1124936505
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1124936507}
-  - component: {fileID: 1124936506}
-  m_Layer: 0
-  m_Name: BeatObstacleSpawner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1124936506
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1124936505}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3aecf3ace59dd244aa8eba6f67d16dd3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BeatSyncedObstacleSpawner
-  beat: {fileID: 1921002567}
-  obstaclePrefab: {fileID: 1988025651}
-  runner: {fileID: 0}
-  destroyPoint: {fileID: 0}
-  spawnX: 12
-  obstacleY: -2.5
-  beatsAhead: 4
-  beatSpacing: 2
-  gameStarted: 0
---- !u!4 &1124936507
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1124936505}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 896.097, y: 490.35635, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1168069010
 GameObject:
   m_ObjectHideFlags: 0
@@ -1406,12 +1357,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc0ddf1d79726e14fbd61c17ad6dac31, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunnerController2D
-  jumpForce: 12
+  jumpForce: 13.8
+  risingGravityMultiplier: 0.9
+  fallingGravityMultiplier: 1.05
+  obstacleClearanceMargin: 0.2
+  preferredClearPhase: 0.18
   groundCheck: {fileID: 1356270751}
   groundCheckRadius: 0.15
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  invulnerabilitySeconds: 1.2
+  blinkInterval: 0.08
 --- !u!70 &1168069012
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -1464,7 +1421,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 4
+  m_GravityScale: 3.6
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -1791,6 +1748,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 097ab5849ebf3464bb7c453bd75cc742, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuManager
+  logoRect: {fileID: 0}
+  playButtonRect: {fileID: 0}
+  settingsButtonRect: {fileID: 0}
+  exitButtonRect: {fileID: 0}
+  enableIdleAnimation: 1
+  logoFloatAmount: 8
+  logoFloatSpeed: 0.8
+  logoWobbleAngle: 2
+  logoWobbleSpeed: 0.7
+  mainOptionsPanel: {fileID: 0}
+  gamesPanel: {fileID: 0}
+  settingsPanel: {fileID: 0}
+  backButton: {fileID: 0}
+  settingsBox: {fileID: 0}
+  musicScrollbar: {fileID: 0}
+  effectsScrollbar: {fileID: 0}
+  speedScrollbar: {fileID: 0}
+  closeSettingsButton: {fileID: 0}
+  resetSettingsButton: {fileID: 0}
+  panelAccentDuration: 0.22
+  logoAccentScale: 1.08
+  logoShiftAmount: 34
 --- !u!1 &1815325841
 GameObject:
   m_ObjectHideFlags: 0
@@ -2098,11 +2077,16 @@ MonoBehaviour:
   beatController: {fileID: 1921002567}
   feedbackText: {fileID: 1815325844}
   timerText: {fileID: 2067416221}
+  scoreText: {fileID: 0}
+  streakText: {fileID: 0}
   stabilityFill: {fileID: 5045299}
   startPanel: {fileID: 393282563}
-  perfectMs: 80
-  goodMs: 150
+  perfectMs: 110
+  goodMs: 220
   sessionSeconds: 30
+  perfectScore: 100
+  goodScore: 60
+  timingOffsetScore: 20
   stability: 1
   gainOnHit: 0.06
   lossOnMiss: 0.12
@@ -2111,8 +2095,17 @@ MonoBehaviour:
   tapWrong: {fileID: 0}
   runner: {fileID: 1168069011}
   jumpOnGood: 1
-  assistMs: 220
-  assistedJumpMultiplier: 0.1
+  perfectJumpMultiplier: 1
+  goodJumpMultiplier: 1
+  earlyAssistJumpMultiplier: 0.96
+  lateAssistJumpMultiplier: 1.16
+  perfectTargetContactTime: 0.34
+  goodEarlyTargetContactTime: 0.4
+  goodLateTargetContactTime: 0.3
+  assistEarlyTargetContactTime: 0.46
+  assistLateTargetContactTime: 0.24
+  assistMs: 320
+  assistedJumpMultiplier: 0.9
   ignoreExtraTapsOnSameBeat: 1
   obstacleSpawner: {fileID: 1988025654}
 --- !u!114 &1921002567
@@ -2128,7 +2121,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BeatController
   bpm: 40
-  startOnPlay: 1
+  startOnPlay: 0
+  startDelaySeconds: 0.35
+  scheduleAheadSeconds: 0.1
   audioSource: {fileID: 1365180656}
   metronomeClick: {fileID: 8300000, guid: cbb4a4c038f3c074c9098232292190c3, type: 3}
 --- !u!4 &1921002568
@@ -2191,13 +2186,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BeatSyncedObstacleSpawner
   beat: {fileID: 1921002567}
-  obstaclePrefab: {fileID: 1912996485834611687, guid: 00b2a0ec57d7c8c4fad141bbc107f827, type: 3}
+  obstaclePrefab: {fileID: 8381029109066953071, guid: 9f1bfc3094f1a034ba4d7497eb6348b1, type: 3}
   runner: {fileID: 1168069015}
   destroyPoint: {fileID: 602460461}
   spawnX: 12
   obstacleY: -2.5
   beatsAhead: 4
   beatSpacing: 2
+  obstacleArrivalDelay: -0.04
+  contactPadding: 0.38
+  minimumTravelTime: 0.55
+  adaptiveJumpStrength: 0.8
+  minimumJumpMultiplier: 0.88
+  maximumJumpMultiplier: 1.3
+  earlyContactBias: 0.08
+  fallbackObstacleSize: {x: 0.85, y: 1.8}
+  fallbackObstacleColor: {r: 0.18, g: 0.18, b: 0.18, a: 1}
   gameStarted: 0
 --- !u!1 &2028504572
 GameObject:
@@ -2558,6 +2562,5 @@ SceneRoots:
   - {fileID: 903075356}
   - {fileID: 1988025653}
   - {fileID: 602460461}
-  - {fileID: 1124936507}
   - {fileID: 1168069015}
   - {fileID: 1410382657}
