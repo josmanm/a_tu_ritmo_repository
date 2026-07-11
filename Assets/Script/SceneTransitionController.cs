@@ -118,6 +118,7 @@ public class SceneTransitionController : MonoBehaviour
             StopCoroutine(transitionRoutine);
 
         transitionRoutine = StartCoroutine(FadeInRoutine());
+        StartCoroutine(ReleaseOverlayFailSafe(openDuration + 0.5f));
     }
 
     private IEnumerator FadeInRoutine()
@@ -125,7 +126,14 @@ public class SceneTransitionController : MonoBehaviour
         if (irisGraphic == null)
             yield break;
 
-        irisGraphic.raycastTarget = true;
+        // Once the target scene is loaded, keep the fade visual but never block UI input.
+        irisGraphic.raycastTarget = false;
+        if (canvasGroup != null)
+        {
+            canvasGroup.blocksRaycasts = false;
+            canvasGroup.interactable = false;
+        }
+
         canvasGroup.alpha = 1f;
         irisGraphic.color = irisColor;
         irisGraphic.InnerRadiusNormalized = closedRadius;
@@ -146,6 +154,20 @@ public class SceneTransitionController : MonoBehaviour
         canvasGroup.blocksRaycasts = false;
         irisGraphic.raycastTarget = false;
         transitionRoutine = null;
+    }
+
+    private IEnumerator ReleaseOverlayFailSafe(float delay)
+    {
+        yield return new WaitForSecondsRealtime(Mathf.Max(0.1f, delay));
+
+        if (transitionRoutine != null)
+            yield break;
+
+        if (canvasGroup != null)
+            canvasGroup.blocksRaycasts = false;
+
+        if (irisGraphic != null)
+            irisGraphic.raycastTarget = false;
     }
 
     private void EnsureOverlay()

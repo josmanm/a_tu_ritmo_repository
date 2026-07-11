@@ -26,7 +26,26 @@ AtuRitmo.zip
 *.userprefs
 *.pidb
 *.booproj
+*.unityproj
+*.mdb
+*.pdb
+*.opendb
+*.VC.db
 
 # OS
 .DS_Store
 Thumbs.db
+sysinfo.txt
+
+# Local recovery / editor leftovers
+Assets/_Recovery/
+ProjectSettings/Packages/
+
+# Local package overrides not used as canonical source in this repo
+Packages/com.gamelovers.mcp-unity/
+Packages/com.ivanmurzak.unity.mcp/
+
+# Local AI/tooling workspace files
+.agents/
+.opencode/
+skills-lock.json

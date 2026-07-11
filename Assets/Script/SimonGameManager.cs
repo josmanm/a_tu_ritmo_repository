@@ -80,12 +80,11 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private List<SimonColorData> colorPool = new List<SimonColorData>();
 
     [Header("UI")]
+    [SerializeField] private TopHudPanelView topHudPanelView;
     [SerializeField] private Button startButton;
     [SerializeField] private Button replayButton;
-    [SerializeField] private Button menuButton;
     [SerializeField] private TMP_Text statusText;
     [SerializeField] private Image statusIconImage;
-    [SerializeField] private TMP_Text scoreText;
     [SerializeField] private Color scoreColor = new Color32(0xFF, 0xD9, 0x05, 0xFF);
     [SerializeField] private GameObject pausePanel;
     [SerializeField] private Button resumeButton;
@@ -129,10 +128,10 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private int levelsBeforeCompassSilence = 4;
     [SerializeField] private int levelsBeforeTwoMeasures = 10;
     [SerializeField] [Range(0f, 1f)] private float silenceChance = 0.22f;
-    [SerializeField] private Color compassSlotIdleColor = new Color(1f, 1f, 1f, 0.16f);
-    [SerializeField] private Color compassSlotActiveColor = new Color(1f, 0.92f, 0.36f, 0.9f);
-    [SerializeField] private Color compassSlotSuccessColor = new Color(0.22f, 0.88f, 0.42f, 0.9f);
-    [SerializeField] private Color compassSlotSilenceColor = new Color(0.6f, 0.7f, 0.9f, 0.35f);
+    [SerializeField] private Color compassSlotIdleColor = new Color(1f, 1f, 1f, 0.42f);
+    [SerializeField] private Color compassSlotActiveColor = new Color(1f, 0.92f, 0.36f, 1f);
+    [SerializeField] private Color compassSlotSuccessColor = new Color(0.22f, 0.88f, 0.42f, 1f);
+    [SerializeField] private Color compassSlotSilenceColor = new Color(0.45f, 0.62f, 1f, 0.72f);
     [SerializeField] private Sprite compassSilenceSprite;
 
     [Header("Tempo")]
@@ -193,19 +192,22 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private float boardRingFontSize = 220f;
 
     [Header("Barra de tiempo")]
-    [SerializeField] private Image timeBarFill;
     [SerializeField] private Color timeOkColor = Color.white;
     [SerializeField] private Color timeWarnColor = new Color(1f, 0.85f, 0.2f);
     [SerializeField] private Color timeLowColor = new Color(1f, 0.3f, 0.3f);
     [SerializeField] private float warnThreshold = 0.35f;
     [SerializeField] private float lowThreshold = 0.15f;
-    [SerializeField] private GameObject timeBarRoot;
 
     [Header("Vidas")]
     [SerializeField] private int maxLives = 3;
-    [SerializeField] private Image[] lifeIcons;
     [SerializeField] private Sprite heartFull;
     [SerializeField] private Sprite heartEmpty;
+
+    [Header("Puntuacion y ayudas")]
+    [SerializeField] private int pointsPerRound = 10;
+    [SerializeField] private int streakBonusEvery = 3;
+    [SerializeField] private int streakBonusPoints = 5;
+    [SerializeField] private int maxReplaysPerLevel = 1;
 
     private enum GameState { Idle, ShowingSequence, PlayerTurn, GameOver }
     private GameState currentState = GameState.Idle;
@@ -240,11 +242,16 @@ public class SimonGameManager : MonoBehaviour
     private TMP_Text boardCenterRingText;
     [SerializeField] private RectTransform compassGuideRoot;
     private CompassGuideView compassGuideView;
+    private CanvasGroup compassGuideCanvasGroup;
 
     private float lastTapTime = -1f;
     private float tapCooldown = 0.2f;
     private bool isPaused;
     private bool isRoundTransitioning;
+    private Button menuButton;
+    private TMP_Text scoreText;
+    private Image timeBarFill;
+    private GameObject timeBarRoot;
     private PausePanelView pausePanelView;
     private CanvasGroup pausePanelCanvasGroup;
     private UIPanelTransition pausePanelTransition;
@@ -254,6 +261,7 @@ public class SimonGameManager : MonoBehaviour
     private Coroutine boardStateRoutine;
     private Coroutine boardFeedbackRoutine;
     private Coroutine boardRingRoutine;
+    private Image[] lifeIcons = Array.Empty<Image>();
     private readonly Dictionary<int, Coroutine> lifeAnimRoutines = new Dictionary<int, Coroutine>();
     private Vector3 scoreBaseScale = Vector3.one;
     private Vector3 timeBarBaseScale = Vector3.one;
@@ -266,6 +274,8 @@ public class SimonGameManager : MonoBehaviour
     private int attemptLevelRepetitions;
     private bool attemptReportSubmitted;
     private string attemptExitReason = "completed";
+    private int currentStreak;
+    private int replaysUsedThisLevel;
     private int compassCurrentBeatIndex = -1;
     private bool compassAwaitingBeatInput;
     private bool compassBeatResolved;
@@ -319,7 +329,7 @@ public class SimonGameManager : MonoBehaviour
 
         SetStatus("Presiona JUGAR para comenzar", normalColor, animate: false);
         ApplyGameSettings();
-        SetCompassGuideVisible(simonMode == SimonMode.Compass);
+        SetCompassGuideVisible(false);
     }
 
     private void HideMetronomeVisual()
@@ -458,6 +468,8 @@ public class SimonGameManager : MonoBehaviour
         activeMusicalSequence = null;
         activeMusicalSequenceIndex = 0;
         isRoundTransitioning = false;
+        currentStreak = 0;
+        replaysUsedThisLevel = 0;
         attemptStartedAt = Time.time;
         attemptErrors = 0;
         attemptCorrectAnswers = 0;
@@ -476,13 +488,13 @@ public class SimonGameManager : MonoBehaviour
         UpdateTempoForRound();
         ResetPlayerTimeLimit();
 
-        SetStatus($"Comienza el nivel {currentLevel}\nObserva la secuencia", warningColor);
+        SetStatus(BuildRoundIntroMessage(), warningColor);
 
         if (replayButton != null) replayButton.gameObject.SetActive(true);
 
         lives = maxLives;
         UpdateLivesUI();
-        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage($"Comienza el nivel {currentLevel}\nObserva la secuencia", warningColor, sequenceIntroMessageSeconds));
+        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage(BuildRoundIntroMessage(), warningColor, sequenceIntroMessageSeconds));
     }
 
     public void ReplaySequence()
@@ -495,12 +507,22 @@ public class SimonGameManager : MonoBehaviour
 
         if (currentState != GameState.PlayerTurn && currentState != GameState.Idle) return;
 
+        if (currentState == GameState.PlayerTurn && maxReplaysPerLevel >= 0 && replaysUsedThisLevel >= maxReplaysPerLevel)
+        {
+            SetStatus("Ya repetiste este nivel\nConfia en tu memoria", warningColor);
+            StartHideStatusCountdown(feedbackMessageSeconds);
+            return;
+        }
+
+        if (currentState == GameState.PlayerTurn)
+            replaysUsedThisLevel++;
+
         StopAllCoroutines();
         ResetTransientVisualState();
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
-        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage($"Escucha de nuevo\nNivel {currentLevel}", warningColor, sequenceIntroMessageSeconds));
+        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage(BuildReplayMessage(), warningColor, sequenceIntroMessageSeconds));
     }
 
     private void AddStep()
@@ -654,7 +676,7 @@ public class SimonGameManager : MonoBehaviour
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
-        yield return StartCoroutine(ShowStatusThenHide("Tu turno\nSigue el compas", normalColor, playerTurnMessageSeconds, animate: false));
+        yield return StartCoroutine(ShowStatusThenHide(BuildPlayerTurnMessage(), normalColor, playerTurnMessageSeconds, animate: false));
         yield return StartCoroutine(RunCompassPlayerTurn());
     }
 
@@ -720,7 +742,7 @@ public class SimonGameManager : MonoBehaviour
         }
 
         SetInput(false);
-        score += 10;
+        score += AwardRoundScore();
         RefreshScoreUI();
         AnimateScorePop();
         PlayBoardCenterRing();
@@ -829,7 +851,7 @@ public class SimonGameManager : MonoBehaviour
         currentState = GameState.Idle;
         playerIndex = 0;
 
-        yield return StartCoroutine(ShowStatusThenHide($"Tu turno\nRepite la secuencia", normalColor, playerTurnMessageSeconds, animate: false));
+        yield return StartCoroutine(ShowStatusThenHide(BuildPlayerTurnMessage(), normalColor, playerTurnMessageSeconds, animate: false));
 
         ResetPlayerTimeLimit();
         currentState = GameState.PlayerTurn;
@@ -882,7 +904,7 @@ public class SimonGameManager : MonoBehaviour
 
         if (playerIndex >= sequence.Count)
         {
-            score += 10;
+            score += AwardRoundScore();
             RefreshScoreUI();
             AnimateScorePop();
             PlayBoardCenterRing();
@@ -900,7 +922,8 @@ public class SimonGameManager : MonoBehaviour
             sfxSource.PlayOneShot(roundTransitionClip);
 
         currentLevel++;
-        yield return StartCoroutine(ShowStatusThenHide($"Muy bien!\nNivel {currentLevel}", successColor, feedbackMessageSeconds));
+        replaysUsedThisLevel = 0;
+        yield return StartCoroutine(ShowStatusThenHide(BuildLevelCompleteMessage(), successColor, feedbackMessageSeconds));
 
         if (celebrationEffect != null)
             celebrationEffect.PlayLevelUpEffect();
@@ -918,6 +941,71 @@ public class SimonGameManager : MonoBehaviour
 
         isRoundTransitioning = false;
         yield return StartCoroutine(simonMode == SimonMode.Compass ? ShowCompassSequence() : ShowSequence());
+    }
+
+    private int AwardRoundScore()
+    {
+        currentStreak++;
+
+        int earned = Mathf.Max(0, pointsPerRound);
+        if (streakBonusEvery > 0 && currentStreak % streakBonusEvery == 0)
+            earned += Mathf.Max(0, streakBonusPoints);
+
+        return earned;
+    }
+
+    private string BuildRoundIntroMessage()
+    {
+        int stepCount = simonMode == SimonMode.Compass ? compassSequence.Count : sequence.Count;
+        string action = simonMode == SimonMode.Compass ? "Escucha el compas" : "Observa";
+        return $"Nivel {currentLevel}\n{action} {FormatStepCount(stepCount)}";
+    }
+
+    private string BuildReplayMessage()
+    {
+        if (maxReplaysPerLevel < 0)
+            return simonMode == SimonMode.Compass
+                ? $"Escucha el compas\nNivel {currentLevel}"
+                : $"Escucha de nuevo\nNivel {currentLevel}";
+
+        int remaining = Mathf.Max(0, maxReplaysPerLevel - replaysUsedThisLevel);
+        string title = simonMode == SimonMode.Compass ? "Escucha el compas" : "Escucha de nuevo";
+        return $"{title}\nTe quedan {remaining} ayudas";
+    }
+
+    private string BuildPlayerTurnMessage()
+    {
+        int stepCount = simonMode == SimonMode.Compass ? compassSequence.Count : sequence.Count;
+        string action = simonMode == SimonMode.Compass ? "Sigue" : "Repite";
+        return $"Tu turno\n{action} {FormatStepCount(stepCount)}\n{BuildReplayHint()}";
+    }
+
+    private string FormatStepCount(int stepCount)
+    {
+        if (simonMode == SimonMode.Compass)
+            return stepCount == 1 ? "1 tiempo" : $"{stepCount} tiempos";
+
+        return stepCount == 1 ? "1 paso" : $"{stepCount} pasos";
+    }
+
+    private string BuildReplayHint()
+    {
+        if (maxReplaysPerLevel < 0)
+            return "Repeticiones libres";
+
+        if (maxReplaysPerLevel == 0)
+            return "Sin repeticion";
+
+        return maxReplaysPerLevel == 1 ? "Puedes repetir una vez" : $"Puedes repetir {maxReplaysPerLevel} veces";
+    }
+
+    private string BuildLevelCompleteMessage()
+    {
+        string bonusText = streakBonusEvery > 0 && currentStreak > 0 && currentStreak % streakBonusEvery == 0
+            ? $"\nBonus de racha +{Mathf.Max(0, streakBonusPoints)}"
+            : string.Empty;
+
+        return $"Muy bien!\nSiguiente nivel {currentLevel}\nRacha x{currentStreak}{bonusText}";
     }
 
     private void UpdateTempoForRound()
@@ -970,7 +1058,7 @@ public class SimonGameManager : MonoBehaviour
         currentState = GameState.GameOver;
         isRoundTransitioning = false;
         SetInput(false);
-        SetCompassGuideVisible(simonMode == SimonMode.Compass);
+        SetCompassGuideVisible(false);
         SetStartButtonVisible(true);
         if (replayButton != null) replayButton.gameObject.SetActive(false);
         if (metronomeController != null)
@@ -1296,6 +1384,8 @@ public class SimonGameManager : MonoBehaviour
         lives--;
         attemptErrors++;
         attemptLevelRepetitions++;
+        currentStreak = 0;
+        replaysUsedThisLevel = 0;
         UpdateLivesUI();
         AnimateLifeLost(lives);
         PlayBoardErrorFeedback();
@@ -1443,6 +1533,7 @@ public class SimonGameManager : MonoBehaviour
     {
         StopCriticalTimeBarPulse();
         HideStatus();
+        SetCompassGuideVisible(false);
     }
 
     private void EnsureCompassGuide()
@@ -1457,6 +1548,10 @@ public class SimonGameManager : MonoBehaviour
         if (compassGuideRoot == null)
             return;
 
+        compassGuideCanvasGroup = compassGuideRoot.GetComponent<CanvasGroup>();
+        if (compassGuideCanvasGroup == null)
+            compassGuideCanvasGroup = compassGuideRoot.gameObject.AddComponent<CanvasGroup>();
+
         compassGuideView = compassGuideRoot.GetComponent<CompassGuideView>();
         if (compassGuideView == null)
             compassGuideView = compassGuideRoot.gameObject.AddComponent<CompassGuideView>();
@@ -1466,10 +1561,20 @@ public class SimonGameManager : MonoBehaviour
 
     private void SetCompassGuideVisible(bool visible)
     {
-        if (compassGuideView != null)
-            compassGuideView.SetVisible(visible);
-        else if (compassGuideRoot != null)
-            compassGuideRoot.gameObject.SetActive(visible);
+        if (compassGuideRoot == null)
+            return;
+
+        if (compassGuideCanvasGroup == null)
+            compassGuideCanvasGroup = compassGuideRoot.GetComponent<CanvasGroup>();
+
+        if (compassGuideCanvasGroup == null)
+            compassGuideCanvasGroup = compassGuideRoot.gameObject.AddComponent<CanvasGroup>();
+
+        // Keep the root active because the scene currently nests the EventSystem under CompassGuideRoot.
+        compassGuideRoot.gameObject.SetActive(true);
+        compassGuideCanvasGroup.alpha = visible ? 1f : 0f;
+        compassGuideCanvasGroup.interactable = false;
+        compassGuideCanvasGroup.blocksRaycasts = false;
     }
 
     private void RefreshCompassGuideForMeasure(int measureStartIndex)
@@ -1771,7 +1876,7 @@ public class SimonGameManager : MonoBehaviour
 
     private void UpdateBoardForLevel()
     {
-        int level = Mathf.Max(1, sequence.Count);
+        int level = Mathf.Max(1, currentLevel);
         int neededCount = GetColorCountForLevel(level);
 
         if (neededCount != currentColorCount)
@@ -1969,7 +2074,6 @@ public class SimonGameManager : MonoBehaviour
         {
             boardBaseScale = activeBoardRoot.localScale;
             boardBaseAnchoredPosition = activeBoardRoot.anchoredPosition;
-            activeBoardRoot.localScale = boardBaseScale * boardIdleScale;
         }
 
         EnsureBoardCenterRing();
@@ -1987,8 +2091,8 @@ public class SimonGameManager : MonoBehaviour
     {
         if (menuButton == null)
         {
-            Transform topHud = FindTopHudPanel();
-            menuButton = FindButton(topHud, "MenuButton") ?? FindButtonInScene("BtnMenu") ?? FindButtonInScene("BtnExIt") ?? FindButtonInScene("MenuButton");
+            ResolveHudReferences();
+            menuButton ??= FindButtonInScene("BtnMenu") ?? FindButtonInScene("BtnExIt") ?? FindButtonInScene("MenuButton");
         }
 
         if (pausePanel == null)
@@ -2020,23 +2124,22 @@ public class SimonGameManager : MonoBehaviour
 
         ApplyTopHudStyle(topHud);
 
-        Transform scorePanel = FindChild(topHud, "ScorePanel");
-        if (scoreText == null && scorePanel != null)
-            scoreText = scorePanel.GetComponentInChildren<TMP_Text>(true);
+        if (topHudPanelView == null)
+            topHudPanelView = topHud.GetComponent<TopHudPanelView>();
 
-        Transform livesPanel = FindChild(topHud, "LivesPanel");
-        if ((lifeIcons == null || lifeIcons.Length == 0) && livesPanel != null)
-            lifeIcons = FindLifeImages(livesPanel);
+        if (topHudPanelView == null)
+            topHudPanelView = topHud.gameObject.AddComponent<TopHudPanelView>();
 
-        if (menuButton == null)
-            menuButton = FindButton(topHud, "MenuButton");
+        topHudPanelView.ResolveMissingReferences();
 
-        Transform timeBarPanel = FindChild(topHud, "TimeBar") ?? FindChild(topHud, "TimeBarRoot") ?? FindChild(topHud, "Timebar");
-        if (timeBarRoot == null && timeBarPanel != null)
-            timeBarRoot = timeBarPanel.gameObject;
+        scoreText = topHudPanelView.ScoreText;
+        menuButton = topHudPanelView.MenuButton;
+        lifeIcons = topHudPanelView.LifeIcons;
+        timeBarRoot = topHudPanelView.TimeBarRoot ?? FindTimeBarPanel(topHud)?.gameObject;
+        timeBarFill = topHudPanelView.TimeBarFill;
 
-        if (timeBarFill == null && timeBarPanel != null)
-            timeBarFill = FindImage(timeBarPanel, "Fill") ?? FindImage(timeBarPanel, "TimeBarFill");
+        if (timeBarFill == null && timeBarRoot != null)
+            timeBarFill = FindImage(timeBarRoot.transform, "Fill") ?? FindImage(timeBarRoot.transform, "TimeBarFill");
     }
 
     private void ConfigureButtons()
@@ -2372,23 +2475,47 @@ public class SimonGameManager : MonoBehaviour
 
     private static Image FindImage(Transform root, string objectName)
     {
+        if (root == null)
+            return null;
+
         Transform match = FindChild(root, objectName);
         return match != null ? match.GetComponent<Image>() : null;
     }
 
-    private static Image[] FindLifeImages(Transform livesPanel)
+    private static Transform FindTimeBarPanel(Transform topHud)
     {
-        Image[] namedLives =
+        Transform timeBarPanel = FindChild(topHud, "TimeBar")
+            ?? FindChild(topHud, "TimeBarRoot")
+            ?? FindChild(topHud, "Timebar")
+            ?? FindChild(topHud, "TimeBarBG");
+
+        if (timeBarPanel != null)
+            return timeBarPanel;
+
+        return FindSceneChild("TimeBarBG")
+            ?? FindSceneChild("TimeBar")
+            ?? FindSceneChild("TimeBarRoot")
+            ?? FindSceneChild("Timebar");
+    }
+
+    private static Transform FindSceneChild(string objectName)
+    {
+        for (int sceneIndex = 0; sceneIndex < SceneManager.sceneCount; sceneIndex++)
         {
-            FindImage(livesPanel, "Life1"),
-            FindImage(livesPanel, "Life2"),
-            FindImage(livesPanel, "Life3"),
-        };
+            Scene scene = SceneManager.GetSceneAt(sceneIndex);
+            if (!scene.isLoaded)
+                continue;
 
-        if (namedLives[0] != null || namedLives[1] != null || namedLives[2] != null)
-            return namedLives;
+            GameObject[] roots = scene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                Transform match = FindChild(roots[i].transform, objectName);
+                if (match != null)
+                    return match;
+            }
+        }
 
-        return livesPanel.GetComponentsInChildren<Image>(true);
+        return null;
     }
 
     private static Transform FindChild(Transform root, string objectName)

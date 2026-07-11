@@ -7,13 +7,14 @@ public class CompassGuideView : MonoBehaviour
     [SerializeField] private Image[] beatSlots;
     [SerializeField] private TMP_Text[] beatTexts;
     [SerializeField] private TMP_Text measureText;
-    [SerializeField] [Range(0f, 1f)] private float minimumSlotAlpha = 0.55f;
+    [SerializeField] [Range(0f, 1f)] private float minimumSlotAlpha = 0.68f;
 
     private Sprite[] defaultSprites;
 
     private void Awake()
     {
         CacheDefaults();
+        DisableDecorativeRaycasts();
     }
 
     public void InitializeIfNeeded(int beatsPerMeasure)
@@ -40,6 +41,7 @@ public class CompassGuideView : MonoBehaviour
         }
 
         CacheDefaults();
+        DisableDecorativeRaycasts();
     }
 
     public void SetVisible(bool visible)
@@ -101,6 +103,13 @@ public class CompassGuideView : MonoBehaviour
     {
         color.a = Mathf.Max(minimumSlotAlpha, color.a);
         return color;
+    }
+
+    private void DisableDecorativeRaycasts()
+    {
+        Graphic[] graphics = GetComponentsInChildren<Graphic>(true);
+        for (int i = 0; i < graphics.Length; i++)
+            graphics[i].raycastTarget = false;
     }
 }
 

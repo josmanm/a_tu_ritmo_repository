@@ -122,6 +122,7 @@ public class BasicRhythmGameManager : MonoBehaviour
     private readonly List<FigureDefinition> currentPattern = new List<FigureDefinition>();
     private readonly List<int> currentPatternBlockNoteCounts = new List<int>();
 
+    private TopHudPanelView topHudPanelView;
     private TMP_Text scoreText;
     private TMP_Text levelText;
     private Image figureIconTemplate;
@@ -2296,10 +2297,13 @@ public class BasicRhythmGameManager : MonoBehaviour
         rootCanvas = canvas;
         Transform topHudPanel = FindChild(canvas.transform, "TopHudPanel");
         ApplyTopHudStyle(topHudPanel);
+        ResolveTopHudView(topHudPanel);
 
         figureIconTemplate = FindImage(canvas, "FigureIcon");
         drumButton = FindButton(canvas, "DrumButton");
-        menuButton = FindButton(topHudPanel, "MenuButton") ?? FindButton(canvas, "MenuButton");
+        menuButton = topHudPanelView != null && topHudPanelView.MenuButton != null
+            ? topHudPanelView.MenuButton
+            : FindButton(canvas, "MenuButton");
         Transform pausePanelTransform = FindChild(canvas.transform, "PausePanel");
         if (pausePanelTransform != null)
         {
@@ -2323,11 +2327,18 @@ public class BasicRhythmGameManager : MonoBehaviour
 
         Transform scorePanel = FindChild(topHudPanel, "ScorePanel") ?? FindChild(canvas.transform, "ScorePanel");
         Transform levelPanel = FindChild(topHudPanel, "LevelPanel") ?? FindChild(canvas.transform, "LevelPanel");
-        Transform livesPanel = FindChild(topHudPanel, "LivesPanel") ?? FindChild(canvas.transform, "LivesPanel");
+        Transform livesPanel = FindChild(topHudPanel, "LifeIcons") ?? FindChild(topHudPanel, "LivesPanel") ?? FindChild(canvas.transform, "LivesPanel");
+
+        if (topHudPanelView != null)
+        {
+            scoreText = topHudPanelView.ScoreText;
+            lifeImages = topHudPanelView.LifeIcons;
+        }
 
         if (scorePanel != null)
         {
-            scoreText = scorePanel.GetComponentInChildren<TMP_Text>(true);
+            if (scoreText == null)
+                scoreText = scorePanel.GetComponentInChildren<TMP_Text>(true);
             scorePanelRect = scorePanel as RectTransform;
             if (scorePanelRect != null)
                 scorePanelBaseScale = scorePanelRect.localScale;
@@ -2347,7 +2358,8 @@ public class BasicRhythmGameManager : MonoBehaviour
             if (livesPanelRect != null)
                 livesPanelBaseScale = livesPanelRect.localScale;
 
-            lifeImages = FindLifeImages(livesPanel);
+            if (lifeImages == null || lifeImages.Length < 3)
+                lifeImages = FindLifeImages(livesPanel);
         }
 
         HideLegacyFigurePlaceholders();
@@ -2360,6 +2372,18 @@ public class BasicRhythmGameManager : MonoBehaviour
 
             pausePanelView.InitializeHidden();
         }
+    }
+
+    private void ResolveTopHudView(Transform topHudPanel)
+    {
+        if (topHudPanel == null)
+            return;
+
+        topHudPanelView = topHudPanel.GetComponent<TopHudPanelView>();
+        if (topHudPanelView == null)
+            topHudPanelView = topHudPanel.gameObject.AddComponent<TopHudPanelView>();
+
+        topHudPanelView.ResolveMissingReferences();
     }
 
     private void EnsureAudioSource()
