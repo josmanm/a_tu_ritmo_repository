@@ -4,7 +4,7 @@ Proyecto Unity con mini-juegos de memoria y ritmo, perfiles de jugador y conexi�
 
 ## Configuración rápida
 
-Si tu compañera solo quiere abrir y correr el proyecto, estos son los pasos importantes.
+Para abrir y correr el proyecto, estos son los pasos importantes.
 
 ### 1. Requisitos
 
