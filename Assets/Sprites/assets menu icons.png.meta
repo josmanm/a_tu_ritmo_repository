@@ -1,28 +1,10 @@
 fileFormatVersion: 2
-guid: 31cbcf7617190cf40bf2faabbe5ed5e5
+guid: 757633d0bed140d4a8aca85800381cea
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 2639756742115083343
-    second: assets menu a tu ritmo juegos_0
-  - first:
-      213: -209592511489868166
-    second: assets menu a tu ritmo juegos_1
-  - first:
-      213: 6458754186736288211
-    second: assets menu a tu ritmo juegos_2
-  - first:
-      213: -3822856141357858322
-    second: assets menu a tu ritmo juegos_3
-  - first:
-      213: -4591995387625183110
-    second: assets menu a tu ritmo juegos_4
-  - first:
-      213: -1082035180800209908
-    second: assets menu a tu ritmo juegos_5
-  - first:
-      213: -5821589366043852772
-    second: assets menu a tu ritmo juegos_6
+      213: 394149118073593224
+    second: assets menu icons_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -131,67 +113,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: assets menu a tu ritmo juegos_0
+      name: assets menu icons_0
       rect:
         serializedVersion: 2
-        x: 15
-        y: 40
-        width: 592
-        height: 720
+        x: 0
+        y: 0
+        width: 1671
+        height: 941
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 648d3c23a5f628a449335e87e0e8a630
-      internalID: 2639756742115083343
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu a tu ritmo juegos_1
-      rect:
-        serializedVersion: 2
-        x: 620
-        y: 46
-        width: 588
-        height: 714
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 543c9d409b9a3ed4b9fc15014d1d4dc4
-      internalID: -209592511489868166
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: assets menu a tu ritmo juegos_3
-      rect:
-        serializedVersion: 2
-        x: 1216
-        y: 43
-        width: 569
-        height: 719
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: c687d3a6cec9f5f44b1c2cff3931edd6
-      internalID: -3822856141357858322
+      spriteID: 88d5f4bd88c487500800000000000000
+      internalID: 394149118073593224
       vertices: []
       indices: 
       edges: []
@@ -200,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 7af6dbfaa6e689941aafb20899a080b0
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -208,14 +146,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
-      assets menu a tu ritmo juegos_0: 2639756742115083343
-      assets menu a tu ritmo juegos_1: -209592511489868166
-      assets menu a tu ritmo juegos_2: 6458754186736288211
-      assets menu a tu ritmo juegos_3: -3822856141357858322
+      assets menu icons_0: 394149118073593224
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

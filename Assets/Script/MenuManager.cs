@@ -37,6 +37,7 @@ public class MenuManager : MonoBehaviour
 
     [Header("Optional")]
     [SerializeField] private Button backButton;
+    [SerializeField] private Button perfilButton;
 
     [Header("Settings Box")]
     [SerializeField] private GameObject settingsBox;
@@ -83,6 +84,12 @@ public class MenuManager : MonoBehaviour
         {
             backButton.onClick.RemoveAllListeners();
             backButton.onClick.AddListener(ShowMainOptions);
+        }
+
+        if (perfilButton != null)
+        {
+            perfilButton.onClick.RemoveAllListeners();
+            perfilButton.onClick.AddListener(ShowProfileMenu);
         }
 
         if (closeSettingsButton != null)
@@ -160,6 +167,13 @@ public class MenuManager : MonoBehaviour
         Debug.Log("Salir (en el editor no se cierra, solo en el .exe)");
     }
 
+    public void ShowProfileMenu()
+    {
+        ProfileMenuController profileMenu = FindFirstObjectByType<ProfileMenuController>(FindObjectsInactive.Include);
+        if (profileMenu != null)
+            profileMenu.Show();
+    }
+
     private void ResolveReferences()
     {
         if (logoRect == null)
@@ -223,6 +237,13 @@ public class MenuManager : MonoBehaviour
             GameObject backButtonObject = GameObject.Find("BackButton");
             if (backButtonObject != null)
                 backButton = backButtonObject.GetComponent<Button>();
+        }
+
+        if (perfilButton == null)
+        {
+            GameObject perfilButtonObject = GameObject.Find("PerfilButton");
+            if (perfilButtonObject != null)
+                perfilButton = perfilButtonObject.GetComponent<Button>();
         }
     }
 
