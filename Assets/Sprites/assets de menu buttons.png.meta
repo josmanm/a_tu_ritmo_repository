@@ -122,10 +122,10 @@ TextureImporter:
       name: assets de menu buttons_0
       rect:
         serializedVersion: 2
-        x: 486
-        y: 670
-        width: 874
-        height: 256
+        x: 0
+        y: 285
+        width: 298
+        height: 83
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -144,10 +144,10 @@ TextureImporter:
       name: assets de menu buttons_1
       rect:
         serializedVersion: 2
-        x: 486
-        y: 382
-        width: 874
-        height: 251
+        x: 348
+        y: 239
+        width: 317
+        height: 95
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -166,10 +166,10 @@ TextureImporter:
       name: assets de menu buttons_2
       rect:
         serializedVersion: 2
-        x: 486
-        y: 102
-        width: 874
-        height: 249
+        x: 2
+        y: 177
+        width: 292
+        height: 77
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -180,6 +180,50 @@ TextureImporter:
       bones: []
       spriteID: 4cf2cc3fdf497cec0800000000000000
       internalID: -3546702363093094460
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de menu buttons_3
+      rect:
+        serializedVersion: 2
+        x: 348
+        y: 136
+        width: 317
+        height: 93
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f8158c17940272e41858d8b17554db2f
+      internalID: -1597435536
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets de menu buttons_4
+      rect:
+        serializedVersion: 2
+        x: 348
+        y: 35
+        width: 317
+        height: 91
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 47d058e5812d52a4ead79bbbb314d146
+      internalID: 265692609
       vertices: []
       indices: 
       edges: []
@@ -203,6 +247,8 @@ TextureImporter:
       assets de menu buttons_0: 8667027886814376552
       assets de menu buttons_1: -3258955751003921881
       assets de menu buttons_2: -3546702363093094460
+      assets de menu buttons_3: -1597435536
+      assets de menu buttons_4: 265692609
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

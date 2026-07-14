@@ -7,6 +7,8 @@ public class CompassBeatRingGraphic : MaskableGraphic
     [SerializeField] [Range(0.04f, 0.35f)] private float thickness = 0.2f;
     [SerializeField] [Range(24, 120)] private int segments = 72;
     [SerializeField] [Range(1f, 2f)] private float glowMultiplier = 1.35f;
+    [SerializeField] [Range(0.01f, 0.12f)] private float outlineThickness = 0.04f;
+    [SerializeField] private Color outlineColor = new(0f, 0f, 0f, 0.9f);
 
     private float glowAmount;
 
@@ -37,12 +39,24 @@ public class CompassBeatRingGraphic : MaskableGraphic
         float innerRadius = outerRadius * (1f - thickness);
         Vector2 center = rect.center;
         int safeSegments = Mathf.Max(24, segments);
+        float innerOutlineInnerRadius = outerRadius * (1f - thickness - outlineThickness);
+        float innerOutlineOuterRadius = innerRadius;
+        float outerOutlineInnerRadius = outerRadius;
+        float outerOutlineOuterRadius = outerRadius + (Mathf.Min(rect.width, rect.height) * outlineThickness);
+
+        DrawRing(vh, center, innerOutlineInnerRadius, innerOutlineOuterRadius, outlineColor, safeSegments);
+        DrawRing(vh, center, outerOutlineInnerRadius, outerOutlineOuterRadius, outlineColor, safeSegments);
+
         Color drawColor = Color.Lerp(color, Color.white, glowAmount * 0.45f);
         drawColor.r = Mathf.Clamp01(drawColor.r * Mathf.Lerp(1f, glowMultiplier, glowAmount));
         drawColor.g = Mathf.Clamp01(drawColor.g * Mathf.Lerp(1f, glowMultiplier, glowAmount));
         drawColor.b = Mathf.Clamp01(drawColor.b * Mathf.Lerp(1f, glowMultiplier, glowAmount));
-        Color32 c = drawColor;
+        DrawRing(vh, center, innerRadius, outerRadius, drawColor, safeSegments);
+    }
 
+    private void DrawRing(VertexHelper vh, Vector2 center, float innerRadius, float outerRadius, Color color, int safeSegments)
+    {
+        Color32 c = color;
         for (int i = 0; i < safeSegments; i++)
         {
             float t0 = (float)i / safeSegments * Mathf.PI * 2f;

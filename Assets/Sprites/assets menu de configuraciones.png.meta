@@ -116,10 +116,10 @@ TextureImporter:
       name: assets menu de configuraciones_0
       rect:
         serializedVersion: 2
-        x: 5
-        y: 104
+        x: 11
+        y: 206
         width: 489
-        height: 490
+        height: 492
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -130,6 +130,72 @@ TextureImporter:
       bones: []
       spriteID: 6e8778e63ce4dd230800000000000000
       internalID: 3665172273029413094
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets menu de configuraciones_1
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 103
+        width: 399
+        height: 57
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c0d323955c9ac3f4a8a991f7dc25a94c
+      internalID: -1170386674
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets menu de configuraciones_2
+      rect:
+        serializedVersion: 2
+        x: 436
+        y: 75
+        width: 58
+        height: 59
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: edbb81da41f0cf147af1f9da0fd3abe9
+      internalID: 242130777
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: assets menu de configuraciones_3
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 38
+        width: 399
+        height: 52
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 430fceb3bff2dcc44b8e49a0355012a7
+      internalID: -6624920
       vertices: []
       indices: 
       edges: []
@@ -151,6 +217,9 @@ TextureImporter:
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
       assets menu de configuraciones_0: 3665172273029413094
+      assets menu de configuraciones_1: -1170386674
+      assets menu de configuraciones_2: 242130777
+      assets menu de configuraciones_3: -6624920
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

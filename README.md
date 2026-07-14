@@ -1,83 +1,173 @@
-# Simondice
+# A tu Ritmo
 
-Juego Unity con múltiples mini-juegos de música y memoria.
+Proyecto Unity con mini-juegos de memoria y ritmo, perfiles de jugador y conexión con Firebase.
 
-## Requisitos
+## Configuración rápida
 
-- **Unity**: Versión 6000.3.2f1 o superior
-- **Render Pipeline**: Universal Render Pipeline (URP)
-- **Input System**: Nuevo Input System de Unity
+Si tu compañera solo quiere abrir y correr el proyecto, estos son los pasos importantes.
 
-## Mini-Juegos
+### 1. Requisitos
 
-### Simon (SimonScene)
-Juego de memoria visual donde el jugador debe repetir secuencias de colores mostradas en un tablero circular.
+- Unity Hub
+- Unity `6000.3.2f1`
+- Conexión a internet para usar perfiles con Firebase
 
-**Características:**
-- Sistema de vidas (3 corazones)
-- Dificultad progresiva (más colores y menos tiempo)
-- Estadísticas: nivel, racha actual, mejor racha, tiempo promedio
-- Efectos visuales y sonoros
-- Tablero adaptativo (4, 5 o 7 piezas según el nivel)
+### 2. Abrir el proyecto
 
-### Basic Rhythm (BasicrhythmScene)
-Juego educativo de ritmo con figuras musicales y un tambor interactivo.
+1. Clona o descarga este repositorio.
+2. Abre Unity Hub.
+3. Usa `Add project from disk`.
+4. Selecciona la carpeta del proyecto.
+5. Ábrelo con Unity `6000.3.2f1`.
 
-**Características:**
-- Tutorial progresivo
-- Patrones de figuras y silencios
-- Puntuación y sistema de vidas
-- Feedback visual y auditivo
+### 3. Esperar la primera importación
 
-### TempoTap (TempoTapScene)
-Juego de ritmo que combina tapping con un runner 2D.
+La primera vez Unity puede tardar porque debe:
 
-**Características:**
-- Tapping sincronizado con beats de audio
-- Sistema de estabilidad (mantén el ritmo para no perder)
-- Runner automático con saltos sincronizados
-- Asistencia para jugadores casuales
-- Sesiones de 30 segundos
+- importar paquetes
+- compilar scripts
+- cargar URP, TextMeshPro, Input System y Firebase
 
-## Estructura del Proyecto
+### 4. Abrir la escena principal
 
-```
+Abrir:
+
+- `Assets/Scenes/MainScene.unity`
+
+### 5. Ejecutar
+
+Presionar `Play` en el editor.
+
+Al iniciar:
+
+- debe aparecer el panel de perfil
+- se puede seleccionar o crear un perfil
+- luego se entra al menú principal
+
+## Firebase
+
+El proyecto ya usa Firebase para:
+
+- perfiles
+- sesiones
+- reportes de partidas
+
+Archivos de configuración incluidos en el repo:
+
+- `Assets/google-services.json`
+- `Assets/StreamingAssets/google-services-desktop.json`
+
+Si esos archivos siguen presentes y válidos, no debería hacer configuración extra para probar el proyecto.
+
+Si Firebase falla, el juego puede abrir, pero el panel de perfiles mostrará mensajes como:
+
+- `Firebase no esta listo.`
+
+## Escenas del proyecto
+
+Escenas activas en Build Settings:
+
+1. `Assets/Scenes/MainScene.unity`
+2. `Assets/Scenes/SimonScene.unity`
+3. `Assets/Scenes/TempoTapScene.unity`
+4. `Assets/Scenes/BasicrhythmScene.unity`
+
+## Mini-juegos
+
+### MainScene
+
+- menú principal
+- selector de perfil
+- acceso a juegos y configuraciones
+
+### SimonScene
+
+- juego de memoria visual por secuencias
+
+### TempoTapScene
+
+- juego de ritmo con tapping y runner
+
+### BasicrhythmScene
+
+- juego de ritmo con patrones musicales
+
+## Cómo hacer build
+
+### Build para probar en PC desde Unity
+
+1. Abre `MainScene`.
+2. Ve a `File > Build Profiles` o `File > Build Settings`.
+3. Verifica que estén las 4 escenas incluidas.
+4. Selecciona la plataforma deseada.
+5. Pulsa `Build`.
+
+### Build WebGL
+
+1. En Unity Hub, asegúrate de tener instalado el módulo `WebGL Build Support` para la versión `6000.3.2f1`.
+2. En Unity ve a `File > Build Settings`.
+3. Selecciona `WebGL`.
+4. Pulsa `Switch Platform`.
+5. Pulsa `Build`.
+
+### Build Android
+
+1. En Unity Hub, instala `Android Build Support` para `6000.3.2f1`.
+2. Asegúrate de incluir SDK/NDK/OpenJDK al instalar el módulo.
+3. En Unity ve a `File > Build Settings`.
+4. Selecciona `Android`.
+5. Pulsa `Switch Platform`.
+6. Pulsa `Build`.
+
+Configuración actual relevante de Android:
+
+- `applicationId`: `com.unicauca.aturitmo`
+- `minSdkVersion`: `25`
+- `bundleVersion`: `1.0`
+
+## Problemas comunes
+
+### No abre el proyecto
+
+Revisar:
+
+- que use Unity `6000.3.2f1`
+- que Unity termine de importar todo
+
+### No aparece el perfil o no carga perfiles
+
+Revisar:
+
+- conexión a internet
+- que Firebase inicialice bien
+- que existan `Assets/google-services.json` y `Assets/StreamingAssets/google-services-desktop.json`
+
+### No deja hacer build
+
+Revisar:
+
+- que el módulo de la plataforma esté instalado en Unity Hub
+- que las escenas sigan en Build Settings
+
+## Estructura básica
+
+```text
 Assets/
-├── Script/              # Scripts C# del juego
-│   ├── SimonGameManager.cs
-│   ├── BasicRhythmGameManager.cs
-│   ├── TempoTapGameManager.cs
-│   └── ...
-├── Scenes/              # Escenas del juego
-│   ├── MainScene.unity
-│   ├── SimonScene.unity
-│   ├── BasicrhythmScene.unity
-│   └── TempoTapScene.unity
-├── Audio/               # Archivos de audio
-└── Settings/            # Configuración del proyecto
+├── Firebase/
+├── Prefabs/
+├── Scenes/
+├── Script/
+├── Sprites/
+├── StreamingAssets/
+└── google-services.json
 ```
 
-## Cómo Ejecutar
+## Nota final
 
-1. Abre el proyecto en Unity Hub (versión 6000.3.2f1)
-2. Abre la escena `MainScene` en `Assets/Scenes/`
-3. Presiona Play en el editor
+Si alguien solo necesita correr el proyecto, lo mínimo es:
 
-## Controles
+1. abrir con Unity `6000.3.2f1`
+2. abrir `MainScene`
+3. presionar `Play`
 
-- **Simon**: Click en las piezas del tablero
-- **Basic Rhythm**: Click/Tap en el tambor siguiendo el patron
-- **TempoTap**: Click/Tap en cualquier lugar de la pantalla
-
-## Construir para Web
-
-1. Ve a **File > Build Settings**
-2. Selecciona **WebGL**
-3. Click en **Switch Platform** si es necesario
-4. Click en **Build**
-
-## Notas
-
-- El proyecto usa TextMeshPro para UI
-- Compatible con dispositivos móviles (Android/iOS)
-- Los haptic feedback funcionan en dispositivos móviles
+Si alguien necesita hacer build, lo más importante es tener instalado el módulo correcto de la plataforma en Unity Hub.
