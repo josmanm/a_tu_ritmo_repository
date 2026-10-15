@@ -132,7 +132,9 @@ public class CompassGuideView : MonoBehaviour
             if (beatTexts[i] != null)
             {
                 beatTexts[i].text = step == null ? "-" : step.isSilence ? string.Empty : step.label;
-                beatTexts[i].color = step != null && !step.isSilence ? step.color : Color.white;
+                beatTexts[i].color = new Color(0.094f, 0.188f, 0.31f, 1f);
+                beatTexts[i].fontStyle = FontStyles.Bold;
+                beatTexts[i].fontSize = 34f;
             }
         }
     }
@@ -341,6 +343,8 @@ public class CompassGuideView : MonoBehaviour
 
             beatSlots[i].raycastTarget = false;
             beatSlots[i].enabled = false;
+            // The opaque face must render behind the numeral, not cover it.
+            ring.transform.SetAsFirstSibling();
             ringSlots[i] = ring;
         }
     }

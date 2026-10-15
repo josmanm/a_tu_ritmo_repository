@@ -79,7 +79,6 @@ public class MenuManager : MonoBehaviour
         CacheBaseTransforms();
         ConfigureSettingsBox();
         InitializePanels();
-        ConfigureGameCardLabels();
 
         ProfileMenuController profileMenu = FindFirstObjectByType<ProfileMenuController>(FindObjectsInactive.Include);
         if (profileMenu == null)
@@ -270,67 +269,6 @@ public class MenuManager : MonoBehaviour
         SetPanelInstant(gamesPanel, gamesTransition, false);
         SetPanelInstant(settingsPanel, settingsTransition, false);
         SetBackButtonVisible(false);
-    }
-
-    private void ConfigureGameCardLabels()
-    {
-        if (gamesPanel == null)
-            return;
-
-        ConfigureGameCardLabel("SimonScene", "Simón musical");
-        ConfigureGameCardLabel("TempoTapScene", "Tempo Tap");
-        ConfigureGameCardLabel("BasicrhythmScene", "Ritmo básico");
-    }
-
-    private void ConfigureGameCardLabel(string buttonName, string caption)
-    {
-        Transform card = FindChild(gamesPanel.transform, buttonName);
-        if (card == null || card.GetComponent<Button>() == null)
-            return;
-
-        TMP_Text label = card.GetComponentInChildren<TMP_Text>(true);
-        if (label == null)
-            return;
-
-        Transform existingSurface = card.Find("CaptionSurface");
-        RectTransform surface;
-        if (existingSurface == null)
-        {
-            GameObject surfaceObject = new GameObject("CaptionSurface", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            surface = surfaceObject.GetComponent<RectTransform>();
-            surface.SetParent(card, false);
-        }
-        else
-        {
-            surface = existingSurface.GetComponent<RectTransform>();
-        }
-
-        surface.anchorMin = surface.anchorMax = new Vector2(0.5f, 0.5f);
-        surface.pivot = new Vector2(0.5f, 0.5f);
-        surface.anchoredPosition = new Vector2(0f, -108f);
-        surface.sizeDelta = new Vector2(278f, 68f);
-        Image surfaceImage = surface.GetComponent<Image>();
-        surfaceImage.color = new Color(1f, 0.941f, 0.816f, 1f);
-        surfaceImage.raycastTarget = false;
-
-        label.rectTransform.SetParent(surface, false);
-        label.rectTransform.anchorMin = Vector2.zero;
-        label.rectTransform.anchorMax = Vector2.one;
-        label.rectTransform.offsetMin = new Vector2(8f, 4f);
-        label.rectTransform.offsetMax = new Vector2(-8f, -4f);
-        label.text = caption;
-        label.color = new Color(0.094f, 0.188f, 0.31f, 1f);
-        label.fontStyle = FontStyles.Bold;
-        label.fontSize = 32f;
-        label.enableAutoSizing = true;
-        label.fontSizeMin = 30f;
-        label.fontSizeMax = 32f;
-        label.characterSpacing = 0f;
-        label.wordSpacing = 0f;
-        label.margin = Vector4.zero;
-        label.alignment = TextAlignmentOptions.Center;
-        label.textWrappingMode = TextWrappingModes.NoWrap;
-        label.raycastTarget = false;
     }
 
     private void ConfigureSettingsBox()

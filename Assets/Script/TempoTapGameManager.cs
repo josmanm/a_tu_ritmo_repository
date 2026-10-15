@@ -19,6 +19,7 @@ public class TempoTapGameManager : MonoBehaviour
     public GameObject startPanel;
 
     TMP_Text startButtonText;
+    Image startButtonImage;
 
     [Header("Timing Windows (ms)")]
     public float perfectMs = 60f;
@@ -134,12 +135,25 @@ public class TempoTapGameManager : MonoBehaviour
         if (startPanel != null)
         {
             startPanel.SetActive(true);
+            Image panelImage = startPanel.GetComponent<Image>();
+            if (panelImage != null)
+            {
+                panelImage.color = Color.clear;
+                panelImage.raycastTarget = false;
+            }
             startButtonText = startPanel.GetComponentInChildren<TMP_Text>(true);
             if (startButtonText != null)
-                startButtonText.text = "Iniciar";
+            {
+                // The START artwork already contains its own lettering.
+                startButtonText.text = string.Empty;
+                startButtonText.raycastTarget = false;
+            }
+            Button start = startPanel.transform.Find("StartButton")?.GetComponent<Button>();
+            if (start != null)
+                startButtonImage = start.GetComponent<Image>();
         }
 
-        SetFeedback("Toca Iniciar para escuchar el pulso", 0f);
+        SetFeedback("Toca Empezar para escuchar el pulso", 0f);
         NarrationPlayer.Say("tempo_intro", interrupt: false);
     }
 
@@ -151,14 +165,51 @@ public class TempoTapGameManager : MonoBehaviour
 
     private void ConfigureHud()
     {
+        if (startPanel != null)
+        {
+            RectTransform start = startPanel.transform.Find("StartButton") as RectTransform;
+            RectTransform back = startPanel.transform.Find("BackButton") as RectTransform;
+            if (start != null)
+            {
+                start.anchorMin = start.anchorMax = new Vector2(1f, 0.5f);
+                start.pivot = new Vector2(1f, 0.5f);
+                start.anchoredPosition = new Vector2(-220f, 0f);
+                start.sizeDelta = new Vector2(170f, 72f);
+                start.GetComponent<Image>().preserveAspect = true;
+            }
+            if (back != null)
+            {
+                back.anchorMin = back.anchorMax = new Vector2(1f, 0.5f);
+                back.pivot = new Vector2(1f, 0.5f);
+                back.anchoredPosition = new Vector2(-32f, 0f);
+                back.sizeDelta = new Vector2(170f, 72f);
+                back.GetComponent<Image>().preserveAspect = true;
+            }
+        }
+
         if (timerText != null)
         {
             RectTransform rect = timerText.rectTransform;
-            rect.anchoredPosition = new Vector2(185f, -124f);
-            rect.sizeDelta = new Vector2(350f, 86f);
-            timerText.fontSize = 28f;
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(32f, -210f);
+            rect.sizeDelta = new Vector2(346f, 88f);
+            timerText.fontSize = 32f;
             timerText.fontStyle = FontStyles.Bold;
             timerText.raycastTarget = false;
+        }
+
+        if (feedbackText != null)
+        {
+            RectTransform rect = feedbackText.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(0f, -210f);
+            rect.sizeDelta = new Vector2(630f, 110f);
+            feedbackText.fontSize = 32f;
+            feedbackText.fontStyle = FontStyles.Bold;
+            feedbackText.alignment = TextAlignmentOptions.Center;
+            feedbackText.textWrappingMode = TextWrappingModes.Normal;
+            feedbackText.raycastTarget = false;
         }
 
         if (stabilityFill == null || timerText == null)
@@ -168,7 +219,13 @@ public class TempoTapGameManager : MonoBehaviour
         if (bar == null)
             return;
 
-        bar.sizeDelta = new Vector2(bar.sizeDelta.x, 54f);
+        bar.anchorMin = bar.anchorMax = new Vector2(0f, 1f);
+        bar.pivot = new Vector2(0f, 0.5f);
+        bar.anchoredPosition = new Vector2(32f, -154f);
+        bar.sizeDelta = new Vector2(344f, 54f);
+        Image barImage = bar.GetComponent<Image>();
+        if (barImage != null) barImage.raycastTarget = false;
+        stabilityFill.raycastTarget = false;
         Transform found = bar.Find("EnergyLabel");
         if (found == null)
         {
@@ -509,7 +566,17 @@ public class TempoTapGameManager : MonoBehaviour
             runner.SetGameStarted(true);
 
         if (startButtonText != null)
+        {
+            if (startButtonImage != null)
+            {
+                startButtonImage.sprite = null;
+                startButtonImage.color = new Color(0.04f, 0.15f, 0.34f, 1f);
+            }
             startButtonText.text = "Reiniciar";
+            startButtonText.color = Color.white;
+            startButtonText.fontStyle = FontStyles.Bold;
+            startButtonText.fontSize = 30f;
+        }
     }
 
     void ResetSessionStats()

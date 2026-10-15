@@ -2115,14 +2115,6 @@ public class SimonGameManager : MonoBehaviour
         if (compassGuideView == null)
             compassGuideView = compassGuideRoot.gameObject.AddComponent<CompassGuideView>();
 
-        // Calm, opaque backing separates the rhythm timeline from the illustrated landscape.
-        compassGuideRoot.sizeDelta = new Vector2(640f, 116f);
-        Image guideSurface = compassGuideRoot.GetComponent<Image>();
-        if (guideSurface == null)
-            guideSurface = compassGuideRoot.gameObject.AddComponent<Image>();
-        guideSurface.color = new Color(1f, 1f, 1f, 0.98f);
-        guideSurface.raycastTarget = false;
-
         compassGuideView.InitializeIfNeeded(beatsPerMeasure);
     }
 

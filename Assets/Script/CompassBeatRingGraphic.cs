@@ -9,6 +9,7 @@ public class CompassBeatRingGraphic : MaskableGraphic
     [SerializeField] [Range(1f, 2f)] private float glowMultiplier = 1.35f;
     [SerializeField] [Range(0.01f, 0.12f)] private float outlineThickness = 0.04f;
     [SerializeField] private Color outlineColor = new(0f, 0f, 0f, 0.9f);
+    [SerializeField] private Color faceColor = new(1f, 1f, 1f, 0.98f);
 
     private float glowAmount;
 
@@ -44,6 +45,7 @@ public class CompassBeatRingGraphic : MaskableGraphic
         float outerOutlineInnerRadius = outerRadius;
         float outerOutlineOuterRadius = outerRadius + (Mathf.Min(rect.width, rect.height) * outlineThickness);
 
+        DrawDisc(vh, center, innerOutlineInnerRadius, faceColor, safeSegments);
         DrawRing(vh, center, innerOutlineInnerRadius, innerOutlineOuterRadius, outlineColor, safeSegments);
         DrawRing(vh, center, outerOutlineInnerRadius, outerOutlineOuterRadius, outlineColor, safeSegments);
 
@@ -52,6 +54,18 @@ public class CompassBeatRingGraphic : MaskableGraphic
         drawColor.g = Mathf.Clamp01(drawColor.g * Mathf.Lerp(1f, glowMultiplier, glowAmount));
         drawColor.b = Mathf.Clamp01(drawColor.b * Mathf.Lerp(1f, glowMultiplier, glowAmount));
         DrawRing(vh, center, innerRadius, outerRadius, drawColor, safeSegments);
+    }
+
+    private static void DrawDisc(VertexHelper vh, Vector2 center, float radius, Color color, int count)
+    {
+        int first = vh.currentVertCount;
+        vh.AddVert(center, color, Vector2.zero);
+        for (int i = 0; i <= count; i++)
+        {
+            float angle = i * Mathf.PI * 2f / count;
+            vh.AddVert(center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius, color, Vector2.zero);
+            if (i > 0) vh.AddTriangle(first, first + i, first + i + 1);
+        }
     }
 
     private void DrawRing(VertexHelper vh, Vector2 center, float innerRadius, float outerRadius, Color color, int safeSegments)

@@ -18,6 +18,11 @@ public class BeatGuideUI : MonoBehaviour
     {
         if (game == null)
             game = FindFirstObjectByType<TempoTapGameManager>();
+
+        RectTransform guideRect = transform as RectTransform;
+        if (guideRect != null)
+            guideRect.anchoredPosition = new Vector2(0f, 40f);
+
         Transform background = transform.Find("ActionBackground");
         if (background == null)
         {
@@ -25,7 +30,8 @@ public class BeatGuideUI : MonoBehaviour
             RectTransform rect = surface.GetComponent<RectTransform>();
             rect.SetParent(transform, false);
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(168f, 92f);
+            rect.anchoredPosition = new Vector2(0f, -148f);
+            rect.sizeDelta = new Vector2(242f, 70f);
             surface.GetComponent<Image>().color = new Color(0.04f, 0.15f, 0.34f, 0.94f);
             surface.GetComponent<Image>().raycastTarget = false;
             rect.SetAsFirstSibling();
@@ -38,10 +44,11 @@ public class BeatGuideUI : MonoBehaviour
             rect.SetParent(transform, false);
             rect.anchorMin = new Vector2(0.5f, 0.5f);
             rect.anchorMax = rect.anchorMin;
-            rect.sizeDelta = new Vector2(164f, 80f);
             existing = rect;
         }
         actionLabel = existing.GetComponent<TMP_Text>();
+        actionLabel.rectTransform.anchoredPosition = new Vector2(0f, -148f);
+        actionLabel.rectTransform.sizeDelta = new Vector2(228f, 64f);
         actionLabel.fontSize = 29f;
         actionLabel.fontStyle = FontStyles.Bold;
         actionLabel.alignment = TextAlignmentOptions.Center;
