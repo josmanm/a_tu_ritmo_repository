@@ -49,3 +49,5 @@ Packages/com.ivanmurzak.unity.mcp/
 .agents/
 .opencode/
 skills-lock.json
+.tools
+documentation/

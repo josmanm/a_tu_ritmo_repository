@@ -2,11 +2,12 @@ using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Image))]
 [RequireComponent(typeof(Button))]
-public class SimonZoneUI : MonoBehaviour
+public class SimonZoneUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
     [Header("Referencias")]
     [SerializeField] private Image mainImage;
@@ -24,7 +25,8 @@ public class SimonZoneUI : MonoBehaviour
     [SerializeField] private Vector2 outlineDistance = new Vector2(10f, -10f);
 
     private int index;
-    private Action<int> onPressed;
+    private Action<int, double> onPressed;
+    private bool pointerHandled;
     private Vector3 baseLabelScale = Vector3.one;
     private Coroutine pulseRoutine;
 
@@ -33,7 +35,7 @@ public class SimonZoneUI : MonoBehaviour
         AutoResolveReferences();
     }
 
-    public void Setup(int newIndex, string label, Action<int> callback)
+    public void Setup(int newIndex, string label, Action<int, double> callback)
     {
         AutoResolveReferences();
 
@@ -126,7 +128,29 @@ public class SimonZoneUI : MonoBehaviour
 
     private void HandlePress()
     {
-        onPressed?.Invoke(index);
+        if (!pointerHandled)
+            onPressed?.Invoke(index, AudioSettings.dspTime);
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        if (zoneButton == null || !zoneButton.IsActive() || !zoneButton.IsInteractable())
+            return;
+
+        pointerHandled = true;
+        onPressed?.Invoke(index, AudioSettings.dspTime);
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        if (pointerHandled)
+            StartCoroutine(ClearPointerAfterFrame());
+    }
+
+    private IEnumerator ClearPointerAfterFrame()
+    {
+        yield return new WaitForEndOfFrame();
+        pointerHandled = false;
     }
 
     private void AutoResolveReferences()

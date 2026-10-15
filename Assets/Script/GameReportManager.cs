@@ -1,5 +1,4 @@
 using System;
-using Firebase.Extensions;
 using UnityEngine;
 
 public class GameReportManager : MonoBehaviour
@@ -20,15 +19,8 @@ public class GameReportManager : MonoBehaviour
 
     public void ReportAttempt(AttemptReportData data, Action onSuccess, Action<string> onError)
     {
-        FirebaseManager manager = FirebaseManager.Instance;
         PlayerProfileManager profileManager = PlayerProfileManager.Instance;
         SessionManager sessionManager = SessionManager.Instance;
-
-        if (manager == null || !manager.IsReady)
-        {
-            onError?.Invoke("Firebase no esta listo.");
-            return;
-        }
 
         if (profileManager == null || !profileManager.HasActiveProfile)
         {
@@ -49,15 +41,12 @@ public class GameReportManager : MonoBehaviour
         data.sessionId = sessionManager.CurrentSession.sessionId;
         data.playedAt = string.IsNullOrEmpty(data.playedAt) ? ReportUtility.UtcNowString() : data.playedAt;
 
-        manager.Db.Collection("attempts").Document(data.attemptId).SetAsync(ReportUtility.ToDictionary(data)).ContinueWithOnMainThread(task =>
+        if (ReportOutbox.Instance == null)
         {
-            if (task.IsFaulted || task.IsCanceled)
-            {
-                onError?.Invoke(task.Exception != null ? task.Exception.GetBaseException().Message : "No se pudo guardar el intento.");
-                return;
-            }
+            onError?.Invoke("El almacenamiento local no esta disponible.");
+            return;
+        }
 
-            onSuccess?.Invoke();
-        });
+        ReportOutbox.Instance.QueueAttempt(data, onSuccess, onError);
     }
 }

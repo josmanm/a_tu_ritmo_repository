@@ -3,6 +3,15 @@ using System.Collections.Generic;
 
 public class BeatSyncedObstacleSpawner : MonoBehaviour
 {
+    public enum ObstacleAction { Tap, Jump, Duck }
+
+    private struct ScheduledObstacle
+    {
+        public ObstacleMoverBeat mover;
+        public double beatTime;
+        public ObstacleAction action;
+    }
+
     public BeatController beat;
 
     [Header("Prefabs/Refs")]
@@ -38,6 +47,9 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
     Collider2D runnerCollider;
     RunnerController2D runnerController;
     readonly List<ObstacleMoverBeat> activeObstacles = new();
+    readonly List<ScheduledObstacle> scheduledObstacles = new();
+    int obstacleCount;
+    int difficultyStage;
 
 
     void OnEnable()
@@ -62,7 +74,8 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
 
         beatCount++;
 
-        if (beatCount % beatSpacing != 0) return;
+        int spacing = difficultyStage >= 3 ? 1 : difficultyStage >= 1 ? 2 : 3;
+        if (beatCount % spacing != 0) return;
 
         double targetBeatTime = beatDspTime + beat.IntervalSec * beatsAhead;
         SpawnForTargetBeat(targetBeatTime);
@@ -82,10 +95,42 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
             desiredContactTime = targetBeatTime + obstacleArrivalDelay;
         }
 
-        var pos = new Vector3(spawnX, obstacleY, 0);
-        GameObject obs = obstaclePrefab != null
-            ? Instantiate(obstaclePrefab, pos, Quaternion.identity)
-            : CreateFallbackObstacle(pos);
+        ObstacleAction action = obstacleCount > 0 && obstacleCount % 3 == 2 ? ObstacleAction.Duck : ObstacleAction.Jump;
+        bool wideGround = action == ObstacleAction.Jump && obstacleCount % 3 == 1;
+        obstacleCount++;
+
+        float runnerTop = runnerCollider != null ? runnerCollider.bounds.max.y : runner.position.y + 0.8f;
+        var pos = new Vector3(spawnX, action == ObstacleAction.Duck ? runnerTop + 0.03f : obstacleY, 0f);
+        GameObject obs = action == ObstacleAction.Duck || obstaclePrefab == null
+            ? CreateFallbackObstacle(pos) : Instantiate(obstaclePrefab, pos, Quaternion.identity);
+
+        if (action == ObstacleAction.Duck)
+        {
+            obs.name = "DuckObstacle";
+            BoxCollider2D collider = obs.GetComponent<BoxCollider2D>();
+            collider.size = new Vector2(1.05f, 0.52f);
+            collider.offset = Vector2.zero;
+            collider.isTrigger = true;
+            obs.transform.localScale = Vector3.one;
+            obs.transform.Find("Visual").localScale = new Vector3(1.05f, 0.52f, 1f);
+            obs.GetComponentInChildren<SpriteRenderer>().color = new Color(0.5f, 0.34f, 0.84f);
+        }
+        else if (wideGround)
+        {
+            obs.name = "WideJumpObstacle";
+            BoxCollider2D collider = obs.GetComponent<BoxCollider2D>();
+            collider.size = new Vector2(0.9f, 0.68f);
+            collider.isTrigger = true;
+            obs.GetComponentInChildren<SpriteRenderer>().color = new Color(0.92f, 0.43f, 0.29f);
+        }
+
+        SpriteRenderer obstacleRenderer = obs.GetComponentInChildren<SpriteRenderer>();
+        if (obstacleRenderer != null)
+        {
+            obstacleRenderer.sortingOrder = 9;
+            if (action == ObstacleAction.Jump && !wideGround)
+                obstacleRenderer.color = new Color(0.12f, 0.25f, 0.44f);
+        }
 
         var mover = obs.GetComponent<ObstacleMoverBeat>();
         if (mover == null) mover = obs.AddComponent<ObstacleMoverBeat>();
@@ -93,17 +138,19 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
         float obstacleHalfWidth = GetHalfWidth(obs.GetComponent<Collider2D>());
         float obstacleTopY = GetTopY(obs.GetComponent<Collider2D>(), obstacleY);
         float runnerHalfWidth = GetHalfWidth(runnerCollider);
-        float physicsBasedDelay = runnerController != null
+        float physicsBasedDelay = action == ObstacleAction.Duck ? 0.16f : runnerController != null
             ? runnerController.GetRecommendedObstacleContactDelay(obstacleTopY)
             : 0.38f;
 
-        desiredContactTime = targetBeatTime + physicsBasedDelay + obstacleArrivalDelay - earlyContactBias;
+        // Contact follows the beat: the player must first have time to jump or duck.
+        desiredContactTime = targetBeatTime + physicsBasedDelay + 0.12f + Mathf.Max(0f, obstacleArrivalDelay);
 
         if (desiredContactTime - now < minimumTravelTime)
             desiredContactTime = now + minimumTravelTime;
 
-        // Padding positivo retrasa el contacto real y deja una holgura extra para saltar.
-        float contactTargetX = runnerX + obstacleHalfWidth + runnerHalfWidth - contactPadding;
+        // Match the actual collider edges rather than the obstacle centre; the old negative
+        // padding caused physical contact before the indicated beat.
+        float contactTargetX = runnerX + obstacleHalfWidth + runnerHalfWidth;
         float distance = spawnX - contactTargetX;
         if (distance <= 0.5f) distance = 5f;
 
@@ -117,17 +164,50 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
         mover.runnerX = contactTargetX;
         mover.destroyPoint = destroyPoint;
         activeObstacles.Add(mover);
+        scheduledObstacles.Add(new ScheduledObstacle { mover = mover, beatTime = targetBeatTime, action = action });
+    }
+
+    public ObstacleAction GetActionForBeat(double beatTime)
+    {
+        for (int i = scheduledObstacles.Count - 1; i >= 0; i--)
+        {
+            ScheduledObstacle obstacle = scheduledObstacles[i];
+            if (obstacle.mover == null)
+            {
+                scheduledObstacles.RemoveAt(i);
+                continue;
+            }
+
+            if (System.Math.Abs(obstacle.beatTime - beatTime) < 0.03)
+                return obstacle.action;
+        }
+
+        return ObstacleAction.Tap;
+    }
+
+    public void SetDifficulty(int stage)
+    {
+        difficultyStage = Mathf.Clamp(stage, 0, 3);
     }
 
     public void StartSpawner()
     {
         gameStarted = true;
         beatCount = 0;
+        obstacleCount = 0;
+        difficultyStage = 0;
     }
 
     public void StopSpawner()
     {
         gameStarted = false;
+        foreach (ObstacleMoverBeat obstacle in activeObstacles)
+        {
+            if (obstacle != null)
+                Destroy(obstacle.gameObject);
+        }
+        activeObstacles.Clear();
+        scheduledObstacles.Clear();
     }
 
     public float GetAdaptiveJumpMultiplier(float defaultMultiplier, float desiredTimeToContact)
@@ -152,7 +232,10 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
         obstacle.tag = "Obstacle";
         obstacle.transform.position = position;
 
-        var renderer = obstacle.AddComponent<SpriteRenderer>();
+        GameObject visual = new GameObject("Visual");
+        visual.transform.SetParent(obstacle.transform, false);
+        visual.transform.localScale = new Vector3(fallbackObstacleSize.x, fallbackObstacleSize.y, 1f);
+        var renderer = visual.AddComponent<SpriteRenderer>();
         renderer.sprite = GetFallbackSprite();
         renderer.color = fallbackObstacleColor;
         renderer.sortingOrder = 9;
@@ -160,7 +243,6 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
         var collider = obstacle.AddComponent<BoxCollider2D>();
         collider.size = fallbackObstacleSize;
 
-        obstacle.transform.localScale = new Vector3(fallbackObstacleSize.x, fallbackObstacleSize.y, 1f);
         return obstacle;
     }
 
@@ -175,7 +257,7 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
             Texture2D.whiteTexture,
             new Rect(0f, 0f, Texture2D.whiteTexture.width, Texture2D.whiteTexture.height),
             new Vector2(0.5f, 0.5f),
-            100f);
+            1f);
         return fallbackSprite;
     }
 

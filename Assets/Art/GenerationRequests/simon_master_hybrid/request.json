@@ -1,0 +1,17 @@
+{
+  "request_name": "simon_master_hybrid",
+  "asset_type": "full_screen_ui_mockup",
+  "target_view": "Assets/Scenes/SimonScene.unity",
+  "purpose": "Validar la direccion visual hibrida B+C simplificada para la vista maestra de Simon",
+  "dimensions": "1280x800 reference composition",
+  "aspect_ratio": "16:10",
+  "transparent_background": false,
+  "references": [
+    "current_view/simon_scene_current.png",
+    "references/mockup_intermediate.png",
+    "references/mockup_strong.png"
+  ],
+  "output_directory": "Assets/Art/GenerationRequests/simon_master_hybrid/output",
+  "status": "pending_generation",
+  "approved": false
+}

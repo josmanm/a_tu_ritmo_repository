@@ -2329,16 +2329,20 @@ MonoBehaviour:
   metronomeClip: {fileID: 8300000, guid: cbb4a4c038f3c074c9098232292190c3, type: 3}
   successClip: {fileID: 8300000, guid: e43083518b217444da2e24b70c9b98a7, type: 3}
   failClip: {fileID: 8300000, guid: adf7650a379fbf94bb884a6842e03949, type: 3}
-  tutorialIntroClip: {fileID: 0}
-  redondaVoiceClip: {fileID: 0}
-  blancaVoiceClip: {fileID: 0}
-  negraVoiceClip: {fileID: 0}
-  corcheaVoiceClip: {fileID: 0}
-  yourTurnVoiceClip: {fileID: 8300000, guid: 1066d02c3f665c545a906eb807d9f6e3, type: 3}
-  veryGoodVoiceClip: {fileID: 8300000, guid: a7fac494b5ac4d0408e6aed1ec0ff7f2, type: 3}
-  waitALittleVoiceClip: {fileID: 8300000, guid: bb811d671c395594e9c2ebf49dbbea58, type: 3}
-  observeVoiceClip: {fileID: 8300000, guid: 2136a0edb1c99004eb18eb2f24374068, type: 3}
-  tryAgainVoiceClip: {fileID: 8300000, guid: 3bb46e73b15bd6342bba7e64f1939e33, type: 3}
+  tutorialIntroClip: {fileID: 8300000, guid: 95b8a4bb2a1ba2b4ca12a9546788ae20, type: 3}
+  redondaVoiceClip: {fileID: 8300000, guid: 97246667c50a7874d9555ef565fb3f57, type: 3}
+  blancaVoiceClip: {fileID: 8300000, guid: 29ef680271317764bbd0810cd762664e, type: 3}
+  negraVoiceClip: {fileID: 8300000, guid: 0e86648f40485d5448a1ed2bf50bcadb, type: 3}
+  corcheaVoiceClip: {fileID: 8300000, guid: 1e4439c1ab1e7e04e890dc0ea6122bfd, type: 3}
+  silencioVoiceClip: {fileID: 8300000, guid: 5d490370271a9e74e80d1449f1b8c2af, type: 3}
+  drumDiscoveryVoiceClip: {fileID: 8300000, guid: b92f42d2fab6d644988468c3216bfb25, type: 3}
+  fillTimingVoiceClip: {fileID: 8300000, guid: d6cc87e46d5255f44bc8b85109ed3e5f, type: 3}
+  endVoiceClip: {fileID: 8300000, guid: 409ea1e890be89f4c8bea5c5b84d2fea, type: 3}
+  yourTurnVoiceClip: {fileID: 8300000, guid: 40210db5f5e1a3b4b8409d1c89353fe1, type: 3}
+  veryGoodVoiceClip: {fileID: 8300000, guid: bdc655b6f437a3246bf4cd6e9f85cd4c, type: 3}
+  waitALittleVoiceClip: {fileID: 8300000, guid: 0b31c0d6f92808e4099a2fa1047b7eaa, type: 3}
+  observeVoiceClip: {fileID: 8300000, guid: 04e31c1ffa3a63549996a652e2050642, type: 3}
+  tryAgainVoiceClip: {fileID: 8300000, guid: 39a35d7de2d9767478ef527cc815d49e, type: 3}
   bpm: 60
   totalPatternBeats: 4
   patternMeasures: 4
@@ -2353,7 +2357,7 @@ MonoBehaviour:
   figureRecencyWeightStep: 0.75
   normalFeedbackColor: {r: 1, g: 1, b: 1, a: 1}
   successFeedbackColor: {r: 0.3, g: 0.85, b: 0.3, a: 1}
-  failFeedbackColor: {r: 1, g: 0.35, b: 0.35, a: 1}
+  failFeedbackColor: {r: 1, g: 0.75, b: 0.3, a: 1}
   timingCueColor: {r: 0.5607843, g: 0.7372549, b: 0.5607843, a: 1}
   noteLitColor: {r: 1, g: 1, b: 1, a: 1}
   noteDimColor: {r: 1, g: 1, b: 1, a: 0.25}

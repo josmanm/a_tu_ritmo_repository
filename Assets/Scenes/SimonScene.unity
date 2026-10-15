@@ -1527,7 +1527,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &305138200
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1542,6 +1542,7 @@ RectTransform:
   m_Children:
   - {fileID: 1764214242}
   - {fileID: 899921625}
+  - {fileID: 740892664}
   m_Father: {fileID: 741535924}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -4305,7 +4306,7 @@ RectTransform:
   m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1124503565}
+  m_Father: {fileID: 305138200}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -4440,7 +4441,7 @@ RectTransform:
   m_GameObject: {fileID: 741535923}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 392753591}
@@ -5996,7 +5997,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1124503565
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6011,7 +6012,6 @@ RectTransform:
   m_Children:
   - {fileID: 604286035}
   - {fileID: 1498130773}
-  - {fileID: 740892664}
   m_Father: {fileID: 741535924}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -20338,6 +20338,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2129702740}
   - component: {fileID: 2129702739}
+  - component: {fileID: 2129702742}
+  - component: {fileID: 2129702741}
   m_Layer: 0
   m_Name: SimonGameManager
   m_TagString: Untagged
@@ -20388,7 +20390,7 @@ MonoBehaviour:
   - {fileID: 2113328732317559950, guid: 384cbad9adefadf4c89beb0dba48838b, type: 3}
   - {fileID: 3420044758849760049, guid: c9f6ff9c5b1cd8b4fbab3517e5a80e77, type: 3}
   - {fileID: 2564051613026845705, guid: 10c1932e5da9a22428ee05f2d57482a5, type: 3}
-  editorPreviewPieceCount: 4
+  editorPreviewPieceCount: 5
   colorPool:
   - name: Red
     label: D
@@ -20462,7 +20464,7 @@ MonoBehaviour:
   bpmIncrease: 5
   roundsPerSpeedIncrease: 2
   soundDurationRatio: 0.6
-  metronomeController: {fileID: 0}
+  metronomeController: {fileID: 2129702741}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   successColor: {r: 0.2, g: 0.9, b: 0.4, a: 1}
   warningColor: {r: 1, g: 0.85, b: 0.2, a: 1}
@@ -20534,6 +20536,126 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2129702741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2129702738}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63d6a20f3d8eadf47b765ed0a8bb0394, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SimonMetronomeController
+  metronomeImage: {fileID: 0}
+  pendulum: {fileID: 0}
+  animationFrames: []
+  swingAngle: 28
+  pulseScale: 1.08
+  idleColor: {r: 1, g: 1, b: 1, a: 1}
+  pulseColor: {r: 1, g: 0.9, b: 0.35, a: 1}
+  useMetronomeClick: 1
+  metronomeAudioSource: {fileID: 2129702742}
+  metronomeClickClip: {fileID: 8300000, guid: cbb4a4c038f3c074c9098232292190c3, type: 3}
+  metronomeClickVolume: 0.2
+--- !u!82 &2129702742
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2129702738}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &2147353618
 GameObject:
   m_ObjectHideFlags: 0

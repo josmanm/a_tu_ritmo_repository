@@ -1,0 +1,13 @@
+{
+  "request_name": "simon_button_surfaces",
+  "asset_type": "transparent_ui_sprite_kit",
+  "target_view": "Assets/Scenes/SimonScene.unity",
+  "purpose": "Crear superficies modulares para botones funcionales de Simon",
+  "dimensions": "2048px master sheet or separate 512px pieces",
+  "aspect_ratio": "varies by piece",
+  "transparent_background": true,
+  "references": ["references/simon_master_hybrid_v3.png"],
+  "output_directory": "Assets/Art/GenerationRequests/simon_button_surfaces/output",
+  "status": "pending_generation",
+  "approved": false
+}

@@ -18,6 +18,29 @@ public class RadialBeatIndicatorGraphic : MaskableGraphic
     [SerializeField] [Range(1f, 2f)] private float flashIntensity = 1.35f;
 
     private float flashTimer;
+    private float latePerfectEnd;
+    private float lateAssistEnd;
+
+    public void SetTimingWindows(float perfectMs, float assistMs, double beatIntervalSeconds)
+    {
+        if (beatIntervalSeconds <= 0.0)
+            return;
+
+        float beatMs = (float)(beatIntervalSeconds * 1000.0);
+        float perfectPhase = Mathf.Clamp(perfectMs / beatMs, 0f, 0.49f);
+        float assistPhase = Mathf.Clamp(Mathf.Max(perfectMs, assistMs) / beatMs, perfectPhase, 0.49f);
+        float newEarlyStart = 1f - assistPhase;
+        float newPerfectStart = 1f - perfectPhase;
+        if (Mathf.Approximately(latePerfectEnd, perfectPhase) && Mathf.Approximately(lateAssistEnd, assistPhase) &&
+            Mathf.Approximately(earlyZoneStart, newEarlyStart) && Mathf.Approximately(perfectZoneStart, newPerfectStart))
+            return;
+
+        latePerfectEnd = perfectPhase;
+        lateAssistEnd = assistPhase;
+        earlyZoneStart = newEarlyStart;
+        perfectZoneStart = newPerfectStart;
+        SetVerticesDirty();
+    }
 
     public void SetProgress(float value)
     {
@@ -62,14 +85,28 @@ public class RadialBeatIndicatorGraphic : MaskableGraphic
         float earlyStart = Mathf.Clamp01(earlyZoneStart);
         float perfectStart = Mathf.Clamp(perfectZoneStart, earlyStart + 0.01f, 0.99f);
 
-        DrawArc(vh, center, innerRadius, outerRadius, 0f, earlyStart, baseRingColor, safeSegments);
+        DrawArc(vh, center, innerRadius, outerRadius, 0f, latePerfectEnd, perfectZoneColor, safeSegments);
+        DrawArc(vh, center, innerRadius, outerRadius, latePerfectEnd, lateAssistEnd, earlyZoneColor, safeSegments);
+        DrawArc(vh, center, innerRadius, outerRadius, lateAssistEnd, earlyStart, baseRingColor, safeSegments);
         DrawArc(vh, center, innerRadius, outerRadius, earlyStart, perfectStart, earlyZoneColor, safeSegments);
         DrawArc(vh, center, innerRadius, outerRadius, perfectStart, 1f, perfectZoneColor, safeSegments);
 
-        if (progress > 0f)
+        // Moving pointer preserves the visible timing windows instead of painting over them.
+        float direction = clockwise ? -1f : 1f;
+        Vector2 pointer = center + AngleToDirection(90f + direction * progress * 360f) * ((innerRadius + outerRadius) * 0.5f);
+        DrawDot(vh, pointer, Mathf.Max(7f, outerRadius * 0.1f), new Color(0.05f, 0.15f, 0.27f), 18);
+        DrawDot(vh, pointer, Mathf.Max(5f, outerRadius * 0.07f), ApplyFlash(progressRingColor), 18);
+    }
+
+    private static void DrawDot(VertexHelper vh, Vector2 center, float radius, Color color, int steps)
+    {
+        int index = vh.currentVertCount;
+        vh.AddVert(center, color, Vector2.zero);
+        for (int i = 0; i <= steps; i++)
         {
-            Color overlayColor = ApplyFlash(progressRingColor);
-            DrawArc(vh, center, innerRadius, outerRadius, 0f, progress, overlayColor, safeSegments);
+            float angle = i * Mathf.PI * 2f / steps;
+            vh.AddVert(center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius, color, Vector2.zero);
+            if (i > 0) vh.AddTriangle(index, index + i, index + i + 1);
         }
     }
 

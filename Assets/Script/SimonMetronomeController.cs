@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,12 +21,18 @@ public class SimonMetronomeController : MonoBehaviour
 
     private float bpm = 60f;
     private bool isRunning;
-    private bool pulseTriggered;
-    private float elapsedInBeat;
+    private double firstBeatDspTime;
+    private double nextBeatDspTime;
+    private double pausedAtDspTime;
+    private bool wasRunningBeforePause;
+    private long lastVisualBeat = -1;
     private Vector3 baseScale = Vector3.one;
     private int currentFrameIndex = -1;
     private float baseClickVolume;
     private bool visualVisible = true;
+
+    public double FirstBeatDspTime => firstBeatDspTime;
+    public double BeatDurationSeconds => 60.0 / bpm;
 
     private void Awake()
     {
@@ -49,18 +56,27 @@ public class SimonMetronomeController : MonoBehaviour
         if (!isRunning || bpm <= 0f)
             return;
 
-        float beatDuration = 60f / bpm;
-        if (beatDuration <= 0f)
-            return;
-
-        elapsedInBeat += Time.deltaTime;
-        if (elapsedInBeat >= beatDuration)
+        double now = AudioSettings.dspTime;
+        double beatDuration = BeatDurationSeconds;
+        if (now + 0.1 >= nextBeatDspTime)
         {
-            elapsedInBeat -= beatDuration;
-            pulseTriggered = false;
+            if (nextBeatDspTime > now && useMetronomeClick && metronomeAudioSource != null && metronomeClickClip != null)
+            {
+                metronomeAudioSource.clip = metronomeClickClip;
+                metronomeAudioSource.volume = metronomeClickVolume;
+                metronomeAudioSource.PlayScheduled(nextBeatDspTime);
+            }
+            nextBeatDspTime += beatDuration;
+            if (nextBeatDspTime <= now)
+                nextBeatDspTime += Math.Ceiling((now - nextBeatDspTime) / beatDuration + 1.0) * beatDuration;
         }
 
-        float normalizedTime = Mathf.Clamp01(elapsedInBeat / beatDuration);
+        if (now < firstBeatDspTime)
+            return;
+
+        double elapsed = now - firstBeatDspTime;
+        long currentBeat = (long)(elapsed / beatDuration);
+        float normalizedTime = (float)((elapsed - currentBeat * beatDuration) / beatDuration);
         float swing = Mathf.Sin(normalizedTime * Mathf.PI * 2f - Mathf.PI * 0.5f);
 
         if (HasFrameAnimation())
@@ -75,10 +91,11 @@ public class SimonMetronomeController : MonoBehaviour
             pendulum.localScale = Vector3.Lerp(baseScale, baseScale * pulseScale, pulseAmount);
         }
 
-        if (!pulseTriggered && normalizedTime <= 0.08f)
+        if (currentBeat != lastVisualBeat)
         {
-            pulseTriggered = true;
-            ApplyPulseFeedback();
+            lastVisualBeat = currentBeat;
+            if (visualVisible && metronomeImage != null)
+                metronomeImage.color = pulseColor;
         }
 
         if (metronomeImage != null && normalizedTime > 0.12f)
@@ -98,11 +115,34 @@ public class SimonMetronomeController : MonoBehaviour
     public void StartMetronome(float newBpm)
     {
         SetBpm(newBpm);
-        elapsedInBeat = 0f;
-        pulseTriggered = false;
+        firstBeatDspTime = AudioSettings.dspTime + 0.2;
+        nextBeatDspTime = firstBeatDspTime;
+        lastVisualBeat = -1;
         isRunning = true;
+        wasRunningBeforePause = false;
         currentFrameIndex = -1;
-        ApplyPulseFeedback();
+        if (metronomeAudioSource != null)
+            metronomeAudioSource.Stop();
+    }
+
+    public void StartMetronomeFromTap(float newBpm, double tapDspTime)
+    {
+        SetBpm(newBpm);
+        firstBeatDspTime = tapDspTime;
+        nextBeatDspTime = firstBeatDspTime + BeatDurationSeconds;
+        lastVisualBeat = -1;
+        isRunning = true;
+        wasRunningBeforePause = false;
+        currentFrameIndex = -1;
+        if (metronomeAudioSource != null)
+        {
+            metronomeAudioSource.Stop();
+            if (useMetronomeClick && metronomeClickClip != null)
+            {
+                metronomeAudioSource.volume = metronomeClickVolume;
+                metronomeAudioSource.PlayOneShot(metronomeClickClip);
+            }
+        }
     }
 
     public void SetVisualVisible(bool visible)
@@ -119,32 +159,35 @@ public class SimonMetronomeController : MonoBehaviour
     public void StopMetronome()
     {
         isRunning = false;
-        elapsedInBeat = 0f;
-        pulseTriggered = false;
+        wasRunningBeforePause = false;
+        if (metronomeAudioSource != null)
+            metronomeAudioSource.Stop();
+        lastVisualBeat = -1;
         currentFrameIndex = -1;
         SetIdleState();
     }
 
     public void PauseMetronome()
     {
+        wasRunningBeforePause = isRunning;
+        pausedAtDspTime = AudioSettings.dspTime;
         isRunning = false;
+        if (metronomeAudioSource != null)
+            metronomeAudioSource.Stop();
     }
 
     public void ResumeMetronome()
     {
-        if (bpm > 0f)
-            isRunning = true;
-    }
-
-    private void ApplyPulseFeedback()
-    {
-        if (visualVisible && metronomeImage != null)
-            metronomeImage.color = pulseColor;
-
-        if (useMetronomeClick && metronomeAudioSource != null && metronomeClickClip != null)
+        if (bpm > 0f && wasRunningBeforePause)
         {
-            metronomeAudioSource.volume = metronomeClickVolume;
-            metronomeAudioSource.PlayOneShot(metronomeClickClip);
+            double now = AudioSettings.dspTime;
+            firstBeatDspTime += now - pausedAtDspTime;
+            double elapsed = Math.Max(0.0, now - firstBeatDspTime);
+            nextBeatDspTime = firstBeatDspTime + Math.Ceiling(elapsed / BeatDurationSeconds) * BeatDurationSeconds;
+            if (nextBeatDspTime < now + 0.1)
+                nextBeatDspTime += BeatDurationSeconds;
+            isRunning = true;
+            wasRunningBeforePause = false;
         }
     }
 

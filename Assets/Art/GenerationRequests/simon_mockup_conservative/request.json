@@ -1,0 +1,13 @@
+{
+  "request_name": "simon_mockup_conservative",
+  "asset_type": "full_screen_ui_mockup",
+  "target_view": "Assets/Scenes/SimonScene.unity",
+  "purpose": "Comparar un refinamiento conservador de la vista Simon antes de integrar assets",
+  "dimensions": "1280x800 reference composition",
+  "aspect_ratio": "16:10",
+  "transparent_background": false,
+  "references": ["current_view/attach_simon_scene_screenshot.png"],
+  "output_directory": "Assets/Art/GenerationRequests/simon_mockup_conservative/output",
+  "status": "pending_generation",
+  "approved": false
+}

@@ -22,7 +22,12 @@ public class RunnerController2D : MonoBehaviour
     bool isGrounded;
     Animator anim;
     SpriteRenderer spriteRenderer;
+    SpriteRenderer duckRenderer;
     Collider2D bodyCollider;
+    CapsuleCollider2D capsuleCollider;
+    Vector2 standingColliderSize;
+    Vector2 standingColliderOffset;
+    float duckUntil;
     float baseGravityScale;
     float invulnerabilityTimer;
     float blinkTimer;
@@ -32,6 +37,7 @@ public class RunnerController2D : MonoBehaviour
 
     public bool IsGrounded => isGrounded;
     public bool IsInvulnerable => invulnerabilityTimer > 0f;
+    public bool IsDucking => duckUntil > Time.time;
 
     void Start()
     {
@@ -43,7 +49,24 @@ public class RunnerController2D : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null)
+        {
+            GameObject visual = new GameObject("DuckVisual");
+            visual.transform.SetParent(transform, false);
+            visual.transform.localScale = new Vector3(1f, 0.52f, 1f);
+            visual.transform.localPosition = new Vector3(0f, -0.38f, 0f);
+            duckRenderer = visual.AddComponent<SpriteRenderer>();
+            duckRenderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            duckRenderer.sortingOrder = spriteRenderer.sortingOrder;
+            visual.SetActive(false);
+        }
         bodyCollider = GetComponent<Collider2D>();
+        capsuleCollider = GetComponent<CapsuleCollider2D>();
+        if (capsuleCollider != null)
+        {
+            standingColliderSize = capsuleCollider.size;
+            standingColliderOffset = capsuleCollider.offset;
+        }
 
         if (rb != null)
             baseGravityScale = rb.gravityScale;
@@ -54,6 +77,8 @@ public class RunnerController2D : MonoBehaviour
         UpdateGroundedState();
         UpdateGravityScale();
         UpdateInvulnerabilityVisual();
+        if (duckUntil > 0f && Time.time >= duckUntil)
+            RestoreStandingCollider();
 
         if (!gameStarted) return;
 
@@ -64,10 +89,42 @@ public class RunnerController2D : MonoBehaviour
 
     public void Jump(float multiplier = 1f)
     {
-        if (!isGrounded) return;
+        if (!isGrounded || IsDucking || rb == null) return;
 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce * multiplier);
         isGrounded = false;
+    }
+
+    public void Duck(float seconds = 1.25f)
+    {
+        if (!gameStarted || !isGrounded || capsuleCollider == null)
+            return;
+
+        duckUntil = Mathf.Max(duckUntil, Time.time + seconds);
+        capsuleCollider.size = new Vector2(standingColliderSize.x, standingColliderSize.y * 0.52f);
+        capsuleCollider.offset = standingColliderOffset - Vector2.up * (standingColliderSize.y * 0.24f);
+        if (duckRenderer != null)
+        {
+            duckRenderer.sprite = spriteRenderer.sprite;
+            duckRenderer.color = spriteRenderer.color;
+            duckRenderer.gameObject.SetActive(true);
+            spriteRenderer.enabled = false;
+        }
+    }
+
+    private void RestoreStandingCollider()
+    {
+        duckUntil = 0f;
+        if (capsuleCollider != null)
+        {
+            capsuleCollider.size = standingColliderSize;
+            capsuleCollider.offset = standingColliderOffset;
+        }
+        if (duckRenderer != null)
+        {
+            duckRenderer.gameObject.SetActive(false);
+            spriteRenderer.enabled = true;
+        }
     }
 
     public void TriggerHitInvulnerability()
@@ -129,6 +186,7 @@ public class RunnerController2D : MonoBehaviour
 
         if (!started)
         {
+            RestoreStandingCollider();
             isGrounded = false;
             invulnerabilityTimer = 0f;
             blinkVisible = true;
@@ -203,6 +261,7 @@ public class RunnerController2D : MonoBehaviour
         Color color = spriteRenderer.color;
         color.a = blinkVisible ? 1f : 0.35f;
         spriteRenderer.color = color;
+        if (duckRenderer != null) duckRenderer.color = color;
     }
 
     float GetRunnerBottomY()

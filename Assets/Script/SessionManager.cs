@@ -1,5 +1,4 @@
 using System;
-using Firebase.Extensions;
 using UnityEngine;
 
 public class SessionManager : MonoBehaviour
@@ -9,6 +8,7 @@ public class SessionManager : MonoBehaviour
     public bool HasActiveSession => CurrentSession != null && !string.IsNullOrEmpty(CurrentSession.sessionId);
 
     private DateTime sessionStartUtc;
+    private PlayerProfileData profileBeforePause;
 
     private void Awake()
     {
@@ -27,6 +27,28 @@ public class SessionManager : MonoBehaviour
         EndCurrentSession(null, null);
     }
 
+    private void OnApplicationPause(bool paused)
+    {
+        if (paused && HasActiveSession)
+        {
+            profileBeforePause = new PlayerProfileData
+            {
+                playerId = CurrentSession.playerId,
+                name = CurrentSession.playerName,
+                avatar = CurrentSession.avatar,
+            };
+            EndCurrentSession(null, error => Debug.LogWarning("No se pudo cerrar la sesion: " + error));
+        }
+        else if (!paused && profileBeforePause != null)
+        {
+            PlayerProfileData profile = profileBeforePause;
+            profileBeforePause = null;
+            if (!HasActiveSession && PlayerProfileManager.Instance != null &&
+                PlayerProfileManager.Instance.ActiveProfile?.playerId == profile.playerId)
+                StartSessionForPlayer(profile, null, error => Debug.LogWarning("No se pudo reanudar la sesion: " + error));
+        }
+    }
+
     public void StartSessionForPlayer(PlayerProfileData profile, Action<SessionReportData> onSuccess, Action<string> onError)
     {
         if (profile == null || string.IsNullOrEmpty(profile.playerId))
@@ -36,17 +58,27 @@ public class SessionManager : MonoBehaviour
         }
 
         if (HasActiveSession)
-            EndCurrentSession(null, null);
-
-        FirebaseManager manager = FirebaseManager.Instance;
-        if (manager == null || !manager.IsReady)
         {
-            onError?.Invoke("Firebase no esta listo.");
+            if (CurrentSession.playerId == profile.playerId)
+            {
+                onSuccess?.Invoke(CurrentSession);
+                return;
+            }
+
+            bool closed = false;
+            EndCurrentSession(() => closed = true, onError);
+            if (!closed)
+                return;
+        }
+
+        if (ReportOutbox.Instance == null)
+        {
+            onError?.Invoke("El almacenamiento local no esta disponible.");
             return;
         }
 
         sessionStartUtc = DateTime.UtcNow;
-        CurrentSession = new SessionReportData
+        SessionReportData sessionToStart = new SessionReportData
         {
             sessionId = ReportUtility.GenerateId("session"),
             playerId = profile.playerId,
@@ -57,17 +89,11 @@ public class SessionManager : MonoBehaviour
             totalTimeSeconds = 0,
         };
 
-        manager.Db.Collection("sessions").Document(CurrentSession.sessionId).SetAsync(ReportUtility.ToDictionary(CurrentSession)).ContinueWithOnMainThread(task =>
+        ReportOutbox.Instance.QueueSession(sessionToStart, () =>
         {
-            if (task.IsFaulted || task.IsCanceled)
-            {
-                CurrentSession = null;
-                onError?.Invoke(task.Exception != null ? task.Exception.GetBaseException().Message : "No se pudo iniciar la sesion.");
-                return;
-            }
-
-            onSuccess?.Invoke(CurrentSession);
-        });
+            CurrentSession = sessionToStart;
+            onSuccess?.Invoke(sessionToStart);
+        }, onError);
     }
 
     public void EndCurrentSession(Action onSuccess, Action<string> onError)
@@ -78,29 +104,27 @@ public class SessionManager : MonoBehaviour
             return;
         }
 
-        FirebaseManager manager = FirebaseManager.Instance;
-        if (manager == null || !manager.IsReady)
+        if (ReportOutbox.Instance == null)
         {
-            CurrentSession = null;
-            onError?.Invoke("Firebase no esta listo.");
+            onError?.Invoke("El almacenamiento local no esta disponible.");
             return;
         }
 
-        CurrentSession.endedAt = ReportUtility.UtcNowString();
-        CurrentSession.totalTimeSeconds = Mathf.Max(0, Mathf.RoundToInt((float)(DateTime.UtcNow - sessionStartUtc).TotalSeconds));
-
-        SessionReportData sessionToClose = CurrentSession;
-        CurrentSession = null;
-
-        manager.Db.Collection("sessions").Document(sessionToClose.sessionId).SetAsync(ReportUtility.ToDictionary(sessionToClose)).ContinueWithOnMainThread(task =>
+        SessionReportData sessionToClose = new SessionReportData
         {
-            if (task.IsFaulted || task.IsCanceled)
-            {
-                onError?.Invoke(task.Exception != null ? task.Exception.GetBaseException().Message : "No se pudo cerrar la sesion.");
-                return;
-            }
+            sessionId = CurrentSession.sessionId,
+            playerId = CurrentSession.playerId,
+            playerName = CurrentSession.playerName,
+            avatar = CurrentSession.avatar,
+            startedAt = CurrentSession.startedAt,
+            endedAt = ReportUtility.UtcNowString(),
+            totalTimeSeconds = Mathf.Max(0, Mathf.RoundToInt((float)(DateTime.UtcNow - sessionStartUtc).TotalSeconds)),
+        };
 
+        ReportOutbox.Instance.QueueSession(sessionToClose, () =>
+        {
+            CurrentSession = null;
             onSuccess?.Invoke();
-        });
+        }, onError);
     }
 }

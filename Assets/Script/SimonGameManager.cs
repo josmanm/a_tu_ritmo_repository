@@ -39,6 +39,12 @@ public class SimonGameManager : MonoBehaviour
         Compass,
     }
 
+    private enum LearningPhase
+    {
+        GuidedPractice,
+        Assessment,
+    }
+
     private enum CompassBeatType
     {
         Color,
@@ -122,6 +128,10 @@ public class SimonGameManager : MonoBehaviour
 
     [Header("Modo de juego")]
     [SerializeField] private SimonMode simonMode = SimonMode.Classic;
+
+    [Header("Aprendizaje progresivo")]
+    [SerializeField] [Range(100f, 500f)] private float rhythmToleranceMs = 300f;
+    [SerializeField] [Min(1)] private int assessmentsPerSession = 6;
 
     [Header("Modo Compas")]
     [SerializeField] private int beatsPerMeasure = 4;
@@ -247,6 +257,7 @@ public class SimonGameManager : MonoBehaviour
     private float lastTapTime = -1f;
     private float tapCooldown = 0.2f;
     private bool isPaused;
+    private bool exitRequested;
     private bool isRoundTransitioning;
     private Button menuButton;
     private TMP_Text scoreText;
@@ -269,6 +280,7 @@ public class SimonGameManager : MonoBehaviour
     private Vector2 boardBaseAnchoredPosition = Vector2.zero;
     private float sfxBaseVolume = 1f;
     private float attemptStartedAt;
+    private bool attemptStarted;
     private int attemptErrors;
     private int attemptCorrectAnswers;
     private int attemptLevelRepetitions;
@@ -277,8 +289,30 @@ public class SimonGameManager : MonoBehaviour
     private int currentStreak;
     private int replaysUsedThisLevel;
     private int compassCurrentBeatIndex = -1;
+    private bool awaitingRhythmStart;
     private bool compassAwaitingBeatInput;
     private bool compassBeatResolved;
+    private bool compassBeatOffTime;
+    private float lastRhythmOffsetMs;
+    private bool rhythmDemoNarrated;
+    private bool rhythmStartNarrated;
+    private bool silenceNarrated;
+    private float nextVoiceHintAt;
+    private float feedbackVoiceSeconds;
+    private LearningPhase learningPhase = LearningPhase.GuidedPractice;
+    private SimonLearningProgress learningProgress;
+    private SimonMetricsData learningMetrics;
+    private Button memoryModeButton;
+    private Button rhythmModeButton;
+    private CanvasGroup rhythmCueGroup;
+    private RectTransform rhythmCueRect;
+    private Image rhythmCueBackground;
+    private TMP_Text rhythmCueText;
+    private double compassTurnStartDspTime;
+    private int rhythmOnBeatThisRound;
+    private int rhythmExpectedTaps;
+    private int pendingEarlyBeat = -1;
+    private double totalAbsoluteOffsetMs;
 
     private void OnValidate()
     {
@@ -292,9 +326,13 @@ public class SimonGameManager : MonoBehaviour
     private void Start()
     {
         GameSettings.EnsureInitialized();
+        LoadLearningProgress();
+        simonMode = (SimonMode)PlayerPrefs.GetInt("SIMON_LAST_MODE", (int)simonMode);
         currentBPM = initialBPM;
         ResolveBoardReferences();
         ResolveHudReferences();
+        foreach (Image lifeIcon in lifeIcons)
+            if (lifeIcon != null) lifeIcon.gameObject.SetActive(false);
         ResolvePauseReferences();
         ValidateReferences();
         EnsureDefaultMusicalSequences();
@@ -303,8 +341,10 @@ public class SimonGameManager : MonoBehaviour
         EnsureCompassGuide();
         HideMetronomeVisual();
         BuildBoard(4);
+        UpdateBoardForLevel();
         StartBoardStateTransition(boardIdleScale);
         SetInput(false);
+        EnsureLearningControls();
         ConfigureButtons();
 
         if (sfxSource != null)
@@ -328,6 +368,7 @@ public class SimonGameManager : MonoBehaviour
         RefreshScoreUI();
 
         SetStatus("Presiona JUGAR para comenzar", normalColor, animate: false);
+        RefreshModeButtons();
         ApplyGameSettings();
         SetCompassGuideVisible(false);
     }
@@ -353,6 +394,187 @@ public class SimonGameManager : MonoBehaviour
             startButton.interactable = interactable;
     }
 
+    private void LoadLearningProgress()
+    {
+        string playerId = PlayerProfileManager.Instance != null && PlayerProfileManager.Instance.HasActiveProfile
+            ? PlayerProfileManager.Instance.ActiveProfile.playerId : "guest";
+        string json = PlayerPrefs.GetString("SIMON_PROGRESS_" + playerId, string.Empty);
+        try
+        {
+            learningProgress = string.IsNullOrEmpty(json) ? new SimonLearningProgress() : JsonUtility.FromJson<SimonLearningProgress>(json);
+        }
+        catch (ArgumentException)
+        {
+            learningProgress = new SimonLearningProgress();
+        }
+        if (learningProgress == null)
+            learningProgress = new SimonLearningProgress();
+        learningProgress.memorySpan = Mathf.Clamp(learningProgress.memorySpan, 2, 6);
+        learningProgress.memoryColorCount = Mathf.Clamp(learningProgress.memoryColorCount, 4, 5);
+        learningProgress.rhythmBpm = Mathf.Clamp(learningProgress.rhythmBpm, Mathf.Min(50f, initialBPM), maximumBPM);
+    }
+
+    private void SaveLearningProgress()
+    {
+        string playerId = PlayerProfileManager.Instance != null && PlayerProfileManager.Instance.HasActiveProfile
+            ? PlayerProfileManager.Instance.ActiveProfile.playerId : "guest";
+        PlayerPrefs.SetString("SIMON_PROGRESS_" + playerId, JsonUtility.ToJson(learningProgress));
+        PlayerPrefs.Save();
+    }
+
+    private void EnsureLearningControls()
+    {
+        Canvas canvas = startButton != null ? startButton.GetComponentInParent<Canvas>() : null;
+        if (canvas == null)
+            return;
+
+        memoryModeButton = CreateLearningButton(canvas.transform, "MemoryModeButton", "Memoria", new Vector2(-140f, -278f));
+        rhythmModeButton = CreateLearningButton(canvas.transform, "RhythmModeButton", "Ritmo", new Vector2(140f, -278f));
+        memoryModeButton.onClick.AddListener(() => SelectMode(SimonMode.Classic));
+        rhythmModeButton.onClick.AddListener(() => SelectMode(SimonMode.Compass));
+
+        if (replayButton == null)
+            replayButton = CreateLearningButton(canvas.transform, "PracticeReplayButton", "Escuchar otra vez", new Vector2(0f, -352f));
+
+        EnsureRhythmCue(canvas.transform);
+    }
+
+    private void EnsureRhythmCue(Transform canvas)
+    {
+        GameObject cue = new GameObject("RhythmTapCue", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+        rhythmCueRect = cue.GetComponent<RectTransform>();
+        rhythmCueRect.SetParent(canvas, false);
+        rhythmCueRect.anchorMin = new Vector2(0.5f, 0.5f);
+        rhythmCueRect.anchorMax = rhythmCueRect.anchorMin;
+        rhythmCueRect.anchoredPosition = new Vector2(0f, 185f);
+        rhythmCueRect.sizeDelta = new Vector2(350f, 78f);
+        rhythmCueBackground = cue.GetComponent<Image>();
+        rhythmCueBackground.raycastTarget = false;
+        rhythmCueBackground.color = new Color(0.08f, 0.19f, 0.36f, 0.95f);
+        rhythmCueGroup = cue.GetComponent<CanvasGroup>();
+        rhythmCueGroup.alpha = 0f;
+        rhythmCueGroup.interactable = false;
+        rhythmCueGroup.blocksRaycasts = false;
+
+        GameObject label = new GameObject("CueText", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        RectTransform textRect = label.GetComponent<RectTransform>();
+        textRect.SetParent(rhythmCueRect, false);
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+        rhythmCueText = label.GetComponent<TMP_Text>();
+        rhythmCueText.font = statusText != null ? statusText.font : rhythmCueText.font;
+        rhythmCueText.fontSize = 28f;
+        rhythmCueText.alignment = TextAlignmentOptions.Center;
+        rhythmCueText.color = Color.white;
+        rhythmCueText.raycastTarget = false;
+    }
+
+    private void UpdateRhythmCue(double expectedBeatDspTime, bool isSilence)
+    {
+        if (rhythmCueGroup == null || isPaused || simonMode != SimonMode.Compass)
+            return;
+
+        double untilBeatMs = (expectedBeatDspTime - AudioSettings.dspTime) * 1000.0;
+        float tolerance = GetRhythmToleranceMs();
+        rhythmCueGroup.alpha = 1f;
+        rhythmCueRect.localScale = Vector3.one;
+        rhythmCueBackground.color = new Color(0.08f, 0.19f, 0.36f, 0.95f);
+
+        if (isSilence)
+            rhythmCueText.text = "ESPERA";
+        else if (untilBeatMs > tolerance)
+            rhythmCueText.text = "PREPÁRATE";
+        else if (untilBeatMs >= -tolerance)
+        {
+            rhythmCueText.text = "¡TOCA!";
+            rhythmCueBackground.color = new Color(0.07f, 0.55f, 0.48f, 1f);
+            rhythmCueRect.localScale = Vector3.one * 1.08f;
+        }
+        else
+        {
+            rhythmCueText.text = "SIGUE EL PULSO";
+            rhythmCueGroup.alpha = 0.65f;
+        }
+    }
+
+    private void ShowRhythmStartCue()
+    {
+        if (rhythmCueGroup == null)
+            return;
+
+        rhythmCueGroup.alpha = 1f;
+        rhythmCueRect.localScale = Vector3.one;
+        rhythmCueBackground.color = new Color(0.07f, 0.55f, 0.48f, 1f);
+        rhythmCueText.text = "TOCA LA PRIMERA NOTA";
+    }
+
+    private void HideRhythmCue()
+    {
+        if (rhythmCueGroup != null)
+            rhythmCueGroup.alpha = 0f;
+    }
+
+    private Button CreateLearningButton(Transform parent, string objectName, string text, Vector2 position)
+    {
+        GameObject buttonObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        RectTransform rect = buttonObject.GetComponent<RectTransform>();
+        rect.SetParent(parent, false);
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = rect.anchorMin;
+        rect.anchoredPosition = position;
+        rect.sizeDelta = new Vector2(245f, 54f);
+
+        Image background = buttonObject.GetComponent<Image>();
+        background.color = new Color(0.12f, 0.25f, 0.42f, 1f);
+
+        GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.SetParent(rect, false);
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+        TMP_Text label = labelObject.GetComponent<TMP_Text>();
+        label.text = text;
+        label.font = statusText != null ? statusText.font : label.font;
+        label.fontSize = 27f;
+        label.alignment = TextAlignmentOptions.Center;
+        label.color = Color.white;
+        label.raycastTarget = false;
+        return buttonObject.GetComponent<Button>();
+    }
+
+    private void SelectMode(SimonMode mode)
+    {
+        if (attemptStarted && currentState != GameState.GameOver)
+            return;
+
+        simonMode = mode;
+        PlayerPrefs.SetInt("SIMON_LAST_MODE", (int)mode);
+        PlayerPrefs.Save();
+        UpdateBoardForLevel();
+        RefreshModeButtons();
+        SetStatus(mode == SimonMode.Classic ? "Memoria: observa y repite sin pistas" : "Ritmo: escucha y toca con el pulso", normalColor);
+    }
+
+    private void RefreshModeButtons()
+    {
+        if (memoryModeButton != null)
+            memoryModeButton.GetComponent<Image>().color = simonMode == SimonMode.Classic
+                ? new Color(0.19f, 0.6f, 0.45f, 1f) : new Color(0.12f, 0.25f, 0.42f, 1f);
+        if (rhythmModeButton != null)
+            rhythmModeButton.GetComponent<Image>().color = simonMode == SimonMode.Compass
+                ? new Color(0.19f, 0.6f, 0.45f, 1f) : new Color(0.12f, 0.25f, 0.42f, 1f);
+    }
+
+    private void SetModeButtonsVisible(bool visible)
+    {
+        if (memoryModeButton != null) memoryModeButton.gameObject.SetActive(visible);
+        if (rhythmModeButton != null) rhythmModeButton.gameObject.SetActive(visible);
+    }
+
     private void OnEnable()
     {
         GameSettings.SettingsChanged += ApplyGameSettings;
@@ -361,27 +583,6 @@ public class SimonGameManager : MonoBehaviour
     private void OnDisable()
     {
         GameSettings.SettingsChanged -= ApplyGameSettings;
-    }
-
-    private void Update()
-    {
-        if (isPaused)
-            return;
-
-        if (simonMode == SimonMode.Compass)
-            return;
-
-        if (currentState != GameState.PlayerTurn) return;
-
-        currentInputTime -= Time.deltaTime;
-
-        if (currentInputTime <= 0f)
-        {
-            StartLoseLife("Tiempo agotado");
-            return;
-        }
-
-        UpdateTimeBar();
     }
 
     private void ValidateReferences()
@@ -394,9 +595,7 @@ public class SimonGameManager : MonoBehaviour
 
     private int GetColorCountForLevel(int level)
     {
-        if (level < levelsBeforeFiveColors) return 4;
-        if (level < levelsBeforeSevenColors) return 5;
-        return 7;
+        return simonMode == SimonMode.Classic && learningProgress != null ? learningProgress.memoryColorCount : 4;
     }
 
     private void BuildBoard(int pieceCount)
@@ -456,6 +655,7 @@ public class SimonGameManager : MonoBehaviour
     public void StartGame()
     {
         StopAllCoroutines();
+        loseLifeRoutine = null;
         ResetTransientVisualState();
         if (metronomeController != null)
             metronomeController.StopMetronome();
@@ -464,13 +664,21 @@ public class SimonGameManager : MonoBehaviour
         playerIndex = 0;
         score = 0;
         currentLevel = 1;
-        currentBPM = initialBPM;
+        currentState = GameState.Idle;
+        learningPhase = LearningPhase.GuidedPractice;
+        rhythmDemoNarrated = false;
+        rhythmStartNarrated = false;
+        silenceNarrated = false;
+        nextVoiceHintAt = 0f;
+        learningMetrics = new SimonMetricsData { mode = simonMode == SimonMode.Classic ? "memory" : "rhythm" };
+        totalAbsoluteOffsetMs = 0.0;
         activeMusicalSequence = null;
         activeMusicalSequenceIndex = 0;
         isRoundTransitioning = false;
         currentStreak = 0;
         replaysUsedThisLevel = 0;
         attemptStartedAt = Time.time;
+        attemptStarted = true;
         attemptErrors = 0;
         attemptCorrectAnswers = 0;
         attemptLevelRepetitions = 0;
@@ -478,13 +686,15 @@ public class SimonGameManager : MonoBehaviour
         attemptExitReason = "completed";
         RefreshScoreUI();
         SetStartButtonVisible(false);
+        SetModeButtonsVisible(false);
+        HideRhythmCue();
 
         BuildBoard(4);
+        UpdateBoardForLevel();
         if (simonMode == SimonMode.Compass)
             GenerateCompassSequenceForLevel(currentLevel);
         else
-            AddStep();
-        UpdateBoardForLevel();
+            GenerateMemorySequence();
         UpdateTempoForRound();
         ResetPlayerTimeLimit();
 
@@ -494,7 +704,9 @@ public class SimonGameManager : MonoBehaviour
 
         lives = maxLives;
         UpdateLivesUI();
-        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage(BuildRoundIntroMessage(), warningColor, sequenceIntroMessageSeconds));
+        NarrationPlayer.Say(simonMode == SimonMode.Classic ? "simon_memoria_practica" : "simon_ritmo_inicio");
+        float introSeconds = Mathf.Max(sequenceIntroMessageSeconds, NarrationPlayer.RemainingSeconds + 0.15f);
+        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage(BuildRoundIntroMessage(), warningColor, introSeconds));
     }
 
     public void ReplaySequence()
@@ -505,24 +717,33 @@ public class SimonGameManager : MonoBehaviour
         if (isRoundTransitioning)
             return;
 
-        if (currentState != GameState.PlayerTurn && currentState != GameState.Idle) return;
+        if (currentState != GameState.PlayerTurn || loseLifeRoutine != null || learningPhase == LearningPhase.Assessment)
+            return;
 
-        if (currentState == GameState.PlayerTurn && maxReplaysPerLevel >= 0 && replaysUsedThisLevel >= maxReplaysPerLevel)
+        if (maxReplaysPerLevel >= 0 && replaysUsedThisLevel >= maxReplaysPerLevel)
         {
-            SetStatus("Ya repetiste este nivel\nConfia en tu memoria", warningColor);
+            SetStatus("Ya escuchaste la pista\nPrueba recordar la secuencia", warningColor);
             StartHideStatusCountdown(feedbackMessageSeconds);
             return;
         }
 
-        if (currentState == GameState.PlayerTurn)
-            replaysUsedThisLevel++;
+        replaysUsedThisLevel++;
+        if (learningMetrics != null)
+            learningMetrics.practiceReplays++;
 
         StopAllCoroutines();
+        awaitingRhythmStart = false;
+        currentState = GameState.ShowingSequence;
+        SetInput(false);
+        if (replayButton != null)
+            replayButton.interactable = false;
         ResetTransientVisualState();
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
-        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage(BuildReplayMessage(), warningColor, sequenceIntroMessageSeconds));
+        NarrationPlayer.Say(simonMode == SimonMode.Classic ? "simon_memoria_repetir" : "voz_observa");
+        float replaySeconds = Mathf.Max(sequenceIntroMessageSeconds, NarrationPlayer.RemainingSeconds + 0.15f);
+        showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage(BuildReplayMessage(), warningColor, replaySeconds));
     }
 
     private void AddStep()
@@ -531,6 +752,13 @@ public class SimonGameManager : MonoBehaviour
             return;
 
         sequence.Add(UnityEngine.Random.Range(0, activeZones.Count));
+    }
+
+    private void GenerateMemorySequence()
+    {
+        sequence.Clear();
+        for (int i = 0; i < learningProgress.memorySpan; i++)
+            sequence.Add(UnityEngine.Random.Range(0, activeZones.Count));
     }
 
     private bool TryAddMusicalStep()
@@ -577,8 +805,8 @@ public class SimonGameManager : MonoBehaviour
         compassSequence.Clear();
 
         int colorCount = GetColorCountForLevel(level);
-        int measureCount = level >= levelsBeforeTwoMeasures ? 2 : 1;
-        bool allowSilence = level >= levelsBeforeCompassSilence;
+        int measureCount = learningProgress.rhythmExtendedMeasuresEnabled ? 2 : 1;
+        bool allowSilence = learningProgress.rhythmSilentBeatsEnabled;
         int totalBeats = Mathf.Max(1, beatsPerMeasure) * measureCount;
 
         for (int i = 0; i < totalBeats; i++)
@@ -593,50 +821,166 @@ public class SimonGameManager : MonoBehaviour
             compassSequence.Add(step);
         }
 
-        if (compassSequence.Count > 0 && compassSequence.TrueForAll(step => step.type == CompassBeatType.Silence))
+        if (compassSequence.Count > 0 && compassSequence[0].type == CompassBeatType.Silence)
+        {
             compassSequence[0].type = CompassBeatType.Color;
+            compassSequence[0].colorIndex = UnityEngine.Random.Range(0, colorCount);
+        }
     }
 
-    private void HandleCompassPlayerPress(int idx)
+    private void HandleCompassPlayerPress(int idx, double tapTime)
     {
-        if (currentState != GameState.PlayerTurn || !compassAwaitingBeatInput || compassBeatResolved)
+        if (awaitingRhythmStart && currentState == GameState.PlayerTurn && !isPaused)
+        {
+            BeginRhythmOnFirstTap(idx, tapTime);
+            return;
+        }
+
+        if (currentState != GameState.PlayerTurn || !compassAwaitingBeatInput ||
+            pendingEarlyBeat == compassCurrentBeatIndex)
             return;
 
         if (compassCurrentBeatIndex < 0 || compassCurrentBeatIndex >= compassSequence.Count)
             return;
 
+        float beatDuration = GetBeatDuration();
+        int targetBeat = compassCurrentBeatIndex;
+        if (compassBeatResolved)
+        {
+            int nextBeat = targetBeat + 1;
+            if (nextBeat >= compassSequence.Count || pendingEarlyBeat == nextBeat)
+                return;
+            double nextOffsetMs = (tapTime - GetCompassTurnBeatStart(nextBeat, beatDuration)) * 1000.0;
+            if (Math.Abs(nextOffsetMs) > GetRhythmToleranceMs())
+            {
+                if (nextOffsetMs < 0.0)
+                {
+                    CompassBeatStep upcoming = compassSequence[nextBeat];
+                    RecordRhythmTap(nextBeat, idx, (float)nextOffsetMs, false,
+                        upcoming.type == CompassBeatType.Color && idx == upcoming.colorIndex);
+                    SetStatus("Espera a que el camino llegue a la siguiente nota", warningColor, animate: false);
+                    StartHideStatusCountdown(0.65f);
+                }
+                return;
+            }
+            targetBeat = nextBeat;
+        }
+
         StartCoroutine(FlashBoardSelection(idx));
 
-        CompassBeatStep step = compassSequence[compassCurrentBeatIndex];
+        CompassBeatStep step = compassSequence[targetBeat];
+        float offsetMs = (float)((tapTime - GetCompassTurnBeatStart(targetBeat, beatDuration)) * 1000.0);
+        bool onBeat = Mathf.Abs(offsetMs) <= GetRhythmToleranceMs();
         if (step.type == CompassBeatType.Silence)
         {
-            TriggerHapticError();
-            StartLoseLife("Debes esperar");
+            RecordRhythmTap(targetBeat, idx, offsetMs, onBeat, false);
+            if (learningPhase == LearningPhase.Assessment)
+                TriggerHapticError();
+            StartLoseLife("Este pulso es para esperar", "premature_input");
             return;
         }
 
         if (idx != step.colorIndex)
         {
-            TriggerHapticError();
-            StartLoseLife("Color incorrecto");
+            RecordRhythmTap(targetBeat, idx, offsetMs, onBeat, false);
+            if (learningPhase == LearningPhase.Assessment)
+                TriggerHapticError();
+            StartLoseLife("Probemos otro color", "wrong_color");
             return;
         }
 
+        if (learningPhase == LearningPhase.Assessment)
+            attemptCorrectAnswers++;
+        RecordRhythmTap(targetBeat, idx, offsetMs, onBeat, true);
+        PlayColorSound(idx);
+
+        if (!onBeat)
+        {
+            lastRhythmOffsetMs = offsetMs;
+            compassBeatOffTime = true;
+            compassAwaitingBeatInput = false;
+            compassGuideView?.ShowTimingFeedback(targetBeat, warningColor);
+            SetStatus(offsetMs < 0f ? "Un poco antes: espera el pulso" : "Un poco tarde: sigue el pulso", warningColor, animate: false);
+            StartHideStatusCountdown(0.65f);
+            return;
+        }
+
+        if (targetBeat != compassCurrentBeatIndex || tapTime < GetCompassTurnBeatStart(targetBeat, beatDuration))
+            pendingEarlyBeat = targetBeat;
+        else
+            compassBeatResolved = true;
+
+        rhythmOnBeatThisRound++;
+        TriggerHapticSuccess();
+        UpdateCompassGuideBeatState(targetBeat, compassSlotSuccessColor);
+    }
+
+    private void BeginRhythmOnFirstTap(int idx, double tapTime)
+    {
+        if (compassSequence.Count == 0 || idx != compassSequence[0].colorIndex)
+        {
+            string label = compassSequence.Count > 0 ? colorPool[compassSequence[0].colorIndex].label : "indicada";
+            SetStatus("Para empezar toca la nota " + label, warningColor, animate: false);
+            StartHideStatusCountdown(0.7f);
+            return;
+        }
+
+        awaitingRhythmStart = false;
+        compassTurnStartDspTime = tapTime;
+        pendingEarlyBeat = 0;
         compassBeatResolved = true;
-        attemptCorrectAnswers++;
+        compassAwaitingBeatInput = true;
+        if (statusVisibilityRoutine != null)
+        {
+            StopCoroutine(statusVisibilityRoutine);
+            statusVisibilityRoutine = null;
+        }
+        HideStatus();
+        if (metronomeController != null)
+            metronomeController.StartMetronomeFromTap(currentBPM * GameSettings.GameplaySpeed, tapTime);
+        NarrationPlayer.Stop();
+
+        if (learningPhase == LearningPhase.Assessment)
+            attemptCorrectAnswers++;
+        StartCoroutine(FlashBoardSelection(idx));
         PlayColorSound(idx);
         TriggerHapticSuccess();
-        UpdateCompassGuideBeatState(compassCurrentBeatIndex, compassSlotSuccessColor);
+        UpdateCompassGuideBeatState(0, compassSlotSuccessColor);
+    }
+
+    private void RecordRhythmTap(int beat, int pressedColor, float offsetMs, bool onBeat, bool correctColor)
+    {
+        if (learningPhase != LearningPhase.Assessment || learningMetrics == null)
+            return;
+
+        learningMetrics.assessmentTaps++;
+        if (onBeat) learningMetrics.onBeatTaps++;
+        totalAbsoluteOffsetMs += Math.Abs(offsetMs);
+        learningMetrics.meanAbsoluteOffsetMs = (float)(totalAbsoluteOffsetMs / learningMetrics.assessmentTaps);
+        if (learningMetrics.taps.Count >= 256)
+            learningMetrics.taps.RemoveAt(0);
+        learningMetrics.taps.Add(new SimonTapMetric
+        {
+            round = currentLevel,
+            beat = beat,
+            expectedColor = compassSequence[beat].type == CompassBeatType.Silence ? -1 : compassSequence[beat].colorIndex,
+            pressedColor = pressedColor,
+            offsetMs = offsetMs,
+            correctColor = correctColor,
+            onBeat = onBeat,
+        });
     }
 
     private IEnumerator ShowCompassSequence()
     {
+        awaitingRhythmStart = false;
         currentState = GameState.ShowingSequence;
         ShowAllOff();
         SetCompassGuideVisible(true);
+        compassGuideView?.ResetPath();
 
         if (timeBarRoot != null)
-            timeBarRoot.SetActive(true);
+            timeBarRoot.SetActive(false);
 
         SetInput(false);
         SetStartButtonInteractable(false);
@@ -645,13 +989,37 @@ public class SimonGameManager : MonoBehaviour
         StartBoardStateTransition(boardObserveScale);
 
         yield return new WaitForSeconds(0.4f);
+        if (learningPhase == LearningPhase.GuidedPractice && !rhythmDemoNarrated)
+        {
+            rhythmDemoNarrated = true;
+            float voiceSeconds = NarrationPlayer.Say("simon_ritmo_camino");
+            if (voiceSeconds > 0f)
+                yield return new WaitForSeconds(voiceSeconds + 0.15f);
+        }
+        if (!silenceNarrated && compassSequence.Exists(step => step.type == CompassBeatType.Silence))
+        {
+            silenceNarrated = true;
+            float voiceSeconds = NarrationPlayer.Say("simon_ritmo_silencio");
+            if (voiceSeconds > 0f)
+                yield return new WaitForSeconds(voiceSeconds + 0.15f);
+        }
 
         float beatDuration = GetBeatDuration();
         if (metronomeController != null)
-            metronomeController.StartMetronome(currentBPM);
+            metronomeController.StartMetronome(currentBPM * GameSettings.GameplaySpeed);
+        double fallbackStart = AudioSettings.dspTime + 0.2;
 
         for (int i = 0; i < compassSequence.Count; i++)
         {
+            while (isPaused || AudioSettings.dspTime <
+                (metronomeController != null ? metronomeController.FirstBeatDspTime : fallbackStart) + i * beatDuration)
+            {
+                if (!isPaused)
+                    UpdateRhythmCue((metronomeController != null ? metronomeController.FirstBeatDspTime : fallbackStart) + i * beatDuration,
+                        compassSequence[i].type == CompassBeatType.Silence);
+                yield return null;
+            }
+
             CompassBeatStep step = compassSequence[i];
             int beatInMeasure = i % beatsPerMeasure;
             int measureStart = i - beatInMeasure;
@@ -668,53 +1036,101 @@ public class SimonGameManager : MonoBehaviour
                 ShowAllOff();
             }
 
-            yield return StartCoroutine(RunCompassBeatCountdown(beatDuration));
+            yield return StartCoroutine(RunCompassBeatCountdown(i, beatDuration, fallbackStart));
             ShowAllOff();
             UpdateCompassGuideBeatState(i, step.type == CompassBeatType.Silence ? compassSlotSilenceColor : compassSlotIdleColor);
         }
 
         if (metronomeController != null)
             metronomeController.StopMetronome();
+        HideRhythmCue();
 
-        yield return StartCoroutine(ShowStatusThenHide(BuildPlayerTurnMessage(), normalColor, playerTurnMessageSeconds, animate: false));
+        float turnVoiceSeconds = NarrationPlayer.Say("voz_tu_turno");
+        yield return StartCoroutine(ShowStatusThenHide(BuildPlayerTurnMessage(), normalColor,
+            Mathf.Max(playerTurnMessageSeconds, turnVoiceSeconds + 0.15f), animate: false));
         yield return StartCoroutine(RunCompassPlayerTurn());
     }
 
     private IEnumerator RunCompassPlayerTurn()
     {
         currentState = GameState.PlayerTurn;
+        awaitingRhythmStart = true;
+        pendingEarlyBeat = -1;
+        compassCurrentBeatIndex = 0;
+        compassAwaitingBeatInput = false;
+        compassBeatResolved = false;
+        compassBeatOffTime = false;
+        compassGuideView?.ResetPath();
+        rhythmOnBeatThisRound = 0;
+        rhythmExpectedTaps = 0;
         StartBoardStateTransition(boardPlayerTurnScale);
         SetInput(true);
         SetStartButtonInteractable(true);
         if (replayButton != null)
-            replayButton.interactable = true;
+            replayButton.interactable = learningPhase == LearningPhase.GuidedPractice;
+
+        RefreshCompassGuideForMeasure(0);
+        ShowRhythmStartCue();
+        if (!rhythmStartNarrated)
+        {
+            rhythmStartNarrated = true;
+            NarrationPlayer.Say("simon_ritmo_primera_nota");
+        }
+        while (awaitingRhythmStart || isPaused)
+        {
+            if (currentState != GameState.PlayerTurn)
+                yield break;
+            if (!isPaused)
+                ShowRhythmStartCue();
+            yield return null;
+        }
+        if (currentState != GameState.PlayerTurn)
+            yield break;
 
         float beatDuration = GetBeatDuration();
         for (int i = 0; i < compassSequence.Count; i++)
         {
+            while (isPaused || AudioSettings.dspTime < GetCompassTurnBeatStart(i, beatDuration))
+            {
+                if (currentState != GameState.PlayerTurn)
+                    yield break;
+                if (!isPaused)
+                    UpdateRhythmCue(GetCompassTurnBeatStart(i, beatDuration), compassSequence[i].type == CompassBeatType.Silence);
+                yield return null;
+            }
+
             CompassBeatStep step = compassSequence[i];
             compassCurrentBeatIndex = i;
             compassAwaitingBeatInput = true;
-            compassBeatResolved = false;
+            compassBeatResolved = pendingEarlyBeat == i;
+            compassBeatOffTime = false;
+            if (compassBeatResolved)
+                pendingEarlyBeat = -1;
+            if (i > 0 && step.type == CompassBeatType.Color)
+                rhythmExpectedTaps++;
 
             int beatInMeasure = i % beatsPerMeasure;
             int measureStart = i - beatInMeasure;
             RefreshCompassGuideForMeasure(measureStart);
-            UpdateCompassGuideBeatState(i, compassSlotActiveColor);
+            UpdateCompassGuideBeatState(i, compassBeatResolved ? compassSlotSuccessColor : compassSlotActiveColor);
 
-            float elapsed = 0f;
             ResetCompassBeatBar();
-            while (elapsed < beatDuration)
+            while (isPaused || AudioSettings.dspTime < GetCompassTurnBeatStart(i, beatDuration) + beatDuration)
             {
-                elapsed += Time.deltaTime;
-                UpdateCompassBeatBar(elapsed / beatDuration);
+                if (!isPaused)
+                {
+                    double elapsed = AudioSettings.dspTime - GetCompassTurnBeatStart(i, beatDuration);
+                    UpdateCompassBeatBar((float)(elapsed / beatDuration), i);
+                    int cueBeat = i;
+                    if (compassBeatResolved && i + 1 < compassSequence.Count &&
+                        (GetCompassTurnBeatStart(i + 1, beatDuration) - AudioSettings.dspTime) * 1000.0 <= GetRhythmToleranceMs())
+                        cueBeat = i + 1;
+                    UpdateRhythmCue(GetCompassTurnBeatStart(cueBeat, beatDuration), compassSequence[cueBeat].type == CompassBeatType.Silence);
+                }
                 yield return null;
 
                 if (currentState != GameState.PlayerTurn)
                     yield break;
-
-                if (step.type == CompassBeatType.Color && compassBeatResolved)
-                    break;
             }
 
             compassAwaitingBeatInput = false;
@@ -727,7 +1143,8 @@ public class SimonGameManager : MonoBehaviour
             {
                 if (!compassBeatResolved)
                 {
-                    StartLoseLife("Te falto tocar");
+                    StartLoseLife(compassBeatOffTime ? "Escucha y sigue el pulso" : "Escuchemos esa nota otra vez",
+                        compassBeatOffTime ? "timing_outside_window" : "missed_beat");
                     yield break;
                 }
             }
@@ -741,11 +1158,25 @@ public class SimonGameManager : MonoBehaviour
                 UpdateCompassGuideBeatState(i, compassSlotSuccessColor);
         }
 
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
+        HideRhythmCue();
         SetInput(false);
-        score += AwardRoundScore();
-        RefreshScoreUI();
-        AnimateScorePop();
-        PlayBoardCenterRing();
+        float minimumHitRate = learningPhase == LearningPhase.GuidedPractice ? 0.33f : 0.66f;
+        if (rhythmExpectedTaps > 0 &&
+            rhythmOnBeatThisRound < Mathf.CeilToInt(rhythmExpectedTaps * minimumHitRate))
+        {
+            StartLoseLife("Prueba tocar con el pulso", "timing_outside_window");
+            yield break;
+        }
+
+        if (learningPhase == LearningPhase.Assessment)
+        {
+            score += AwardRoundScore();
+            RefreshScoreUI();
+            AnimateScorePop();
+            PlayBoardCenterRing();
+        }
         currentState = GameState.Idle;
         isRoundTransitioning = true;
         StartCoroutine(NextRound());
@@ -816,7 +1247,7 @@ public class SimonGameManager : MonoBehaviour
         currentState = GameState.ShowingSequence;
         ShowAllOff();
 
-        if (timeBarRoot != null) timeBarRoot.SetActive(true);
+        if (timeBarRoot != null) timeBarRoot.SetActive(false);
         SetInput(false);
         SetStartButtonInteractable(false);
         if (replayButton != null) replayButton.interactable = false;
@@ -829,7 +1260,7 @@ public class SimonGameManager : MonoBehaviour
         float restDuration = Mathf.Max(0f, beatDuration - activeDuration);
 
         if (metronomeController != null)
-            metronomeController.StartMetronome(currentBPM);
+            metronomeController.StartMetronome(currentBPM * GameSettings.GameplaySpeed);
 
         for (int i = 0; i < sequence.Count; i++)
         {
@@ -857,21 +1288,22 @@ public class SimonGameManager : MonoBehaviour
         currentState = GameState.PlayerTurn;
         StartBoardStateTransition(boardPlayerTurnScale);
         SetInput(true);
+        if (learningPhase == LearningPhase.GuidedPractice && sequence.Count > 0)
+            ShowOn(sequence[0]);
         SetStartButtonInteractable(true);
-        if (replayButton != null) replayButton.interactable = true;
+        if (replayButton != null) replayButton.interactable = learningPhase == LearningPhase.GuidedPractice;
 
-        if (timeBarFill != null)
-            timeBarFill.transform.parent.gameObject.SetActive(true);
+        if (timeBarRoot != null) timeBarRoot.SetActive(false);
     }
 
-    private void OnPlayerPress(int idx)
+    private void OnPlayerPress(int idx, double tapTime)
     {
         if (isPaused)
             return;
 
         if (simonMode == SimonMode.Compass)
         {
-            HandleCompassPlayerPress(idx);
+            HandleCompassPlayerPress(idx, tapTime);
             return;
         }
 
@@ -885,14 +1317,16 @@ public class SimonGameManager : MonoBehaviour
 
         if (idx != sequence[playerIndex])
         {
-            TriggerHapticError();
-            StartLoseLife("Fallaste");
+            if (learningPhase == LearningPhase.Assessment)
+                TriggerHapticError();
+            StartLoseLife("Probemos esa nota otra vez", "wrong_color");
             return;
         }
 
         PlayColorSound(idx);
         TriggerHapticSuccess();
-        attemptCorrectAnswers++;
+        if (learningPhase == LearningPhase.Assessment)
+            attemptCorrectAnswers++;
 
         Vector3 piecePos = activeZones[idx].transform.position;
         if (celebrationEffect != null)
@@ -904,10 +1338,13 @@ public class SimonGameManager : MonoBehaviour
 
         if (playerIndex >= sequence.Count)
         {
-            score += AwardRoundScore();
-            RefreshScoreUI();
-            AnimateScorePop();
-            PlayBoardCenterRing();
+            if (learningPhase == LearningPhase.Assessment)
+            {
+                score += AwardRoundScore();
+                RefreshScoreUI();
+                AnimateScorePop();
+                PlayBoardCenterRing();
+            }
 
             currentState = GameState.Idle;
             isRoundTransitioning = true;
@@ -918,12 +1355,34 @@ public class SimonGameManager : MonoBehaviour
 
     private IEnumerator NextRound()
     {
+        bool assessed = learningPhase == LearningPhase.Assessment;
+        if (assessed)
+        {
+            RecordAssessment(true);
+            if (ShouldFinishLearningSession())
+            {
+                FinishLearningSession();
+                yield break;
+            }
+            currentLevel++;
+            learningPhase = LearningPhase.GuidedPractice;
+        }
+        else
+        {
+            learningPhase = LearningPhase.Assessment;
+        }
+
         if (roundTransitionClip != null && sfxSource != null)
             sfxSource.PlayOneShot(roundTransitionClip);
 
-        currentLevel++;
         replaysUsedThisLevel = 0;
-        yield return StartCoroutine(ShowStatusThenHide(BuildLevelCompleteMessage(), successColor, feedbackMessageSeconds));
+        string transitionMessage = assessed ? BuildLevelCompleteMessage() : simonMode == SimonMode.Classic
+            ? "Muy bien!\nAhora intenta sin ayudas" : "Muy bien!\nAhora sigue el pulso";
+        string voiceId = assessed ? "simon_nueva_ronda" : simonMode == SimonMode.Classic
+            ? "simon_memoria_intento" : "voz_observa";
+        float transitionVoice = NarrationPlayer.Say(voiceId);
+        yield return StartCoroutine(ShowStatusThenHide(transitionMessage, successColor,
+            Mathf.Max(feedbackMessageSeconds, transitionVoice + 0.15f)));
 
         if (celebrationEffect != null)
             celebrationEffect.PlayLevelUpEffect();
@@ -931,16 +1390,83 @@ public class SimonGameManager : MonoBehaviour
 
         yield return new WaitForSeconds(pauseBetweenRounds);
 
+        UpdateBoardForLevel();
         if (simonMode == SimonMode.Compass)
             GenerateCompassSequenceForLevel(currentLevel);
         else
-            AddStep();
-        UpdateBoardForLevel();
+            GenerateMemorySequence();
         UpdateTempoForRound();
         ResetPlayerTimeLimit();
 
         isRoundTransitioning = false;
         yield return StartCoroutine(simonMode == SimonMode.Compass ? ShowCompassSequence() : ShowSequence());
+    }
+
+    private void RecordAssessment(bool success)
+    {
+        if (learningMetrics != null)
+        {
+            learningMetrics.assessedRounds++;
+            if (success)
+                learningMetrics.successfulRounds++;
+            if (learningMetrics.rounds.Count >= 128)
+                learningMetrics.rounds.RemoveAt(0);
+            learningMetrics.rounds.Add(new SimonRoundMetric
+            {
+                round = currentLevel,
+                memorySpan = simonMode == SimonMode.Classic ? learningProgress.memorySpan : 0,
+                colorCount = currentColorCount,
+                bpm = Mathf.RoundToInt(currentBPM * GameSettings.GameplaySpeed),
+                expectedTaps = simonMode == SimonMode.Compass
+                    ? Mathf.Max(0, compassSequence.Count(step => step.type == CompassBeatType.Color) - 1) : sequence.Count,
+                onBeatTaps = simonMode == SimonMode.Compass ? rhythmOnBeatThisRound : 0,
+                silences = simonMode == SimonMode.Compass ? compassSequence.Count(step => step.type == CompassBeatType.Silence) : 0,
+                measures = simonMode == SimonMode.Compass ? Mathf.CeilToInt(compassSequence.Count / (float)Mathf.Max(1, beatsPerMeasure)) : 0,
+                firstTapStartsClock = simonMode == SimonMode.Compass,
+                success = success,
+            });
+        }
+
+        if (simonMode == SimonMode.Classic)
+            learningProgress.RecordMemoryRound(success);
+        else
+            learningProgress.RecordRhythmRound(success, Mathf.Min(50f, initialBPM), maximumBPM);
+
+        if (learningMetrics != null)
+            learningMetrics.bestUnaidedSpan = learningProgress.bestUnaidedSpan;
+        SaveLearningProgress();
+    }
+
+    private bool ShouldFinishLearningSession()
+    {
+        return learningMetrics != null && learningMetrics.assessedRounds >= Mathf.Max(1, assessmentsPerSession);
+    }
+
+    private void FinishLearningSession()
+    {
+        StopAllCoroutines();
+        loseLifeRoutine = null;
+        currentState = GameState.GameOver;
+        isRoundTransitioning = false;
+        SetInput(false);
+        SetCompassGuideVisible(false);
+        HideRhythmCue();
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
+        if (replayButton != null)
+            replayButton.gameObject.SetActive(false);
+
+        SetStartButtonVisible(true);
+        SetModeButtonsVisible(true);
+        RefreshModeButtons();
+        attemptExitReason = "session_complete";
+        ReportAttempt(true);
+        NarrationPlayer.Say("simon_fin");
+
+        string achievement = simonMode == SimonMode.Classic
+            ? $"Mayor secuencia sin pistas: {learningProgress.bestUnaidedSpan}"
+            : $"Pulso actual: {Mathf.RoundToInt(learningProgress.rhythmBpm * GameSettings.GameplaySpeed)} BPM";
+        SetStatus($"Actividad terminada\nRondas logradas: {learningMetrics.successfulRounds}/{learningMetrics.assessedRounds}\n{achievement}\nPuedes jugar otra vez o volver al menu", successColor, animate: false);
     }
 
     private int AwardRoundScore()
@@ -958,15 +1484,16 @@ public class SimonGameManager : MonoBehaviour
     {
         int stepCount = simonMode == SimonMode.Compass ? compassSequence.Count : sequence.Count;
         string action = simonMode == SimonMode.Compass ? "Escucha el compas" : "Observa";
-        return $"Nivel {currentLevel}\n{action} {FormatStepCount(stepCount)}";
+        string phase = learningPhase == LearningPhase.GuidedPractice ? "Practica guiada" : "Evaluacion";
+        return $"{phase} - Ronda {currentLevel}\n{action} {FormatStepCount(stepCount)}";
     }
 
     private string BuildReplayMessage()
     {
         if (maxReplaysPerLevel < 0)
             return simonMode == SimonMode.Compass
-                ? $"Escucha el compas\nNivel {currentLevel}"
-                : $"Escucha de nuevo\nNivel {currentLevel}";
+                ? $"Escucha el compas\nRonda {currentLevel}"
+                : $"Escucha de nuevo\nRonda {currentLevel}";
 
         int remaining = Mathf.Max(0, maxReplaysPerLevel - replaysUsedThisLevel);
         string title = simonMode == SimonMode.Compass ? "Escucha el compas" : "Escucha de nuevo";
@@ -977,7 +1504,8 @@ public class SimonGameManager : MonoBehaviour
     {
         int stepCount = simonMode == SimonMode.Compass ? compassSequence.Count : sequence.Count;
         string action = simonMode == SimonMode.Compass ? "Sigue" : "Repite";
-        return $"Tu turno\n{action} {FormatStepCount(stepCount)}\n{BuildReplayHint()}";
+        string help = learningPhase == LearningPhase.GuidedPractice ? $"\n{BuildReplayHint()}" : string.Empty;
+        return $"{(learningPhase == LearningPhase.GuidedPractice ? "Practica" : "Tu intento")}\n{action} {FormatStepCount(stepCount)}{help}";
     }
 
     private string FormatStepCount(int stepCount)
@@ -1005,14 +1533,12 @@ public class SimonGameManager : MonoBehaviour
             ? $"\nBonus de racha +{Mathf.Max(0, streakBonusPoints)}"
             : string.Empty;
 
-        return $"Muy bien!\nSiguiente nivel {currentLevel}\nRacha x{currentStreak}{bonusText}";
+        return $"Muy bien!\nSiguiente reto {currentLevel}\nRacha x{currentStreak}{bonusText}";
     }
 
     private void UpdateTempoForRound()
     {
-        int roundIndex = Mathf.Max(0, currentLevel - 1);
-        int increaseSteps = Mathf.Max(0, roundIndex / Mathf.Max(1, roundsPerSpeedIncrease));
-        currentBPM = Mathf.Min(maximumBPM, initialBPM + increaseSteps * bpmIncrease);
+        currentBPM = simonMode == SimonMode.Compass ? learningProgress.rhythmBpm : initialBPM;
 
         if (metronomeController != null)
             metronomeController.SetBpm(currentBPM * GameSettings.GameplaySpeed);
@@ -1050,7 +1576,7 @@ public class SimonGameManager : MonoBehaviour
         }
     }
 
-    private void GameOver(string reason)
+    private void GameOver(string exitReason)
     {
         StopAllCoroutines();
         ResetTransientVisualState();
@@ -1073,11 +1599,11 @@ public class SimonGameManager : MonoBehaviour
 
         int nivelAlcanzado = currentLevel;
 
-        SetStatus($"Fin del juego\nLlegaste al nivel {nivelAlcanzado}\nPulsa JUGAR para intentarlo de nuevo", errorColor);
+        SetStatus($"Actividad terminada\nAvanzaste hasta la ronda {nivelAlcanzado}\nPuedes volver a jugar", normalColor);
         StartHideStatusCountdown(gameOverMessageSeconds);
         StartBoardStateTransition(boardIdleScale);
 
-        attemptExitReason = string.IsNullOrEmpty(reason) ? "game_over" : reason;
+        attemptExitReason = exitReason;
         ReportAttempt(false);
         sequence.Clear();
         playerIndex = 0;
@@ -1362,16 +1888,28 @@ public class SimonGameManager : MonoBehaviour
 #endif
     }
 
-    private void StartLoseLife(string reason)
+    private void StartLoseLife(string message, string exitReason)
     {
         if (loseLifeRoutine != null) return;
-        loseLifeRoutine = StartCoroutine(LoseLifeRoutine(reason));
+        HideRhythmCue();
+        if (metronomeController != null)
+            metronomeController.StopMetronome();
+        feedbackVoiceSeconds = 0f;
+        if (Time.unscaledTime >= nextVoiceHintAt)
+        {
+            string voiceId = exitReason == "wrong_color" ? "simon_color_diferente"
+                : exitReason == "timing_outside_window" ? (lastRhythmOffsetMs < 0f ? "simon_antes_del_pulso" : "simon_despues_del_pulso")
+                : "voz_intenta_otra_vez";
+            feedbackVoiceSeconds = NarrationPlayer.Say(voiceId);
+            nextVoiceHintAt = Time.unscaledTime + 8f;
+        }
+        loseLifeRoutine = StartCoroutine(LoseLifeRoutine(message, exitReason));
     }
 
-    private IEnumerator LoseLifeRoutine(string reason)
+    private IEnumerator LoseLifeRoutine(string message, string exitReason)
     {
         currentState = GameState.Idle;
-        isRoundTransitioning = false;
+        isRoundTransitioning = true;
 
         if (showSequenceRoutine != null)
         {
@@ -1380,36 +1918,57 @@ public class SimonGameManager : MonoBehaviour
         }
 
         SetInput(false);
+        if (replayButton != null)
+            replayButton.interactable = false;
 
-        lives--;
-        attemptErrors++;
+        bool assessed = learningPhase == LearningPhase.Assessment;
+        if (assessed)
+        {
+            attemptErrors++;
+            if (learningMetrics != null)
+            {
+                if (learningMetrics.assessmentFailures.Count >= 128)
+                    learningMetrics.assessmentFailures.RemoveAt(0);
+                learningMetrics.assessmentFailures.Add(exitReason);
+            }
+            RecordAssessment(false);
+            learningPhase = LearningPhase.GuidedPractice;
+            if (ShouldFinishLearningSession())
+            {
+                FinishLearningSession();
+                yield break;
+            }
+        }
+        else if (learningMetrics != null)
+        {
+            learningMetrics.guidedMistakes++;
+        }
+
         attemptLevelRepetitions++;
         currentStreak = 0;
         replaysUsedThisLevel = 0;
-        UpdateLivesUI();
-        AnimateLifeLost(lives);
-        PlayBoardErrorFeedback();
-
-        if (celebrationEffect != null)
-            celebrationEffect.PlayErrorEffect(Vector3.zero);
-
-        if (lives <= 0)
-        {
-            GameOver(reason);
-            loseLifeRoutine = null;
-            yield break;
-        }
 
         if (sfxSource != null) sfxSource.Stop();
-        if (failClip != null && sfxSource != null) sfxSource.PlayOneShot(failClip);
-
-        yield return StartCoroutine(ShowStatusThenHide($"{reason}\nTe quedan {lives} vidas", errorColor, feedbackMessageSeconds));
+        yield return StartCoroutine(ShowStatusThenHide($"{message}\nVamos a practicar", warningColor,
+            Mathf.Max(feedbackMessageSeconds, feedbackVoiceSeconds + 0.15f)));
         ShowAllOff();
 
         playerIndex = 0;
         compassAwaitingBeatInput = false;
         compassBeatResolved = false;
+        pendingEarlyBeat = -1;
 
+        if (assessed)
+        {
+            UpdateBoardForLevel();
+            if (simonMode == SimonMode.Compass)
+                GenerateCompassSequenceForLevel(currentLevel);
+            else
+                GenerateMemorySequence();
+            UpdateTempoForRound();
+        }
+
+        isRoundTransitioning = false;
         showSequenceRoutine = StartCoroutine(simonMode == SimonMode.Compass ? ShowCompassSequence() : ShowSequence());
         loseLifeRoutine = null;
     }
@@ -1556,6 +2115,14 @@ public class SimonGameManager : MonoBehaviour
         if (compassGuideView == null)
             compassGuideView = compassGuideRoot.gameObject.AddComponent<CompassGuideView>();
 
+        // Calm, opaque backing separates the rhythm timeline from the illustrated landscape.
+        compassGuideRoot.sizeDelta = new Vector2(640f, 116f);
+        Image guideSurface = compassGuideRoot.GetComponent<Image>();
+        if (guideSurface == null)
+            guideSurface = compassGuideRoot.gameObject.AddComponent<Image>();
+        guideSurface.color = new Color(1f, 1f, 1f, 0.98f);
+        guideSurface.raycastTarget = false;
+
         compassGuideView.InitializeIfNeeded(beatsPerMeasure);
     }
 
@@ -1625,27 +2192,44 @@ public class SimonGameManager : MonoBehaviour
         return colorPool[colorIndex].accentColor;
     }
 
-    private IEnumerator RunCompassBeatCountdown(float beatDuration)
+    private double GetCompassTurnBeatStart(int index, float beatDuration)
     {
-        float elapsed = 0f;
-        ResetCompassBeatBar();
+        double firstBeat = metronomeController != null ? metronomeController.FirstBeatDspTime : compassTurnStartDspTime;
+        return firstBeat + index * beatDuration;
+    }
 
-        while (elapsed < beatDuration)
+    private float GetRhythmToleranceMs()
+    {
+        float effectiveBpm = currentBPM * GameSettings.GameplaySpeed;
+        float difficulty = Mathf.InverseLerp(initialBPM, maximumBPM, effectiveBpm);
+        return Mathf.Lerp(rhythmToleranceMs, Mathf.Max(150f, rhythmToleranceMs - 100f), difficulty);
+    }
+
+    private IEnumerator RunCompassBeatCountdown(int index, float beatDuration, double fallbackStart)
+    {
+        ResetCompassBeatBar();
+        while (isPaused || AudioSettings.dspTime <
+            (metronomeController != null ? metronomeController.FirstBeatDspTime : fallbackStart) + (index + 1) * beatDuration)
         {
-            elapsed += Time.deltaTime;
-            UpdateCompassBeatBar(elapsed / beatDuration);
+            if (!isPaused)
+            {
+                double start = (metronomeController != null ? metronomeController.FirstBeatDspTime : fallbackStart) + index * beatDuration;
+                UpdateCompassBeatBar((float)((AudioSettings.dspTime - start) / beatDuration), index);
+                UpdateRhythmCue(start, compassSequence[index].type == CompassBeatType.Silence);
+            }
             yield return null;
         }
 
         ResetCompassBeatBar();
     }
 
-    private void UpdateCompassBeatBar(float progress)
+    private void UpdateCompassBeatBar(float progress, int beatIndex)
     {
+        float clamped = Mathf.Clamp01(progress);
+        compassGuideView?.SetPathProgress(beatIndex, clamped);
         if (timeBarFill == null)
             return;
 
-        float clamped = Mathf.Clamp01(progress);
         timeBarFill.fillAmount = 1f - clamped;
         timeBarFill.color = Color.Lerp(compassSlotActiveColor, compassSlotSuccessColor, clamped);
     }
@@ -2163,6 +2747,10 @@ public class SimonGameManager : MonoBehaviour
             menuButton.onClick = new Button.ButtonClickedEvent();
             menuButton.onClick.RemoveAllListeners();
             menuButton.onClick.AddListener(PauseGame);
+            UIButtonPressOnDown immediatePress = menuButton.GetComponent<UIButtonPressOnDown>();
+            if (immediatePress == null)
+                immediatePress = menuButton.gameObject.AddComponent<UIButtonPressOnDown>();
+            immediatePress.Configure(PauseGame);
         }
 
         if (resumeButton != null)
@@ -2191,6 +2779,10 @@ public class SimonGameManager : MonoBehaviour
             pauseMenuButton.onClick = new Button.ButtonClickedEvent();
             pauseMenuButton.onClick.RemoveAllListeners();
             pauseMenuButton.onClick.AddListener(LoadMainScene);
+            UIButtonPressOnDown immediatePress = pauseMenuButton.GetComponent<UIButtonPressOnDown>();
+            if (immediatePress == null)
+                immediatePress = pauseMenuButton.gameObject.AddComponent<UIButtonPressOnDown>();
+            immediatePress.Configure(LoadMainScene);
         }
     }
 
@@ -2288,6 +2880,8 @@ public class SimonGameManager : MonoBehaviour
             return;
 
         isPaused = true;
+        HideRhythmCue();
+        pausePanel.transform.SetAsLastSibling();
         if (pausePanelView != null)
             pausePanelView.Show();
         else
@@ -2330,7 +2924,8 @@ public class SimonGameManager : MonoBehaviour
         AudioListener.pause = false;
         if (metronomeController != null && currentState != GameState.GameOver)
         {
-            if (currentState == GameState.ShowingSequence)
+            if (currentState == GameState.ShowingSequence ||
+                (simonMode == SimonMode.Compass && currentState == GameState.PlayerTurn))
                 metronomeController.ResumeMetronome();
             else
                 metronomeController.StopMetronome();
@@ -2338,7 +2933,8 @@ public class SimonGameManager : MonoBehaviour
 
         SetStartButtonInteractable(currentState != GameState.ShowingSequence);
         if (replayButton != null)
-            replayButton.interactable = replayButton.gameObject.activeSelf && currentState != GameState.ShowingSequence;
+            replayButton.interactable = replayButton.gameObject.activeSelf &&
+                currentState == GameState.PlayerTurn && learningPhase == LearningPhase.GuidedPractice && loseLifeRoutine == null;
 
         SetInput(currentState == GameState.PlayerTurn);
 
@@ -2431,12 +3027,19 @@ public class SimonGameManager : MonoBehaviour
 
     private void LoadMainScene()
     {
+        if (exitRequested)
+            return;
+
+        exitRequested = true;
+        if (pauseMenuButton != null)
+            pauseMenuButton.interactable = false;
+        HideRhythmCue();
         if (metronomeController != null)
             metronomeController.StopMetronome();
         Time.timeScale = 1f;
         AudioListener.pause = false;
         attemptExitReason = lives > 0 ? "return_to_menu" : "game_over_return";
-        ReportAttempt(lives > 0);
+        ReportAttempt(false);
         SceneTransitionController.LoadScene("MainScene");
     }
 
@@ -2540,7 +3143,11 @@ public class SimonGameManager : MonoBehaviour
     {
         ShowOn(idx);
         yield return new WaitForSeconds(GetBeatDuration() * soundDurationRatio);
-        ShowAllOff();
+        if (simonMode == SimonMode.Classic && learningPhase == LearningPhase.GuidedPractice &&
+            currentState == GameState.PlayerTurn && playerIndex < sequence.Count)
+            ShowOn(sequence[playerIndex]);
+        else
+            ShowAllOff();
     }
 
     private float GetBeatDuration()
@@ -2559,16 +3166,20 @@ public class SimonGameManager : MonoBehaviour
 
     private void ReportAttempt(bool completed)
     {
-        if (attemptReportSubmitted || GameReportManager.Instance == null || SessionManager.Instance == null || !SessionManager.Instance.HasActiveSession)
+        if (!attemptStarted || attemptReportSubmitted || GameReportManager.Instance == null || SessionManager.Instance == null || !SessionManager.Instance.HasActiveSession)
             return;
 
         attemptReportSubmitted = true;
+        SimonRoundMetric lastRound = learningMetrics != null && learningMetrics.rounds.Count > 0
+            ? learningMetrics.rounds[learningMetrics.rounds.Count - 1] : null;
         AttemptReportData report = new AttemptReportData
         {
             miniGame = "simon_dice",
             level = Mathf.Max(1, currentLevel),
-            difficulty = currentColorCount <= 4 ? "facil" : currentColorCount == 5 ? "media" : "dificil",
-            bpm = Mathf.RoundToInt(currentBPM * GameSettings.GameplaySpeed),
+            difficulty = simonMode == SimonMode.Classic
+                ? $"memory_span_{(lastRound != null ? lastRound.memorySpan : learningProgress.memorySpan)}_colors_{(lastRound != null ? lastRound.colorCount : currentColorCount)}"
+                : $"rhythm_bpm_{(lastRound != null ? lastRound.bpm : Mathf.RoundToInt(currentBPM * GameSettings.GameplaySpeed))}",
+            bpm = lastRound != null ? lastRound.bpm : Mathf.RoundToInt(currentBPM * GameSettings.GameplaySpeed),
             errors = attemptErrors,
             correctAnswers = attemptCorrectAnswers,
             levelRepetitions = attemptLevelRepetitions,
@@ -2577,6 +3188,7 @@ public class SimonGameManager : MonoBehaviour
             scoreFinal = score,
             wasTutorial = false,
             exitReason = attemptExitReason,
+            simon = learningMetrics,
         };
 
         GameReportManager.Instance.ReportAttempt(report, null, error => Debug.LogWarning("Simon report error: " + error));

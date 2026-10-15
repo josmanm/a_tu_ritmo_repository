@@ -4,7 +4,7 @@ using System;
 public class BeatController : MonoBehaviour
 {
     [Header("Tempo")]
-    [Range(40, 160)] public float bpm = 80f;
+    [Range(30, 160)] public float bpm = 80f;
     public bool startOnPlay = true;
 
     [Header("Scheduling")]
@@ -53,6 +53,8 @@ public class BeatController : MonoBehaviour
     {
         running = false;
         nextBeatScheduled = false;
+        if (audioSource != null)
+            audioSource.Stop();
     }
 
     void Update()
