@@ -12,7 +12,6 @@ public class CompassGuideView : MonoBehaviour
     [SerializeField] private float pulseSpeed = 10f;
     [SerializeField] private float ringSize = 74f;
     [SerializeField] private float beatSpacing = 132f;
-    [SerializeField] private float silenceSquareSize = 42f;
     [SerializeField] private float glowFadeSpeed = 8f;
     [SerializeField] private Color pathBaseColor = new Color(0.71f, 0.79f, 0.79f, 1f);
     [SerializeField] private Color pathProgressColor = new Color(0.09f, 0.48f, 0.52f, 1f);

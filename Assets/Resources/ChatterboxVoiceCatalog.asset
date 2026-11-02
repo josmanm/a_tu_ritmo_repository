@@ -89,8 +89,6 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 62981f84b5b012845bf605a5028fe1ee, type: 3}
   - id: tempo_intro
     clip: {fileID: 8300000, guid: 4968de0ed5e7f744b85482e89b38840f, type: 3}
-  - id: tempo_observa_salto
-    clip: {fileID: 8300000, guid: 38ae624d8d2027b4891471f24dd8e1a8, type: 3}
   - id: tempo_tropiezo
     clip: {fileID: 8300000, guid: fc284994663b45b40acb19ac252f0053, type: 3}
   - id: tempo_turno

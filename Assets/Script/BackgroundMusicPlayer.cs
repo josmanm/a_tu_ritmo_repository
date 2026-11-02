@@ -14,6 +14,16 @@ public class BackgroundMusicPlayer : MonoBehaviour
     private static BackgroundMusicPlayer instance;
     private AudioSource audioSource;
     private Coroutine volumeRoutine;
+    private bool bandaHasMusicFocus;
+
+    // Silences only the persistent background track; effects, narration and
+    // the band's own scheduled song remain subject to their normal settings.
+    public static void SetBandaMusicFocus(bool focused)
+    {
+        if (instance == null) return;
+        instance.bandaHasMusicFocus = focused;
+        instance.RefreshSceneVolume();
+    }
 
     private void Awake()
     {
@@ -95,6 +105,9 @@ public class BackgroundMusicPlayer : MonoBehaviour
         if (audioSource == null)
             return;
 
+        if (mode == LoadSceneMode.Single)
+            bandaHasMusicFocus = scene.name == "BandaMusical";
+
         if (!audioSource.isPlaying)
         {
             if (audioSource.clip == null && musicClip != null)
@@ -130,11 +143,18 @@ public class BackgroundMusicPlayer : MonoBehaviour
 
     private float GetVolumeForScene(string sceneName)
     {
+        if (bandaHasMusicFocus || sceneName == "BandaMusical")
+            return 0f;
         float baseVolume = sceneName == "MainScene" ? menuVolume : gameplayVolume;
         return baseVolume * GameSettings.MusicVolume;
     }
 
     private void HandleSettingsChanged()
+    {
+        RefreshSceneVolume();
+    }
+
+    private void RefreshSceneVolume()
     {
         if (audioSource == null)
             return;

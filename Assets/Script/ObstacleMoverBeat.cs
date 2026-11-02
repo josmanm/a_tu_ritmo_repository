@@ -5,6 +5,8 @@ public class ObstacleMoverBeat : MonoBehaviour
     public float speed = 6f;
     public float runnerX = 3f;
     public Transform destroyPoint;
+    [System.NonSerialized] public double targetBeatDspTime;
+    [System.NonSerialized] public bool avoidedOnBeat;
 
     public float TimeToRunnerContact
     {

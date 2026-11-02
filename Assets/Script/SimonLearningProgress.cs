@@ -8,7 +8,7 @@ public class SimonLearningProgress
     public int bestUnaidedSpan;
     public int memorySuccessStreak;
     public int memoryDifficultyStreak;
-    public float rhythmBpm = 60f;
+    public float rhythmBpm = 40f;
     public bool rhythmSilentBeatsEnabled;
     public bool rhythmExtendedMeasuresEnabled;
     public int rhythmSuccessStreak;
@@ -48,7 +48,7 @@ public class SimonLearningProgress
         }
     }
 
-    public void RecordRhythmRound(bool success, float minBpm = 50f, float maxBpm = 90f)
+    public void RecordRhythmRound(bool success, float minBpm = 40f, float maxBpm = 90f)
     {
         if (success)
         {

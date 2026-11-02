@@ -9,6 +9,7 @@ public class TopHudPanelView : MonoBehaviour
 {
     [Header("Score")]
     [SerializeField] private TMP_Text scoreText;
+    [SerializeField] private TMP_Text levelText;
 
     [Header("Vidas")]
     [SerializeField] private Image[] lifeIcons = Array.Empty<Image>();
@@ -21,6 +22,7 @@ public class TopHudPanelView : MonoBehaviour
     [SerializeField] private Image timeBarFill;
 
     public TMP_Text ScoreText => scoreText;
+    public TMP_Text LevelText => levelText;
     public Image[] LifeIcons => lifeIcons ?? Array.Empty<Image>();
     public Button MenuButton => menuButton;
     public GameObject TimeBarRoot => timeBarRoot;
@@ -48,6 +50,13 @@ public class TopHudPanelView : MonoBehaviour
                 scoreText = scoreTextTransform.GetComponent<TMP_Text>() ?? scoreTextTransform.GetComponentInChildren<TMP_Text>(true);
             else if (scorePanel != null)
                 scoreText = scorePanel.GetComponentInChildren<TMP_Text>(true);
+        }
+
+        if (levelText == null)
+        {
+            Transform level = FindChild(transform, "LevelText");
+            if (level != null)
+                levelText = level.GetComponent<TMP_Text>();
         }
 
         if (menuButton == null)

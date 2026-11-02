@@ -20,12 +20,14 @@ public class BeatController : MonoBehaviour
     public double NextBeatDspTime => nextBeatTime;
     public double IntervalSec => interval;
     public double LastBeatDspTime { get; private set; }
-    public bool IsRunning => running;
+    public bool IsRunning => running && !paused;
 
     double interval;
     double nextBeatTime;
     double scheduledBeatTime;
     bool running;
+    bool paused;
+    double pausedAtDspTime;
     bool hasProducedFirstBeat;
     bool nextBeatScheduled;
 
@@ -41,6 +43,7 @@ public class BeatController : MonoBehaviour
     {
         RecalculateInterval();
         running = true;
+        paused = false;
         hasProducedFirstBeat = false;
         nextBeatScheduled = false;
 
@@ -52,14 +55,42 @@ public class BeatController : MonoBehaviour
     public void StopBeats()
     {
         running = false;
+        paused = false;
         nextBeatScheduled = false;
         if (audioSource != null)
             audioSource.Stop();
     }
 
+    public void PauseBeats()
+    {
+        if (!running || paused) return;
+        paused = true;
+        pausedAtDspTime = AudioSettings.dspTime;
+        nextBeatScheduled = false;
+        if (audioSource != null) audioSource.Stop();
+    }
+
+    public double ResumeBeats()
+    {
+        if (!running || !paused) return 0d;
+        double elapsed = Math.Max(0d, AudioSettings.dspTime - pausedAtDspTime);
+        nextBeatTime += elapsed;
+        scheduledBeatTime += elapsed;
+        LastBeatDspTime += elapsed;
+        paused = false;
+        return elapsed;
+    }
+
+    // Call from an OnBeat subscriber so the next scheduled click uses the new interval.
+    public void ChangeTempoOnBeat(float newBpm)
+    {
+        bpm = Mathf.Clamp(newBpm, 30f, 160f);
+        RecalculateInterval();
+    }
+
     void Update()
     {
-        if (!running) return;
+        if (!running || paused) return;
 
         double dsp = AudioSettings.dspTime;
 

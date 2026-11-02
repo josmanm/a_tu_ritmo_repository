@@ -47,6 +47,7 @@ public class AttemptReportData
     public TempoTapMetricsData tempoTap;
     public SimonMetricsData simon;
     public BasicRhythmMetricsData basicRhythm;
+    public BandaMetricsData bandaMusical;
 }
 
 [Serializable]
@@ -68,7 +69,21 @@ public class BasicRhythmFigureMetric
 [Serializable]
 public class BasicRhythmMetricsData
 {
+    public int chunkIndex;
     public List<BasicRhythmFigureMetric> figures = new List<BasicRhythmFigureMetric>();
+    public List<BasicRhythmTapMetric> taps = new List<BasicRhythmTapMetric>();
+}
+
+[Serializable]
+public class BasicRhythmTapMetric
+{
+    public string figure;
+    public int noteIndex;
+    public int tapIndex;
+    public float timeSeconds;
+    public float offsetMs;
+    public string result;
+    public bool tutorial;
 }
 
 [Serializable]
@@ -81,6 +96,7 @@ public class SimonTapMetric
     public float offsetMs;
     public bool correctColor;
     public bool onBeat;
+    public bool anchorsClock;
 }
 
 [Serializable]
@@ -118,6 +134,7 @@ public class SimonMetricsData
 [Serializable]
 public class TempoTapMetricsData
 {
+    public int chunkIndex;
     public int judgedTaps;
     public int perfectTaps;
     public int goodTaps;
@@ -129,6 +146,22 @@ public class TempoTapMetricsData
     public float meanOffsetMs;
     public int intervalCount;
     public float intervalStdDevMs;
+    public float startingBpm;
+    public float endingBpm;
+    public List<TempoTapTapMetric> taps = new List<TempoTapTapMetric>();
+}
+
+[Serializable]
+public class TempoTapTapMetric
+{
+    public int beatNumber;
+    public float timeSeconds;
+    public float offsetMs;
+    public float intervalMs;
+    public float bpm;
+    public string result;
+    public string action;
+    public bool hasTap;
 }
 
 public static class ReportUtility
@@ -192,8 +225,43 @@ public static class ReportUtility
             { "playedAt", data.playedAt },
         };
 
+        if (data.bandaMusical != null)
+        {
+            BandaMetricsData band = data.bandaMusical;
+            var taps = new List<Dictionary<string, object>>();
+            foreach (BandaTapData tap in band.taps ?? new List<BandaTapData>())
+                taps.Add(new Dictionary<string, object>
+                {
+                    { "beat", tap.beat }, { "seconds", tap.seconds },
+                    { "offsetMs", tap.offsetMs }, { "result", tap.result }
+                });
+            result["bandaMusical"] = new Dictionary<string, object>
+            {
+                { "songId", band.songId },
+                { "assisted", band.assisted }, { "expectedBeats", band.expectedBeats },
+                { "registeredTaps", band.registeredTaps }, { "onBeat", band.onBeat },
+                { "early", band.early }, { "late", band.late }, { "extra", band.extra },
+                { "missed", band.missed }, { "helpCount", band.helpCount },
+                { "meanAbsoluteOffsetMs", band.meanAbsoluteOffsetMs }, { "taps", taps }
+            };
+        }
+
         if (data.tempoTap != null)
         {
+            List<Dictionary<string, object>> taps = new List<Dictionary<string, object>>();
+            foreach (TempoTapTapMetric tap in data.tempoTap.taps ?? new List<TempoTapTapMetric>())
+                taps.Add(new Dictionary<string, object>
+                {
+                    { "beatNumber", tap.beatNumber },
+                    { "timeSeconds", tap.timeSeconds },
+                    { "offsetMs", tap.offsetMs },
+                    { "intervalMs", tap.intervalMs },
+                    { "bpm", tap.bpm },
+                    { "result", tap.result },
+                    { "action", tap.action },
+                    { "hasTap", tap.hasTap },
+                });
+
             result["tempoTap"] = new Dictionary<string, object>
             {
                 { "judgedTaps", data.tempoTap.judgedTaps },
@@ -207,6 +275,10 @@ public static class ReportUtility
                 { "meanOffsetMs", data.tempoTap.meanOffsetMs },
                 { "intervalCount", data.tempoTap.intervalCount },
                 { "intervalStdDevMs", data.tempoTap.intervalStdDevMs },
+                { "startingBpm", data.tempoTap.startingBpm },
+                { "endingBpm", data.tempoTap.endingBpm },
+                { "chunkIndex", data.tempoTap.chunkIndex },
+                { "taps", taps },
             };
         }
 
@@ -225,6 +297,7 @@ public static class ReportUtility
                     { "offsetMs", tap.offsetMs },
                     { "correctColor", tap.correctColor },
                     { "onBeat", tap.onBeat },
+                    { "anchorsClock", tap.anchorsClock },
                 });
             }
 
@@ -265,6 +338,7 @@ public static class ReportUtility
         if (data.basicRhythm != null)
         {
             List<Dictionary<string, object>> figures = new List<Dictionary<string, object>>();
+            List<Dictionary<string, object>> taps = new List<Dictionary<string, object>>();
             foreach (BasicRhythmFigureMetric figure in data.basicRhythm.figures)
             {
                 figures.Add(new Dictionary<string, object>
@@ -282,7 +356,23 @@ public static class ReportUtility
                     { "meanSignedOffsetMs", figure.meanSignedOffsetMs },
                 });
             }
-            result["basicRhythm"] = new Dictionary<string, object> { { "figures", figures } };
+            foreach (BasicRhythmTapMetric tap in data.basicRhythm.taps ?? new List<BasicRhythmTapMetric>())
+                taps.Add(new Dictionary<string, object>
+                {
+                    { "figure", tap.figure },
+                    { "noteIndex", tap.noteIndex },
+                    { "tapIndex", tap.tapIndex },
+                    { "timeSeconds", tap.timeSeconds },
+                    { "offsetMs", tap.offsetMs },
+                    { "result", tap.result },
+                    { "tutorial", tap.tutorial },
+                });
+            result["basicRhythm"] = new Dictionary<string, object>
+            {
+                { "chunkIndex", data.basicRhythm.chunkIndex },
+                { "figures", figures },
+                { "taps", taps },
+            };
         }
 
         return result;

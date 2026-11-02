@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using Firebase.Extensions;
 using Firebase.Firestore;
 using UnityEngine;
@@ -48,27 +49,31 @@ public class PlayerProfileManager : MonoBehaviour
 
     public void LoadProfiles(Action<List<PlayerProfileData>> onSuccess, Action<string> onError)
     {
-        onSuccess?.Invoke(GetCachedProfiles());
-
         FirebaseManager manager = FirebaseManager.Instance;
         if (manager == null || !manager.IsReady)
         {
+            onSuccess?.Invoke(GetCachedProfiles());
             onError?.Invoke("Sin conexion: se muestran los perfiles guardados en este dispositivo.");
             return;
         }
 
-        manager.Db.Collection("players").GetSnapshotAsync().ContinueWithOnMainThread(task =>
+        // Una respuesta del servidor es la fuente de verdad; si tarda, permitir jugar sin conexión.
+        bool serverResponded = false;
+        StartCoroutine(ShowCachedProfilesIfServerSlow(() => serverResponded, onSuccess, onError));
+        manager.Db.Collection("players").GetSnapshotAsync(Source.Server).ContinueWithOnMainThread(task =>
         {
+            serverResponded = true;
             if (task.IsFaulted || task.IsCanceled)
             {
                 Debug.LogWarning("No se pudieron cargar perfiles en linea: " +
                     (task.Exception != null ? task.Exception.GetBaseException().Message : "Firebase no disponible."));
+                onSuccess?.Invoke(GetCachedProfiles());
                 onError?.Invoke("No se pudieron cargar perfiles en linea. Puedes usar los guardados en este dispositivo.");
                 return;
             }
 
             QuerySnapshot snapshot = task.Result;
-            List<PlayerProfileData> profiles = GetCachedProfiles();
+            List<PlayerProfileData> profiles = new List<PlayerProfileData>();
             foreach (DocumentSnapshot document in snapshot.Documents)
             {
                 Dictionary<string, object> data = document.ToDictionary();
@@ -79,16 +84,43 @@ public class PlayerProfileManager : MonoBehaviour
                     avatar = GetString(data, "avatar", avatarOptions.Length > 0 ? avatarOptions[0] : "avatar_default"),
                     createdAt = GetString(data, "createdAt", ReportUtility.UtcNowString()),
                 };
-                int index = profiles.FindIndex(item => item.playerId == profile.playerId);
-                if (index < 0)
-                    profiles.Add(profile);
-                else if (ReportOutbox.Instance == null || !ReportOutbox.Instance.HasPendingProfile(profile.playerId))
-                    profiles[index] = profile;
+                profiles.Add(profile);
+            }
+
+            // No eliminar perfiles nuevos que aún esperan sincronizarse en este dispositivo.
+            if (ReportOutbox.Instance != null)
+                foreach (PlayerProfileData local in cachedProfiles)
+                    if (local != null && ReportOutbox.Instance.HasPendingProfile(local.playerId) &&
+                        profiles.Find(item => item.playerId == local.playerId) == null)
+                        profiles.Add(local);
+
+            cachedProfiles.Clear();
+            cachedProfiles.AddRange(profiles);
+            PlayerPrefs.SetString(CachedProfilesKey, JsonUtility.ToJson(new ProfileCache { profiles = cachedProfiles }));
+            PlayerPrefs.Save();
+            if (HasActiveProfile)
+            {
+                PlayerProfileData active = profiles.Find(item => item.playerId == ActiveProfile.playerId);
+                if (active == null)
+                    ClearActiveProfile();
+                else
+                    SetActiveProfile(active);
             }
 
             profiles.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase));
             onSuccess?.Invoke(profiles);
         });
+    }
+
+    private IEnumerator ShowCachedProfilesIfServerSlow(Func<bool> serverResponded,
+        Action<List<PlayerProfileData>> onSuccess, Action<string> onError)
+    {
+        yield return new WaitForSecondsRealtime(6f);
+        if (serverResponded())
+            yield break;
+
+        onSuccess?.Invoke(GetCachedProfiles());
+        onError?.Invoke("Esperando conexión: se muestran los perfiles de este dispositivo.");
     }
 
     public void CreateProfile(string playerName, string avatar, Action<PlayerProfileData> onSuccess, Action<string> onError)

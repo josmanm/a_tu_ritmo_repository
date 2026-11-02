@@ -5,14 +5,15 @@ using TMPro;
 public class BeatGuideUI : MonoBehaviour
 {
     public BeatController beat;
-    public Image guideFill; // Image tipo Filled radial
-    public RadialBeatIndicatorGraphic proceduralGuide;
+    public Image guideFill; // Compatibilidad con guías de imagen en otros niveles.
+    public PulsePathIndicatorGraphic proceduralGuide;
     public TempoTapGameManager game;
     [Range(0f, 1f)] public float idleFillAmount = 0f;
 
     float lastProgress;
     bool wasRunning;
     TMP_Text actionLabel;
+    bool portraitLayout;
 
     void Start()
     {
@@ -55,26 +56,31 @@ public class BeatGuideUI : MonoBehaviour
         actionLabel.color = new Color(1f, 0.94f, 0.82f);
         actionLabel.raycastTarget = false;
         actionLabel.text = "ESCUCHA";
+        ApplyLayout();
         SetFill(idleFillAmount);
         lastProgress = idleFillAmount;
     }
 
     void Update()
     {
+        bool isPortrait = Screen.height > Screen.width;
+        if (portraitLayout != isPortrait ||
+            (game != null && game.feedbackText != null &&
+             !Mathf.Approximately(game.feedbackText.rectTransform.anchoredPosition.y, isPortrait ? 265f : 240f)))
+            ApplyLayout();
+
         if (beat == null || (guideFill == null && proceduralGuide == null))
             return;
 
         if (!beat.IsRunning || beat.IntervalSec <= 0.0)
         {
             if (actionLabel != null) actionLabel.text = "ESCUCHA";
+            if (proceduralGuide != null) proceduralGuide.SetPointerVisible(false);
             SetFill(idleFillAmount);
             lastProgress = idleFillAmount;
             wasRunning = false;
             return;
         }
-
-        if (proceduralGuide != null && game != null)
-            proceduralGuide.SetTimingWindows(game.CurrentPerfectMs, game.CurrentAssistMs, beat.IntervalSec);
 
         if (!wasRunning)
         {
@@ -93,10 +99,12 @@ public class BeatGuideUI : MonoBehaviour
 
         if (now <= previous)
         {
+            if (proceduralGuide != null) proceduralGuide.SetPointerVisible(false);
             SetFill(0f);
             return;
         }
 
+        if (proceduralGuide != null) proceduralGuide.SetPointerVisible(true);
         double progress = (now - previous) / beat.IntervalSec;
         float normalizedProgress = Mathf.Clamp01((float)progress);
 
@@ -106,6 +114,31 @@ public class BeatGuideUI : MonoBehaviour
 
         SetFill(normalizedProgress);
         lastProgress = normalizedProgress;
+    }
+
+    void ApplyLayout()
+    {
+        portraitLayout = Screen.height > Screen.width;
+        RectTransform path = transform.Find("PulsePath") as RectTransform;
+        if (path != null)
+            path.sizeDelta = portraitLayout ? new Vector2(214f, 214f) : new Vector2(204f, 204f);
+
+        Vector2 labelPosition = new Vector2(0f, portraitLayout ? -168f : -155f);
+        RectTransform background = transform.Find("ActionBackground") as RectTransform;
+        if (background != null)
+            background.anchoredPosition = labelPosition;
+        if (actionLabel != null)
+            actionLabel.rectTransform.anchoredPosition = labelPosition;
+
+        // Keep the explanation centred above the pulse indicator on every aspect ratio.
+        if (game != null && game.feedbackText != null)
+        {
+            RectTransform feedback = game.feedbackText.rectTransform;
+            feedback.anchorMin = feedback.anchorMax = new Vector2(0.5f, 0.5f);
+            feedback.pivot = new Vector2(0.5f, 0.5f);
+            feedback.anchoredPosition = new Vector2(0f, portraitLayout ? 265f : 240f);
+            feedback.sizeDelta = new Vector2(portraitLayout ? 450f : 520f, 90f);
+        }
     }
 
     void SetFill(float amount)

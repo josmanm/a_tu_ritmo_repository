@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
 public class RunnerCollision : MonoBehaviour
 {
@@ -6,6 +8,7 @@ public class RunnerCollision : MonoBehaviour
     public float stabilityPenalty = 0.2f;
 
     RunnerController2D runner;
+    readonly HashSet<ObstacleMoverBeat> pendingCollisions = new HashSet<ObstacleMoverBeat>();
 
     void Awake()
     {
@@ -14,27 +17,21 @@ public class RunnerCollision : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D collision)
     {
-        if (IsObstacle(collision.collider))
-        {
-            if (runner != null && runner.IsInvulnerable)
-            {
-                Destroy(collision.gameObject);
-                return;
-            }
-
-            if (game != null)
-                game.RegisterCollision(stabilityPenalty);
-
-            if (runner != null)
-                runner.TriggerHitInvulnerability();
-
-            Destroy(collision.gameObject);
-        }
+        HandleObstacle(collision.collider);
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
+        HandleObstacle(other);
+    }
+
+    void HandleObstacle(Collider2D other)
+    {
         if (!IsObstacle(other))
+            return;
+
+        ObstacleMoverBeat mover = other.GetComponentInParent<ObstacleMoverBeat>();
+        if (mover != null && (mover.avoidedOnBeat || pendingCollisions.Contains(mover)))
             return;
 
         if (runner != null && runner.IsInvulnerable)
@@ -43,6 +40,45 @@ public class RunnerCollision : MonoBehaviour
             return;
         }
 
+        // A valid late beat can follow the first physical overlap. Wait until the
+        // acceptance window closes before treating an unprotected rock as a hit.
+        double now = AudioSettings.dspTime;
+        if (mover != null && mover.targetBeatDspTime > 0d && game != null)
+        {
+            double deadline = System.Math.Min(mover.targetBeatDspTime +
+                    Mathf.Max(game.CurrentGoodMs, game.CurrentAssistMs) * 0.001 + 0.04,
+                now + 0.4);
+            if (now < deadline)
+            {
+                pendingCollisions.Add(mover);
+                StartCoroutine(ResolveAfterBeatWindow(other, mover, deadline));
+                return;
+            }
+        }
+
+        RegisterHit(other);
+    }
+
+    IEnumerator ResolveAfterBeatWindow(Collider2D other, ObstacleMoverBeat mover, double deadline)
+    {
+        while (AudioSettings.dspTime < deadline && other != null)
+            yield return null;
+
+        pendingCollisions.Remove(mover);
+        if (other == null || mover == null || mover.avoidedOnBeat)
+            yield break;
+
+        if (runner != null && runner.IsInvulnerable)
+        {
+            Destroy(other.gameObject);
+            yield break;
+        }
+
+        RegisterHit(other);
+    }
+
+    void RegisterHit(Collider2D other)
+    {
         if (game != null)
             game.RegisterCollision(stabilityPenalty);
 
@@ -57,6 +93,6 @@ public class RunnerCollision : MonoBehaviour
         if (other == null)
             return false;
 
-        return other.CompareTag("Obstacle") || other.GetComponent<ObstacleMoverBeat>() != null;
+        return other.CompareTag("Obstacle") || other.GetComponentInParent<ObstacleMoverBeat>() != null;
     }
 }

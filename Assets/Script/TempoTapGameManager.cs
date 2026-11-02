@@ -2,31 +2,46 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using System.Collections.Generic;
 using System;
+#if ENABLE_INPUT_SYSTEM && (UNITY_EDITOR || UNITY_STANDALONE)
+using UnityEngine.InputSystem;
+#endif
 
 public class TempoTapGameManager : MonoBehaviour
 {
+    private const int TapChunkSize = 256;
     public BeatController beatController;
 
     [Header("UI")]
     public TMP_Text feedbackText;
+    [SerializeField] private OutcomeFeedbackView outcomeFeedback;
     public TMP_Text timerText;
     public TMP_Text scoreText;
     public TMP_Text streakText;
+    public TMP_Text bpmText; // Insignia central del HUD; se conserva el nombre para las escenas existentes.
     public Image stabilityFill;
 
     [Header("UI Panels")]
     public GameObject startPanel;
+    [SerializeField] private GameObject pausePanel;
 
     TMP_Text startButtonText;
-    Image startButtonImage;
+    PausePanelView pausePanelView;
+    Button pauseTrigger;
+    bool isPaused;
 
     [Header("Timing Windows (ms)")]
     public float perfectMs = 60f;
     public float goodMs = 120f;
 
     [Header("Inicio")]
-    [Range(0, 4)] public int warmupBeats = 2;
+    [Range(3, 6)] public int warmupBeats = 5;
+    [Range(1, 3)] public int observeBeats = 2;
+    [Header("Tempo adaptativo")]
+    public float minimumAdaptiveBpm = 30f;
+    public float maximumAdaptiveBpm = 90f;
+    [Range(4, 16)] public int beatsPerAdjustment = 8;
 
     [Header("Score")]
     public int perfectScore = 100;
@@ -76,12 +91,25 @@ public class TempoTapGameManager : MonoBehaviour
     bool warmupPending;
     bool turnVoicePlayed;
     float originalBeatDelay;
+    double firstDemoBeatDspTime;
+    double calibrationStartDspTime;
+    double sessionStartDspTime;
+    float startingBpm;
+    float pendingBpm;
+    int recentBeats;
+    int recentAccurateBeats;
+    int highestDifficultyStage;
+    Coroutine tutorialRoutine;
+    readonly List<double> calibrationTaps = new List<double>();
+    readonly List<TempoTapTapMetric> tapDetails = new List<TempoTapTapMetric>();
+    int reportChunkIndex;
     bool pausedByApplication;
     float lastStartPressTime = -10f;
     Coroutine feedbackClearRoutine;
     int score;
     int streak;
     int totalTapsJudged;
+    int physicalTapsJudged;
     int perfectCount;
     int goodCount;
     int earlyCount;
@@ -96,23 +124,33 @@ public class TempoTapGameManager : MonoBehaviour
     TMP_Text stabilityLabel;
 
     public bool IsAcceptingTaps => running && !pausedByApplication && !warmupPending && beatController != null && beatController.IsRunning;
+    public bool IsSessionActive => running;
     public float CurrentPerfectMs => Mathf.Lerp(perfectMs, perfectMs * 0.72f, Mathf.Clamp01(streak / 20f));
+    public float CurrentGoodMs => beatController == null ? goodMs : Mathf.Min(
+        Mathf.Lerp(goodMs, goodMs * 0.8f, Mathf.Clamp01(streak / 20f)),
+        (float)beatController.IntervalSec * 230f);
     public float CurrentAssistMs => beatController == null ? assistMs : Mathf.Min(assistMs, (float)beatController.IntervalSec * 200f);
 
     public string GetPromptForBeat(double beatTime)
     {
+        if (warmupPending && beatController != null && beatController.IsRunning)
+            return beatTime >= calibrationStartDspTime - 0.01 ? "PRUEBA\nAL LLEGAR" : "OBSERVA";
+
         if (!IsAcceptingTaps || beatTime < firstJudgedBeatDspTime - 0.01)
             return "ESCUCHA";
 
         BeatSyncedObstacleSpawner.ObstacleAction action = obstacleSpawner != null
             ? obstacleSpawner.GetActionForBeat(beatTime) : BeatSyncedObstacleSpawner.ObstacleAction.Tap;
         return action == BeatSyncedObstacleSpawner.ObstacleAction.Jump ? "SALTA\nAL PULSO"
-            : action == BeatSyncedObstacleSpawner.ObstacleAction.Duck ? "ABAJO\nAL PULSO" : "TOCA\nAL PULSO";
+            : action == BeatSyncedObstacleSpawner.ObstacleAction.Duck ? "DESLÍZATE\nAL PULSO" : "TOCA\nAL PULSO";
     }
 
 
     void Start()
     {
+        LandscapePhoneCanvas.Configure(GetComponentInChildren<Canvas>() ?? FindFirstObjectByType<Canvas>());
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
         running = false;
         ConfigureHud();
         ResetSessionStats();
@@ -124,6 +162,7 @@ public class TempoTapGameManager : MonoBehaviour
             originalBeatDelay = beatController.startDelaySeconds;
             beatController.StopBeats();
             beatController.OnBeat += CheckMissedBeat;
+            beatController.OnBeat += HandleTutorialBeat;
         }
 
         if (runner != null)
@@ -144,40 +183,56 @@ public class TempoTapGameManager : MonoBehaviour
             startButtonText = startPanel.GetComponentInChildren<TMP_Text>(true);
             if (startButtonText != null)
             {
-                // The START artwork already contains its own lettering.
-                startButtonText.text = string.Empty;
+                startButtonText.text = "JUGAR";
                 startButtonText.raycastTarget = false;
             }
-            Button start = startPanel.transform.Find("StartButton")?.GetComponent<Button>();
-            if (start != null)
-                startButtonImage = start.GetComponent<Image>();
         }
 
-        SetFeedback("Toca Empezar para escuchar el pulso", 0f);
+        ConfigurePauseMenu();
+
+        SetFeedback("Pulsa JUGAR para escuchar el pulso", 0f);
         NarrationPlayer.Say("tempo_intro", interrupt: false);
     }
 
     private void OnDestroy()
     {
         if (beatController != null)
+        {
             beatController.OnBeat -= CheckMissedBeat;
+            beatController.OnBeat -= HandleTutorialBeat;
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (feedbackText != null)
+            feedbackText.rectTransform.anchoredPosition = new Vector2(0f,
+                LandscapePhoneCanvas.IsWidePhone ? 150f : 240f);
     }
 
     private void ConfigureHud()
     {
         if (startPanel != null)
         {
+            RectTransform panel = startPanel.GetComponent<RectTransform>();
+            if (panel != null && bpmText != null)
+            {
+                panel.anchorMin = Vector2.zero;
+                panel.anchorMax = Vector2.one;
+                panel.pivot = new Vector2(0.5f, 0.5f);
+                panel.anchoredPosition = Vector2.zero;
+                panel.sizeDelta = Vector2.zero;
+            }
             RectTransform start = startPanel.transform.Find("StartButton") as RectTransform;
             RectTransform back = startPanel.transform.Find("BackButton") as RectTransform;
             if (start != null)
             {
-                start.anchorMin = start.anchorMax = new Vector2(1f, 0.5f);
-                start.pivot = new Vector2(1f, 0.5f);
-                start.anchoredPosition = new Vector2(-220f, 0f);
-                start.sizeDelta = new Vector2(170f, 72f);
-                start.GetComponent<Image>().preserveAspect = true;
+                start.anchorMin = start.anchorMax = new Vector2(0.5f, 0.5f);
+                start.pivot = new Vector2(0.5f, 0.5f);
+                start.anchoredPosition = new Vector2(0f, -245f);
+                start.sizeDelta = new Vector2(219f, 64f);
             }
-            if (back != null)
+            if (back != null && bpmText == null)
             {
                 back.anchorMin = back.anchorMax = new Vector2(1f, 0.5f);
                 back.pivot = new Vector2(1f, 0.5f);
@@ -189,61 +244,41 @@ public class TempoTapGameManager : MonoBehaviour
 
         if (timerText != null)
         {
+            // La racha pasa a la insignia central, no se duplica sobre el paisaje.
+            timerText.gameObject.SetActive(bpmText == null);
             RectTransform rect = timerText.rectTransform;
             rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(32f, -210f);
-            rect.sizeDelta = new Vector2(346f, 88f);
+            rect.sizeDelta = new Vector2(346f, 132f);
             timerText.fontSize = 32f;
             timerText.fontStyle = FontStyles.Bold;
             timerText.raycastTarget = false;
         }
+        if (streakText != null && streakText != bpmText)
+            streakText.gameObject.SetActive(bpmText == null);
 
         if (feedbackText != null)
         {
             RectTransform rect = feedbackText.rectTransform;
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(0f, -210f);
-            rect.sizeDelta = new Vector2(630f, 110f);
-            feedbackText.fontSize = 32f;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(0f, 240f);
+            rect.sizeDelta = new Vector2(520f, 90f);
+            feedbackText.enableAutoSizing = true;
+            feedbackText.fontSizeMin = 22f;
+            feedbackText.fontSizeMax = 30f;
+            feedbackText.fontSize = 30f;
             feedbackText.fontStyle = FontStyles.Bold;
             feedbackText.alignment = TextAlignmentOptions.Center;
+            feedbackText.color = new Color(0.08f, 0.22f, 0.32f, 1f);
             feedbackText.textWrappingMode = TextWrappingModes.Normal;
             feedbackText.raycastTarget = false;
         }
 
-        if (stabilityFill == null || timerText == null)
-            return;
-
-        RectTransform bar = stabilityFill.transform.parent as RectTransform;
-        if (bar == null)
-            return;
-
-        bar.anchorMin = bar.anchorMax = new Vector2(0f, 1f);
-        bar.pivot = new Vector2(0f, 0.5f);
-        bar.anchoredPosition = new Vector2(32f, -154f);
-        bar.sizeDelta = new Vector2(344f, 54f);
-        Image barImage = bar.GetComponent<Image>();
-        if (barImage != null) barImage.raycastTarget = false;
-        stabilityFill.raycastTarget = false;
-        Transform found = bar.Find("EnergyLabel");
-        if (found == null)
-        {
-            GameObject labelObject = new GameObject("EnergyLabel", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-            labelRect.SetParent(bar, false);
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
-            found = labelRect;
-        }
-        stabilityLabel = found.GetComponent<TMP_Text>();
-        stabilityLabel.font = timerText.font;
-        stabilityLabel.fontSize = 28f;
-        stabilityLabel.fontStyle = FontStyles.Bold;
-        stabilityLabel.color = new Color(0.094f, 0.188f, 0.31f);
-        stabilityLabel.alignment = TextAlignmentOptions.Center;
-        stabilityLabel.raycastTarget = false;
+        // Stability still drives adaptive difficulty, but its bar is not a player goal.
+        if (stabilityFill != null)
+            stabilityFill.transform.parent.gameObject.SetActive(false);
     }
 
     private void CheckMissedBeat(double currentBeatTime)
@@ -252,32 +287,63 @@ public class TempoTapGameManager : MonoBehaviour
             return;
 
         double previousBeat = currentBeatTime - beatController.IntervalSec;
-        if (previousBeat < firstJudgedBeatDspTime - 0.01 ||
-            (!double.IsNaN(lastJudgedBeatTime) && Math.Abs(previousBeat - lastJudgedBeatTime) < 0.03) ||
-            (!double.IsNaN(lastMissedBeatTime) && Math.Abs(previousBeat - lastMissedBeatTime) < 0.03))
+        bool missed = previousBeat >= firstJudgedBeatDspTime - 0.01 &&
+            (double.IsNaN(lastJudgedBeatTime) || Math.Abs(previousBeat - lastJudgedBeatTime) >= 0.03) &&
+            (double.IsNaN(lastMissedBeatTime) || Math.Abs(previousBeat - lastMissedBeatTime) >= 0.03);
+
+        if (missed)
+        {
+            lastMissedBeatTime = previousBeat;
+            missCount++;
+            totalTapsJudged++;
+            streak = 0;
+            stability = Mathf.Max(0f, stability - lossOnMiss);
+            obstacleSpawner?.SetDifficulty(0);
+            RecordTapDetail(previousBeat, previousBeat, 0f, 0f, "no_tap", false);
+            RecordRecentBeat(false);
+            SetFeedback("Escucha el pulso. Vamos de nuevo", 0.8f);
+            UpdateUI();
+        }
+
+        ApplyPendingTempo(currentBeatTime);
+    }
+
+    private void HandleTutorialBeat(double beatTime)
+    {
+        if (!running || pausedByApplication || !warmupPending || beatController == null)
             return;
 
-        lastMissedBeatTime = previousBeat;
-        missCount++;
-        totalTapsJudged++;
-        streak = 0;
-        stability = Mathf.Clamp01(stability - lossOnMiss);
-        obstacleSpawner?.SetDifficulty(0);
-        SetFeedback("Escucha y toca el siguiente pulso", 0.8f);
-        if (stability <= 0f)
-            EndSession(false, "stability_depleted");
-        else
-            UpdateUI();
+        if (!turnVoicePlayed && beatTime >= calibrationStartDspTime - 0.01)
+        {
+            turnVoicePlayed = true;
+            NarrationPlayer.Say("tempo_turno");
+            SetFeedback("Ahora toca al ritmo para encontrar tu pulso", 0f);
+        }
+
+        if (beatTime >= firstJudgedBeatDspTime - 0.01)
+        {
+            ApplyMeasuredStartingTempo();
+            warmupPending = false;
+            obstacleSpawner?.StartSpawner();
+            SetFeedback("¡Sigue tu propio ritmo!", 1.2f);
+        }
     }
 
     private void OnApplicationPause(bool paused)
     {
+        if (isPaused)
+            return;
         if (paused)
         {
             if (!running)
                 return;
 
             pausedByApplication = true;
+            if (tutorialRoutine != null)
+            {
+                StopCoroutine(tutorialRoutine);
+                tutorialRoutine = null;
+            }
             if (beatController != null) beatController.StopBeats();
             if (obstacleSpawner != null) obstacleSpawner.StopSpawner();
             if (runner != null) runner.SetGameStarted(false);
@@ -288,69 +354,171 @@ public class TempoTapGameManager : MonoBehaviour
             if (!running || beatController == null)
                 return;
 
-            beatController.StartBeats();
-            firstJudgedBeatDspTime = beatController.NextBeatDspTime + beatController.IntervalSec * warmupBeats;
             warmupPending = true;
             turnVoicePlayed = false;
             lastJudgedBeatTime = double.NaN;
             lastMissedBeatTime = double.NaN;
             lastTapDspTime = double.NaN;
-            if (obstacleSpawner != null) obstacleSpawner.StartSpawner();
+            calibrationTaps.Clear();
+            if (obstacleSpawner != null) obstacleSpawner.StopSpawner();
             if (runner != null) runner.SetGameStarted(true);
-            SetFeedback("Escucha el pulso", 0f);
+            float voiceSeconds = NarrationPlayer.Say("voz_observa");
+            tutorialRoutine = StartCoroutine(BeginTutorialAfterVoice(voiceSeconds));
+            SetFeedback("Observa el pulso antes de tocar", 0f);
         }
     }
 
     public void StartSession()
     {
-        if (running || beatController == null)
+        if (running || isPaused || beatController == null)
             return;
 
         running = true;
         pausedByApplication = false;
         sessionStartedAt = Time.time;
+        sessionStartDspTime = AudioSettings.dspTime;
         stability = 1f;
         lastJudgedBeatTime = double.NaN;
         lastMissedBeatTime = double.NaN;
         ResetSessionStats();
-        UpdateUI();
-
         beatController.bpm = Mathf.Clamp(baseBpm * GameSettings.GameplaySpeed, 30f, 160f);
-        float voiceSeconds = NarrationPlayer.Say(warmupBeats == 2 ? "tempo_escucha_dos_pulsos" : "tempo_intro");
-        beatController.startDelaySeconds = Mathf.Max(originalBeatDelay, voiceSeconds + 0.2f);
-        beatController.StartBeats();
-        beatController.startDelaySeconds = originalBeatDelay;
-        firstJudgedBeatDspTime = beatController.NextBeatDspTime + beatController.IntervalSec * warmupBeats;
+        startingBpm = beatController.bpm;
         warmupPending = true;
         turnVoicePlayed = false;
-        SetFeedback(warmupBeats > 0 ? "Escucha el pulso" : "Mantén el ritmo", warmupBeats > 0 ? 0f : 0.7f);
+        if (obstacleSpawner != null) obstacleSpawner.StopSpawner();
+        float voiceSeconds = NarrationPlayer.Say("voz_observa");
+        tutorialRoutine = StartCoroutine(BeginTutorialAfterVoice(voiceSeconds));
+        SetFeedback("Escucha el pulso; después vendrán los obstáculos", 0f);
+        UpdateUI();
+    }
+
+    private IEnumerator BeginTutorialAfterVoice(float voiceSeconds)
+    {
+        if (voiceSeconds > 0f)
+            yield return new WaitForSecondsRealtime(voiceSeconds + 0.12f);
+        while (isPaused)
+            yield return null;
+        if (!running || pausedByApplication || beatController == null)
+            yield break;
+
+        float listenSeconds = NarrationPlayer.Say("tempo_escucha_dos_pulsos");
+        beatController.startDelaySeconds = Mathf.Max(originalBeatDelay, listenSeconds + 0.2f);
+        beatController.StartBeats();
+        beatController.startDelaySeconds = originalBeatDelay;
+        firstDemoBeatDspTime = beatController.NextBeatDspTime;
+        calibrationStartDspTime = firstDemoBeatDspTime + beatController.IntervalSec * Mathf.Clamp(observeBeats, 1, warmupBeats - 2);
+        firstJudgedBeatDspTime = firstDemoBeatDspTime + beatController.IntervalSec * warmupBeats;
+        calibrationTaps.Clear();
+        tutorialRoutine = null;
+    }
+
+    private void RecordCalibrationTap(double dspTime)
+    {
+        if (beatController == null || !beatController.IsRunning ||
+            dspTime < calibrationStartDspTime - 0.05 || dspTime >= firstJudgedBeatDspTime)
+            return;
+
+        if (calibrationTaps.Count > 0 && dspTime - calibrationTaps[calibrationTaps.Count - 1] < 0.32)
+            return;
+
+        if (calibrationTaps.Count >= 3)
+        {
+            RecordTapDetail(dspTime, beatController.NextBeatDspTime, 0f, 0f, "extra_calibration", true);
+            return;
+        }
+
+        calibrationTaps.Add(dspTime);
+        float intervalMs = calibrationTaps.Count > 1
+            ? (float)((dspTime - calibrationTaps[calibrationTaps.Count - 2]) * 1000.0) : 0f;
+        double nearest = beatController.NextBeatDspTime;
+        if (Math.Abs(nearest - dspTime) > Math.Abs(nearest - beatController.IntervalSec - dspTime))
+            nearest -= beatController.IntervalSec;
+        RecordTapDetail(dspTime, nearest, (float)((dspTime - nearest) * 1000.0), intervalMs, "calibration", true);
+        SetFeedback($"¡Bien! Pulso {calibrationTaps.Count}", 0.5f);
+    }
+
+    private void ApplyMeasuredStartingTempo()
+    {
+        if (beatController == null || calibrationTaps.Count < 2)
+            return;
+
+        double intervalSum = 0d;
+        int validIntervals = 0;
+        for (int i = 1; i < calibrationTaps.Count; i++)
+        {
+            double interval = calibrationTaps[i] - calibrationTaps[i - 1];
+            if (interval < 0.55 || interval > 2.2)
+                continue;
+            intervalSum += interval;
+            validIntervals++;
+        }
+
+        if (validIntervals == 0)
+            return;
+
+        float measuredBpm = (float)(60.0 * validIntervals / intervalSum);
+        startingBpm = Mathf.Clamp(measuredBpm, minimumAdaptiveBpm, maximumAdaptiveBpm);
+        beatController.ChangeTempoOnBeat(startingBpm);
+    }
+
+    private void RecordRecentBeat(bool accurate)
+    {
+        recentBeats++;
+        if (accurate) recentAccurateBeats++;
+
+        if (recentBeats < Mathf.Max(4, beatsPerAdjustment) || beatController == null)
+            return;
+
+        int needed = Mathf.CeilToInt(recentBeats * 0.75f);
+        int tooFew = Mathf.FloorToInt(recentBeats * 0.4f);
+        float change = recentAccurateBeats >= needed ? 5f : recentAccurateBeats <= tooFew ? -5f : 0f;
+        if (change != 0f)
+            pendingBpm = Mathf.Clamp(beatController.bpm + change, minimumAdaptiveBpm, maximumAdaptiveBpm);
+        recentBeats = 0;
+        recentAccurateBeats = 0;
+    }
+
+    private void ApplyPendingTempo(double beatTime)
+    {
+        if (pendingBpm <= 0f || beatController == null || Mathf.Approximately(pendingBpm, beatController.bpm))
+        {
+            pendingBpm = 0f;
+            return;
+        }
+
+        double oldInterval = beatController.IntervalSec;
+        double newInterval = 60.0 / pendingBpm;
+        obstacleSpawner?.RescheduleTempo(beatTime, oldInterval, newInterval);
+        beatController.ChangeTempoOnBeat(pendingBpm);
+        SetFeedback(pendingBpm < 60f / oldInterval ? "Vamos más despacio" : "¡Muy bien! Un poco más rápido", 1f);
+        pendingBpm = 0f;
     }
 
     void Update()
     {
-        if (!running || pausedByApplication) return;
+#if UNITY_EDITOR || UNITY_STANDALONE
+        // Use the same timing and action evaluation as a touch on the play area.
+#if ENABLE_INPUT_SYSTEM
+        if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
+            RegisterTap();
+#elif ENABLE_LEGACY_INPUT_MANAGER
+        if (Input.GetKeyDown(KeyCode.Space))
+            RegisterTap();
+#endif
+#endif
+        if (!running || pausedByApplication || beatController == null || !beatController.IsRunning) return;
 
         if (warmupPending)
         {
-            AudioClip turnClip = NarrationPlayer.FindClip("tempo_turno");
-            if (!turnVoicePlayed && warmupBeats > 0 && turnClip != null && beatController != null &&
-                turnClip.length + 0.35f < beatController.IntervalSec &&
-                AudioSettings.dspTime >= firstJudgedBeatDspTime - turnClip.length - 0.2f &&
-                AudioSettings.dspTime + turnClip.length + 0.1f < firstJudgedBeatDspTime)
-            {
-                turnVoicePlayed = true;
-                NarrationPlayer.Say("tempo_turno", interrupt: false);
-            }
-
             if (AudioSettings.dspTime < firstJudgedBeatDspTime)
             {
-                if (timerText != null)
-                    timerText.text = $"Escucha el pulso\nPuntos: {score}";
+                if (timerText != null && bpmText == null)
+                    timerText.text = AudioSettings.dspTime < calibrationStartDspTime
+                        ? "Observa el ejemplo" : "Prueba el pulso";
                 return;
             }
 
-            warmupPending = false;
-            SetFeedback("¡Tu turno!", 0.7f);
+            return;
         }
 
         UpdateUI();
@@ -358,8 +526,10 @@ public class TempoTapGameManager : MonoBehaviour
 
     void UpdateUI()
     {
-        if (timerText) timerText.text = $"Puntos: {score}\nRacha: {streak}";
-        if (scoreText) scoreText.text = $"Puntos: {score}";
+        if (timerText)
+            timerText.text = $"Racha: {streak}";
+        if (scoreText) scoreText.text = $"Puntaje {score}";
+        if (bpmText) bpmText.text = $"Racha {streak}";
         if (streakText) streakText.text = $"Racha: {streak}";
         if (stabilityFill) stabilityFill.fillAmount = stability;
         if (stabilityLabel) stabilityLabel.text = $"ENERGÍA  {Mathf.RoundToInt(stability * 100f)}%";
@@ -372,6 +542,12 @@ public class TempoTapGameManager : MonoBehaviour
 
         running = false;
         pausedByApplication = false;
+        isPaused = false;
+        if (tutorialRoutine != null)
+        {
+            StopCoroutine(tutorialRoutine);
+            tutorialRoutine = null;
+        }
 
         if (beatController) beatController.StopBeats();
 
@@ -390,14 +566,25 @@ public class TempoTapGameManager : MonoBehaviour
     public void ReturnToMenu()
     {
         EndSession(false, "return_to_menu");
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
         SceneTransitionController.LoadScene("MainScene");
     }
 
     public void RegisterTap()
     {
-        if (!IsAcceptingTaps) return;
+        if (!running || pausedByApplication || isPaused || beatController == null)
+            return;
 
         double tapTime = AudioSettings.dspTime;
+        if (warmupPending)
+        {
+            RecordCalibrationTap(tapTime);
+            return;
+        }
+        if (!IsAcceptingTaps)
+            return;
+
         if (tapTime < firstJudgedBeatDspTime - assistMs * 0.001 || !beatController.IsRunning)
             return;
 
@@ -408,9 +595,8 @@ public class TempoTapGameManager : MonoBehaviour
         if (ignoreExtraTapsOnSameBeat && !double.IsNaN(lastJudgedBeatTime) && Math.Abs(judgedBeatTime - lastJudgedBeatTime) < 0.0001)
             return;
 
-        float difficultyFactor = Mathf.Clamp01(streak / 20f);
         float effectivePerfectMs = Mathf.Min(CurrentPerfectMs, (float)beatController.IntervalSec * 120f);
-        float effectiveGoodMs = Mathf.Min(Mathf.Lerp(goodMs, goodMs * 0.8f, difficultyFactor), (float)beatController.IntervalSec * 230f);
+        float effectiveGoodMs = CurrentGoodMs;
         float effectiveAssistMs = CurrentAssistMs;
         float absMs = Mathf.Abs(deltaMs);
         BeatSyncedObstacleSpawner.ObstacleAction action = obstacleSpawner != null
@@ -428,14 +614,18 @@ public class TempoTapGameManager : MonoBehaviour
         }
 
         sumOffsetMs += deltaMs;
+        physicalTapsJudged++;
+        float intervalMs = 0f;
         if (!double.IsNaN(lastTapDspTime))
         {
-            double intervalMs = (tapTime - lastTapDspTime) * 1000.0;
+            intervalMs = (float)((tapTime - lastTapDspTime) * 1000.0);
             intervalCount++;
             sumIntervalMs += intervalMs;
             sumSquaredIntervalMs += intervalMs * intervalMs;
         }
         lastTapDspTime = tapTime;
+
+        string result;
 
         if (absMs <= effectivePerfectMs)
         {
@@ -445,8 +635,12 @@ public class TempoTapGameManager : MonoBehaviour
             streak++;
             score += perfectScore * Mathf.Max(1, 1 + streak / 5);
             SetFeedback("Perfecto", 0.5f);
+            if (outcomeFeedback != null)
+                outcomeFeedback.ShowSuccess(feedbackText != null ? feedbackText.rectTransform : null);
+            result = "perfect";
+            AccessibleHaptics.Success();
             if (sfxSource && tapCorrect) sfxSource.PlayOneShot(tapCorrect);
-            PerformBeatAction(action, perfectJumpMultiplier, perfectTargetContactTime);
+            PerformBeatAction(judgedBeatTime, action, perfectJumpMultiplier, perfectTargetContactTime);
         }
         else if (absMs <= effectiveGoodMs)
         {
@@ -456,11 +650,15 @@ public class TempoTapGameManager : MonoBehaviour
             streak++;
             score += goodScore * Mathf.Max(1, 1 + streak / 6);
             SetFeedback("Bien", 0.5f);
+            if (outcomeFeedback != null)
+                outcomeFeedback.ShowSuccess(feedbackText != null ? feedbackText.rectTransform : null);
+            result = "good";
+            AccessibleHaptics.Success();
             if (sfxSource && tapCorrect) sfxSource.PlayOneShot(tapCorrect);
             if (jumpOnGood)
             {
                 float targetTime = deltaMs < 0f ? goodEarlyTargetContactTime : goodLateTargetContactTime;
-                PerformBeatAction(action, goodJumpMultiplier, targetTime);
+                PerformBeatAction(judgedBeatTime, action, goodJumpMultiplier, targetTime);
             }
         }
         else if (absMs <= effectiveAssistMs)
@@ -473,13 +671,21 @@ public class TempoTapGameManager : MonoBehaviour
             {
                 earlyCount++;
                 SetFeedback("Un poco antes", 0.5f);
-                PerformBeatAction(action, earlyAssistJumpMultiplier, assistEarlyTargetContactTime);
+                if (outcomeFeedback != null)
+                    outcomeFeedback.ShowFailure(feedbackText != null ? feedbackText.rectTransform : null);
+                result = "early";
+                AccessibleHaptics.Error();
+                PerformBeatAction(judgedBeatTime, action, earlyAssistJumpMultiplier, assistEarlyTargetContactTime);
             }
             else
             {
                 lateCount++;
                 SetFeedback("Un poco después", 0.5f);
-                PerformBeatAction(action, lateAssistJumpMultiplier, assistLateTargetContactTime);
+                if (outcomeFeedback != null)
+                    outcomeFeedback.ShowFailure(feedbackText != null ? feedbackText.rectTransform : null);
+                result = "late";
+                AccessibleHaptics.Error();
+                PerformBeatAction(judgedBeatTime, action, lateAssistJumpMultiplier, assistLateTargetContactTime);
             }
         }
         else
@@ -488,39 +694,74 @@ public class TempoTapGameManager : MonoBehaviour
             missCount++;
             streak = 0;
             SetFeedback(deltaMs < 0f ? "Espera el pulso" : "Prueba el siguiente pulso", 0.6f);
+            if (outcomeFeedback != null)
+                outcomeFeedback.ShowFailure(feedbackText != null ? feedbackText.rectTransform : null);
+            result = "miss";
+            AccessibleHaptics.Error();
             if (sfxSource && tapWrong) sfxSource.PlayOneShot(tapWrong);
-            stability = Mathf.Clamp01(stability - lossOnMiss);
+            stability = Mathf.Max(0f, stability - lossOnMiss);
         }
 
-        obstacleSpawner?.SetDifficulty(streak >= 24 ? 3 : streak >= 16 ? 2 : streak >= 8 ? 1 : 0);
-        if (stability <= 0f)
-            EndSession(false, "stability_depleted");
+        RecordTapDetail(tapTime, judgedBeatTime, deltaMs, intervalMs, result, true);
+        RecordRecentBeat(absMs <= effectiveGoodMs);
+        int difficultyStage = streak >= 24 ? 3 : streak >= 16 ? 2 : streak >= 8 ? 1 : 0;
+        obstacleSpawner?.SetDifficulty(difficultyStage);
+        highestDifficultyStage = Mathf.Max(highestDifficultyStage, difficultyStage);
         UpdateUI();
     }
 
-    private void PerformBeatAction(BeatSyncedObstacleSpawner.ObstacleAction action, float multiplier, float contactTime)
+    private void RecordTapDetail(double tapTime, double judgedBeatTime, float offsetMs, float intervalMs, string result, bool hasTap)
+    {
+        BeatSyncedObstacleSpawner.ObstacleAction action = obstacleSpawner != null
+            ? obstacleSpawner.GetActionForBeat(judgedBeatTime) : BeatSyncedObstacleSpawner.ObstacleAction.Tap;
+        tapDetails.Add(new TempoTapTapMetric
+        {
+            beatNumber = result == "calibration" ? calibrationTaps.Count : totalTapsJudged,
+            timeSeconds = Mathf.Max(0f, (float)(tapTime - sessionStartDspTime)),
+            offsetMs = offsetMs,
+            intervalMs = intervalMs,
+            bpm = beatController != null ? beatController.bpm : baseBpm,
+            result = result,
+            action = action.ToString().ToLowerInvariant(),
+            hasTap = hasTap,
+        });
+        if (tapDetails.Count >= TapChunkSize && running && SessionManager.Instance != null &&
+            SessionManager.Instance.HasActiveSession && GameReportManager.Instance != null &&
+            PlayerProfileManager.Instance != null && PlayerProfileManager.Instance.HasActiveProfile)
+            ReportAttempt(false, "checkpoint", true);
+    }
+
+    private void PerformBeatAction(double beatTime, BeatSyncedObstacleSpawner.ObstacleAction action,
+        float multiplier, float contactTime)
     {
         if (runner == null)
             return;
 
+        bool performed = false;
         if (action == BeatSyncedObstacleSpawner.ObstacleAction.Duck)
-            runner.Duck();
+            performed = runner.Duck(obstacleSpawner != null ? obstacleSpawner.GetDuckDuration() : 1.1f);
         else if (action == BeatSyncedObstacleSpawner.ObstacleAction.Jump)
-            runner.Jump(GetAdaptiveMultiplier(multiplier, contactTime));
+            performed = runner.Jump(GetAdaptiveMultiplier(multiplier, contactTime, action));
+
+        if (performed)
+            obstacleSpawner?.MarkActionSuccessForBeat(beatTime, action);
     }
 
     public void RegisterCollision(float penalty)
     {
-        if (!running || pausedByApplication)
+        if (!running || pausedByApplication || isPaused)
             return;
 
         streak = 0;
         collisionCount++;
-        stability = Mathf.Clamp01(stability - penalty);
+        stability = Mathf.Max(0f, stability - Mathf.Max(0f, penalty));
+        AccessibleHaptics.Error();
         obstacleSpawner?.SetDifficulty(0);
-        SetFeedback("No pasa nada, sigue el ritmo", 0.7f);
-        if (stability <= 0f)
-            EndSession(false, "stability_depleted");
+        pendingBpm = Mathf.Clamp(beatController != null ? beatController.bpm - 5f : baseBpm,
+            minimumAdaptiveBpm, maximumAdaptiveBpm);
+        SetFeedback("Un tropiezo no termina el juego. Vamos más despacio", 1.2f);
+        if (outcomeFeedback != null)
+            outcomeFeedback.ShowFailure(feedbackText != null ? feedbackText.rectTransform : null);
         UpdateUI();
     }
 
@@ -548,6 +789,7 @@ public class TempoTapGameManager : MonoBehaviour
     }
     public void StartGameFromButton()
     {
+        if (isPaused) return;
         if (Time.unscaledTime - lastStartPressTime < 0.5f)
             return;
         lastStartPressTime = Time.unscaledTime;
@@ -559,24 +801,88 @@ public class TempoTapGameManager : MonoBehaviour
         if (!running)
             return;
 
-        if (obstacleSpawner != null)
-            obstacleSpawner.StartSpawner();
-
         if (runner != null)
             runner.SetGameStarted(true);
+        if (startPanel != null)
+            startPanel.SetActive(false);
+    }
 
-        if (startButtonText != null)
+    private void ConfigurePauseMenu()
+    {
+        TopHudPanelView hud = FindFirstObjectByType<TopHudPanelView>();
+        pauseTrigger = hud != null ? hud.MenuButton : null;
+        if (pauseTrigger != null)
         {
-            if (startButtonImage != null)
-            {
-                startButtonImage.sprite = null;
-                startButtonImage.color = new Color(0.04f, 0.15f, 0.34f, 1f);
-            }
-            startButtonText.text = "Reiniciar";
-            startButtonText.color = Color.white;
-            startButtonText.fontStyle = FontStyles.Bold;
-            startButtonText.fontSize = 30f;
+            // RemoveAllListeners does not remove persistent Inspector callbacks.
+            // The HUD button previously had ReturnToMenu serialized in this scene.
+            pauseTrigger.onClick = new Button.ButtonClickedEvent();
+            pauseTrigger.onClick.AddListener(PauseGame);
         }
+
+        if (pausePanel == null)
+            return;
+
+        pausePanelView = pausePanel.GetComponent<PausePanelView>();
+        if (pausePanelView != null)
+            pausePanelView.InitializeHidden();
+        else
+            pausePanel.SetActive(false);
+
+        Transform box = pausePanel.transform.Find("PauseBox");
+        if (box == null) return;
+        BindPauseAction(box, "ResumeButton", ResumeGame);
+        BindPauseAction(box, "CloseButton", ResumeGame);
+        BindPauseAction(box, "RestartButton", RestartScene);
+        BindPauseAction(box, "MenuButton", ReturnToMenu);
+    }
+
+    private static void BindPauseAction(Transform box, string name, UnityEngine.Events.UnityAction action)
+    {
+        Button button = box.Find(name)?.GetComponent<Button>();
+        if (button == null) return;
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(action);
+    }
+
+    private void PauseGame()
+    {
+        if (isPaused || pausePanel == null) return;
+        isPaused = true;
+        if (beatController != null) beatController.PauseBeats();
+        pausePanel.transform.SetAsLastSibling();
+        if (pausePanelView != null) pausePanelView.Show();
+        else pausePanel.SetActive(true);
+        Time.timeScale = 0f;
+        AudioListener.pause = true;
+    }
+
+    private void ResumeGame()
+    {
+        if (!isPaused) return;
+        isPaused = false;
+        if (pausePanelView != null) pausePanelView.Hide();
+        else pausePanel.SetActive(false);
+        AudioListener.pause = false;
+        Time.timeScale = 1f;
+        double elapsed = beatController != null ? beatController.ResumeBeats() : 0d;
+        if (elapsed <= 0d) return;
+        firstDemoBeatDspTime += elapsed;
+        calibrationStartDspTime += elapsed;
+        firstJudgedBeatDspTime += elapsed;
+        sessionStartDspTime += elapsed;
+        if (!double.IsNaN(lastJudgedBeatTime)) lastJudgedBeatTime += elapsed;
+        if (!double.IsNaN(lastMissedBeatTime)) lastMissedBeatTime += elapsed;
+        if (!double.IsNaN(lastTapDspTime)) lastTapDspTime += elapsed;
+        for (int i = 0; i < calibrationTaps.Count; i++) calibrationTaps[i] += elapsed;
+        obstacleSpawner?.ShiftSchedule(elapsed);
+    }
+
+    private void RestartScene()
+    {
+        EndSession(false, "restart");
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        SceneTransitionController.ReloadCurrentScene();
     }
 
     void ResetSessionStats()
@@ -584,6 +890,7 @@ public class TempoTapGameManager : MonoBehaviour
         score = 0;
         streak = 0;
         totalTapsJudged = 0;
+        physicalTapsJudged = 0;
         perfectCount = 0;
         goodCount = 0;
         earlyCount = 0;
@@ -595,22 +902,31 @@ public class TempoTapGameManager : MonoBehaviour
         intervalCount = 0;
         sumIntervalMs = 0.0;
         sumSquaredIntervalMs = 0.0;
+        recentBeats = 0;
+        recentAccurateBeats = 0;
+        highestDifficultyStage = 0;
+        pendingBpm = 0f;
+        calibrationTaps.Clear();
+        tapDetails.Clear();
+        reportChunkIndex = 0;
     }
 
-    void ReportAttempt(bool completed, string exitReason)
+    void ReportAttempt(bool completed, string exitReason, bool checkpoint = false)
     {
-        if (totalTapsJudged == 0 && collisionCount == 0)
+        if ((totalTapsJudged == 0 && collisionCount == 0 && tapDetails.Count == 0) ||
+            (checkpoint && tapDetails.Count < TapChunkSize))
             return;
 
         if (GameReportManager.Instance == null || SessionManager.Instance == null || !SessionManager.Instance.HasActiveSession)
             return;
 
         int hits = perfectCount + goodCount;
+        int savedTapCount = tapDetails.Count;
         double meanIntervalMs = intervalCount > 0 ? sumIntervalMs / intervalCount : 0.0;
         AttemptReportData report = new AttemptReportData
         {
             miniGame = "tempo_tap",
-            level = 1,
+            level = highestDifficultyStage + 1,
             difficulty = "adaptativa",
             bpm = beatController != null ? Mathf.RoundToInt(beatController.bpm) : 0,
             errors = earlyCount + lateCount + missCount + collisionCount,
@@ -623,6 +939,7 @@ public class TempoTapGameManager : MonoBehaviour
             exitReason = exitReason,
             tempoTap = new TempoTapMetricsData
             {
+                chunkIndex = reportChunkIndex,
                 judgedTaps = totalTapsJudged,
                 perfectTaps = perfectCount,
                 goodTaps = goodCount,
@@ -631,22 +948,30 @@ public class TempoTapGameManager : MonoBehaviour
                 missedTaps = missCount,
                 collisions = collisionCount,
                 hitRatePercent = totalTapsJudged > 0 ? 100f * hits / totalTapsJudged : 0f,
-                meanOffsetMs = totalTapsJudged > 0 ? (float)(sumOffsetMs / totalTapsJudged) : 0f,
+                meanOffsetMs = physicalTapsJudged > 0 ? (float)(sumOffsetMs / physicalTapsJudged) : 0f,
                 intervalCount = intervalCount,
                 intervalStdDevMs = intervalCount > 0
                     ? (float)Math.Sqrt(Math.Max(0.0, sumSquaredIntervalMs / intervalCount - meanIntervalMs * meanIntervalMs))
                     : 0f,
+                startingBpm = startingBpm,
+                endingBpm = beatController != null ? beatController.bpm : startingBpm,
+                taps = new List<TempoTapTapMetric>(tapDetails),
             },
         };
 
-        GameReportManager.Instance.ReportAttempt(report, null, error => Debug.LogWarning("TempoTap report error: " + error));
+        GameReportManager.Instance.ReportAttempt(report, () =>
+        {
+            if (!checkpoint) return;
+            tapDetails.RemoveRange(0, Mathf.Min(savedTapCount, tapDetails.Count));
+            reportChunkIndex++;
+        }, error => Debug.LogWarning("TempoTap report error: " + error));
     }
 
-    float GetAdaptiveMultiplier(float defaultMultiplier, float targetContactTime)
+    float GetAdaptiveMultiplier(float defaultMultiplier, float targetContactTime, BeatSyncedObstacleSpawner.ObstacleAction action)
     {
         if (obstacleSpawner == null)
             return defaultMultiplier;
 
-        return obstacleSpawner.GetAdaptiveJumpMultiplier(defaultMultiplier, targetContactTime);
+        return obstacleSpawner.GetAdaptiveJumpMultiplier(defaultMultiplier, targetContactTime, action);
     }
 }

@@ -9,11 +9,28 @@ public class PulseOnBeat : MonoBehaviour
     Vector3 baseScale;
     float target = 1f;
 
-    void Start()
+    void Awake()
     {
         baseScale = transform.localScale;
+    }
+
+    void OnEnable()
+    {
         if (beatController != null)
-            beatController.OnBeat += _ => target = scaleUp;
+            beatController.OnBeat += HandleBeat;
+    }
+
+    void OnDisable()
+    {
+        if (beatController != null)
+            beatController.OnBeat -= HandleBeat;
+        target = 1f;
+        transform.localScale = baseScale;
+    }
+
+    void HandleBeat(double beatTime)
+    {
+        target = scaleUp;
     }
 
     void Update()

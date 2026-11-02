@@ -8,6 +8,7 @@ using UnityEngine.UI;
 
 public class BasicRhythmGameManager : MonoBehaviour
 {
+    private const int TapChunkSize = 256;
     private enum FigureType
     {
         Redonda,
@@ -65,11 +66,10 @@ public class BasicRhythmGameManager : MonoBehaviour
     [SerializeField] private AudioClip tryAgainVoiceClip;
 
     [Header("Juego")]
-    [SerializeField] private float bpm = 80f;
+    [SerializeField] private float bpm = 40f;
     [SerializeField] private float totalPatternBeats = 4f;
     [SerializeField] private int patternMeasures = 4;
     [SerializeField] [Range(0.4f, 1f)] private float longPatternRequiredHitRatio = 0.55f;
-    [SerializeField] private float failureAdvanceDelay = 0.35f;
     [SerializeField] private float roundIntroDelay = 0.6f;
     [SerializeField] private float roundOutroDelay = 1f;
     [SerializeField] private float perfectToleranceBeats = 0.12f;
@@ -86,6 +86,8 @@ public class BasicRhythmGameManager : MonoBehaviour
     [SerializeField] private Color noteLitColor = Color.white;
     [SerializeField] private Color noteDimColor = new Color(1f, 1f, 1f, 0.25f);
     [SerializeField] private Color longNoteFillColor = new Color(0.35f, 0.8f, 1f, 0.75f);
+    [SerializeField] private Color silenceProgressColor = new Color(0.62f, 0.38f, 0.87f, 1f);
+    [SerializeField] private Color failureProgressColor = new Color(0.93f, 0.2f, 0.24f, 1f);
     [SerializeField] private float iconSpacing = 16f;
     [SerializeField] private float drumPulseScale = 1.08f;
     [SerializeField] private float drumPulseDuration = 0.12f;
@@ -103,18 +105,12 @@ public class BasicRhythmGameManager : MonoBehaviour
     [SerializeField] private float focusedBlockTransitionDuration = 0.18f;
     [SerializeField] private float activeFillMoveDistance = 10f;
     [SerializeField] private float activeFillMoveSpeed = 4.5f;
-    [SerializeField] private float noteResultHoldSeconds = 0.12f;
     [SerializeField] private float statusMessageDuration = 0.45f;
     [SerializeField] private float statusMessageLongDuration = 0.65f;
     [SerializeField] private float statusMessagePopScale = 1.08f;
     [SerializeField] private float statusMessageAnimDuration = 0.16f;
     [SerializeField] private Sprite successStatusSprite;
-    [SerializeField] private Sprite regularStatusSprite;
-    [SerializeField] private Sprite failStatusSprite;
-    [SerializeField] private Sprite observeStatusSprite;
-    [SerializeField] private Sprite turnStatusSprite;
-    [SerializeField] private Sprite waitStatusSprite;
-    [SerializeField] private Sprite silenceStatusSprite;
+    [SerializeField] private OutcomeFeedbackView outcomeFeedback;
     [SerializeField] private Color roundCelebrationColor = new Color(1f, 0.94f, 0.72f, 0.92f);
     [SerializeField] private Color perfectRoundCelebrationColor = new Color(1f, 0.98f, 0.82f, 0.95f);
     [SerializeField] private Color tutorialCompletionCelebrationColor = new Color(0.78f, 0.95f, 1f, 0.95f);
@@ -122,7 +118,6 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private readonly List<FigureDefinition> figures = new List<FigureDefinition>();
     private readonly List<Image> patternIcons = new List<Image>();
-    private readonly List<Image> patternFillImages = new List<Image>();
     private readonly List<FigureDefinition> currentPattern = new List<FigureDefinition>();
     private readonly List<int> currentPatternBlockNoteCounts = new List<int>();
 
@@ -154,7 +149,21 @@ public class BasicRhythmGameManager : MonoBehaviour
     private RectTransform scorePanelRect;
     private RectTransform levelPanelRect;
     private RectTransform livesPanelRect;
-    private TMP_Text focusedBlockProgressText;
+    private RectTransform noteProgressRoot;
+    private RectTransform noteProgressTrack;
+    private Image noteProgressFill;
+    private Image noteProgressTrackImage;
+    private Image tutorialTapHandImage;
+    private Image progressTapHandImage;
+    private Texture2D tutorialHandTexture;
+    private Sprite tutorialHandSprite;
+    private readonly Image[] beatDividers = new Image[3];
+    private Texture2D noteProgressTexture;
+    private Sprite noteProgressSprite;
+    private RectTransform drumRect;
+    private Vector2 originalDrumPosition;
+    private Vector2 lastProgressCanvasSize;
+    private int progressNoteIndex = -1;
     private Vector3 scorePanelBaseScale = Vector3.one;
     private Vector3 levelPanelBaseScale = Vector3.one;
     private Vector3 livesPanelBaseScale = Vector3.one;
@@ -168,6 +177,8 @@ public class BasicRhythmGameManager : MonoBehaviour
     private Coroutine livesHudRoutine;
     private Coroutine focusedBlockTransitionRoutine;
     private Coroutine roundCelebrationRoutine;
+    private Coroutine failureProgressRoutine;
+    private bool failureProgressActive;
     private bool waitingForInput;
     private double inputPhaseStartDspTime;
     private double pausedAtDspTime;
@@ -180,6 +191,10 @@ public class BasicRhythmGameManager : MonoBehaviour
     private bool roundUsedOnlyPerfectTiming;
     private int roundSuccessfulHits;
     private int roundFailures;
+    private int assistedAttempts;
+    private int recoverySuccessStreak;
+    private float initialBpm;
+    private int initialPatternMeasures;
     private bool roundCompletedSuccessfully;
     private bool attemptFinished;
     private bool isPaused;
@@ -210,8 +225,10 @@ public class BasicRhythmGameManager : MonoBehaviour
     private readonly Dictionary<FigureType, int> roundsSinceFigureShown = new Dictionary<FigureType, int>();
     private readonly Dictionary<FigureType, BasicRhythmFigureMetric> figureCounters = new Dictionary<FigureType, BasicRhythmFigureMetric>();
     private BasicRhythmMetricsData figureMetrics;
+    private int reportChunkIndex;
     private bool isShowingDemoPattern;
     private float attemptStartedAt;
+    private double attemptStartedDspTime;
     private int attemptErrors;
     private int attemptCorrectAnswers;
     private int attemptLevelRepetitions;
@@ -220,24 +237,32 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private void Start()
     {
+        LandscapePhoneCanvas.Configure(GetComponent<Canvas>());
+        GameCanvasBackgroundCover.Attach(GetComponent<Canvas>(), "Background");
         GameSettings.EnsureInitialized();
         ResolveReferences();
         if (!ValidateReferences())
             return;
 
         BuildFigureDefinitions();
+        initialBpm = bpm;
+        initialPatternMeasures = patternMeasures;
         InitializeFigureMetrics();
         AssignChatterboxVoices();
         EnsureAudioSource();
         EnsureDrumInput();
         EnsureStatusOverlay();
-        EnsureFocusedBlockProgressText();
+        EnsureNoteProgressBar();
+        EnsureTutorialTapHint();
         EnsureRoundCelebrationRing();
 
         score = 0;
         level = 0;
         lives = maxLives;
+        if (livesPanelRect != null)
+            livesPanelRect.gameObject.SetActive(false);
         attemptStartedAt = Time.time;
+        attemptStartedDspTime = AudioSettings.dspTime;
         attemptErrors = 0;
         attemptCorrectAnswers = 0;
         attemptLevelRepetitions = 0;
@@ -255,6 +280,18 @@ public class BasicRhythmGameManager : MonoBehaviour
         Time.timeScale = 1f;
         AudioListener.pause = false;
         GameSettings.SettingsChanged -= ApplyGameSettings;
+    }
+
+    private void OnDestroy()
+    {
+        if (tutorialHandSprite != null)
+            Destroy(tutorialHandSprite);
+        if (tutorialHandTexture != null)
+            Destroy(tutorialHandTexture);
+        if (noteProgressSprite != null)
+            Destroy(noteProgressSprite);
+        if (noteProgressTexture != null)
+            Destroy(noteProgressTexture);
     }
 
     private void OnApplicationPause(bool paused)
@@ -366,7 +403,9 @@ public class BasicRhythmGameManager : MonoBehaviour
 
         if (IsSilenceFigure(currentNote))
         {
-            ResolveFailure("Ahora escucha y espera");
+            RecordTimedTap(currentNote, tapDspTime - (inputPhaseStartDspTime +
+                GetPatternBeatsBefore(currentNoteIndex) * GetBeatDuration()));
+            ResolveFailure("Ahora escucha y espera", true);
             return;
         }
 
@@ -426,6 +465,7 @@ public class BasicRhythmGameManager : MonoBehaviour
                 waitingForInput = true;
                 currentNoteIndex = 0;
                 currentNoteTapCount = 0;
+                ShowProgressForNote(0);
                 sustainedBeatCuesPlayed = 0;
                 noteTransitionLocked = false;
                 roundUsedOnlyPerfectTiming = true;
@@ -469,9 +509,6 @@ public class BasicRhythmGameManager : MonoBehaviour
         noteTransitionLocked = false;
         lastFocusedBlockIndex = -1;
 
-        if (focusedBlockProgressText != null)
-            focusedBlockProgressText.gameObject.SetActive(false);
-
         BuildPatternVisuals();
         SetDrumInteractable(false);
         drumButton.transform.localScale = Vector3.one;
@@ -504,6 +541,7 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private IEnumerator AnimateFillForDemo(int noteIndex, FigureDefinition note, float duration)
     {
+        ShowProgressForNote(noteIndex);
         SetFillAmount(noteIndex, 0f);
 
         float elapsed = 0f;
@@ -583,6 +621,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         currentPatternBlockNoteCounts.Add(1);
         noteCountInPattern = 1;
         BuildPatternVisuals();
+        ShowProgressForNote(0);
         SetDrumInteractable(true);
 
         tutorialFillWarmupRemaining = 3;
@@ -627,6 +666,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (InTutorialDrumWarmup())
         {
             tutorialDrumWarmupRemaining--;
+            AccessibleHaptics.Success();
             PlaySfx(metronomeClip);
             PulseDrum(timingCueColor);
 
@@ -642,6 +682,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         {
             if (!tutorialFillWarmupWaitingForTap)
             {
+                AccessibleHaptics.Error();
                 SetFeedback("Espera a que se llene", normalFeedbackColor);
                 PulseDrum(timingCueColor);
                 return true;
@@ -649,6 +690,7 @@ public class BasicRhythmGameManager : MonoBehaviour
 
             tutorialFillWarmupWaitingForTap = false;
             tutorialFillWarmupAttemptCompleted = true;
+            AccessibleHaptics.Success();
             SetPatternResultColor(0, successFeedbackColor, true);
             PlaySfx(metronomeClip);
             PulseDrum(successFeedbackColor);
@@ -682,11 +724,6 @@ public class BasicRhythmGameManager : MonoBehaviour
                 SetFillAmount(i, progress);
                 UpdateActiveFillMotion(i);
             }
-            else
-            {
-                SetFillAmount(i, 0f);
-            }
-
             if (i > currentNoteIndex)
             {
                 HighlightPatternIcon(i, noteLitColor);
@@ -732,10 +769,11 @@ public class BasicRhythmGameManager : MonoBehaviour
         }
         else
         {
-            ResolveFailure(tapDspTime < expectedEnd ? "Un poco antes" : "Un poco después");
+            ResolveFailure(tapDspTime < expectedEnd ? "Un poco antes" : "Un poco después", true);
             return;
         }
 
+        AccessibleHaptics.Success();
         RecordFigureSuccess(currentNote);
         QueueAdvanceToNextNote();
     }
@@ -755,7 +793,7 @@ public class BasicRhythmGameManager : MonoBehaviour
 
         if (timingErrorBeats > goodToleranceBeats)
         {
-            ResolveFailure(tapDspTime < expectedTapTime ? "Un poco antes" : "Un poco después");
+            ResolveFailure(tapDspTime < expectedTapTime ? "Un poco antes" : "Un poco después", true);
             return;
         }
 
@@ -763,6 +801,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             roundUsedOnlyPerfectTiming = false;
 
         currentNoteTapCount++;
+        AccessibleHaptics.Success();
         PulseDrum(successFeedbackColor);
 
         if (currentNoteTapCount < GetRequiredTapCount(currentNote))
@@ -791,7 +830,21 @@ public class BasicRhythmGameManager : MonoBehaviour
     private void CompletePatternSuccess()
     {
         waitingForInput = false;
+        if (noteProgressRoot != null)
+            noteProgressRoot.gameObject.SetActive(false);
         roundCompletedSuccessfully = true;
+
+        assistedAttempts = 0;
+        if (!tutorialActive && roundFailures == 0 && ++recoverySuccessStreak >= 3)
+        {
+            bpm = Mathf.Min(initialBpm, bpm + 5f);
+            patternMeasures = Mathf.Min(initialPatternMeasures, patternMeasures + 1);
+            recoverySuccessStreak = 0;
+        }
+        else if (roundFailures > 0)
+        {
+            recoverySuccessStreak = 0;
+        }
 
         bool isPerfectAttempt = roundUsedOnlyPerfectTiming && roundFailures == 0 && roundSuccessfulHits == noteCountInPattern;
         bool tutorialWillComplete = tutorialActive && tutorialStepIndex + 1 >= 5;
@@ -832,31 +885,63 @@ public class BasicRhythmGameManager : MonoBehaviour
         }
     }
 
-    private void ResolveFailure(string reason)
+    private void ResolveFailure(string reason, bool fromTap = false)
     {
+        if (fromTap)
+            AccessibleHaptics.Error();
         currentNoteTapCount = 0;
         sustainedBeatCuesPlayed = 0;
 
         if (drumButton != null)
         {
+            if (drumPulseRoutine != null)
+            {
+                StopCoroutine(drumPulseRoutine);
+                drumPulseRoutine = null;
+            }
             drumButton.transform.localScale = Vector3.one;
+            if (drumButtonImage != null)
+                drumButtonImage.color = drumButtonBaseColor;
             SetDrumInteractable(false);
         }
 
         if (currentNoteIndex >= 0 && currentNoteIndex < patternIcons.Count)
-            SetPatternResultColor(currentNoteIndex, failFeedbackColor, UsesLongNoteTapCue(GetCurrentNote()));
-
-        if (currentNoteIndex >= 0 && !UsesLongNoteTapCue(GetCurrentNote()))
-            SetFillAmount(currentNoteIndex, 0f);
+            HighlightPatternIcon(currentNoteIndex, failFeedbackColor);
+        ResetPatternPositions();
 
         roundFailures++;
         attemptErrors++;
         RecordFigureFailure(GetCurrentNote());
-        PlaySfx(failClip);
-        PulseDrum(failFeedbackColor);
-        SetFeedback(ComposeFeedback(reason), failFeedbackColor);
+        if (outcomeFeedback != null)
+            outcomeFeedback.Hide();
+        if (statusOverlayRoutine != null)
+        {
+            StopCoroutine(statusOverlayRoutine);
+            statusOverlayRoutine = null;
+        }
+        HideStatusOverlay();
 
         QueueAdvanceToNextNote(true);
+        if (noteProgressRoot != null && noteProgressRoot.gameObject.activeSelf)
+        {
+            if (failureProgressRoutine != null)
+                StopCoroutine(failureProgressRoutine);
+            failureProgressActive = true;
+            noteProgressFill.color = failureProgressColor;
+            noteProgressTrackImage.color = failureProgressColor;
+            failureProgressRoutine = StartCoroutine(RestoreProgressColorAfterFailure());
+        }
+    }
+
+    private IEnumerator RestoreProgressColorAfterFailure()
+    {
+        yield return new WaitForSeconds(0.3f);
+        failureProgressActive = false;
+        failureProgressRoutine = null;
+        if (noteProgressTrackImage != null)
+            noteProgressTrackImage.color = new Color(0.89f, 0.93f, 0.95f, 1f);
+        if (progressNoteIndex >= 0)
+            SetFillColor(progressNoteIndex, longNoteFillColor);
     }
 
     private void AdvanceToNextNote(bool resetTimingWindow = false)
@@ -864,6 +949,8 @@ public class BasicRhythmGameManager : MonoBehaviour
         currentNoteIndex++;
         currentNoteTapCount = 0;
         sustainedBeatCuesPlayed = 0;
+        if (currentNoteIndex < noteCountInPattern)
+            ShowProgressForNote(currentNoteIndex);
 
         if (currentNoteIndex >= noteCountInPattern)
         {
@@ -871,17 +958,17 @@ public class BasicRhythmGameManager : MonoBehaviour
             return;
         }
 
+        if (resetTimingWindow)
+            inputPhaseStartDspTime = AudioSettings.dspTime - GetPatternBeatsBefore(currentNoteIndex) * GetBeatDuration();
+
         if (useFocusedPatternPresentation && GetPatternBlockIndex(currentNoteIndex) != lastFocusedBlockIndex)
         {
-            StartCoroutine(EnterFocusedGameplayBlock(resetTimingWindow));
-            return;
+            lastFocusedBlockIndex = GetPatternBlockIndex(currentNoteIndex);
+            ApplyFocusedBlockVisibilityInstant(lastFocusedBlockIndex);
         }
 
         if (drumButton != null)
             SetDrumInteractable(true);
-
-        if (resetTimingWindow)
-            inputPhaseStartDspTime = AudioSettings.dspTime + failureAdvanceDelay - GetPatternBeatsBefore(currentNoteIndex) * GetBeatDuration();
 
         SetFeedback(ComposeFeedback(GetInputInstruction()), normalFeedbackColor);
     }
@@ -891,33 +978,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (noteTransitionLocked)
             return;
 
-        StartCoroutine(AdvanceToNextNoteAfterDelay(resetTimingWindow));
-    }
-
-    private IEnumerator AdvanceToNextNoteAfterDelay(bool resetTimingWindow)
-    {
-        noteTransitionLocked = true;
-        if (drumButton != null)
-            SetDrumInteractable(false);
-
-        yield return new WaitForSeconds(noteResultHoldSeconds);
         AdvanceToNextNote(resetTimingWindow);
-        if (!useFocusedPatternPresentation || GetPatternBlockIndex(currentNoteIndex) == lastFocusedBlockIndex)
-            noteTransitionLocked = false;
-    }
-
-    private IEnumerator EnterFocusedGameplayBlock(bool resetTimingWindow)
-    {
-        yield return StartCoroutine(EnsureFocusedBlockForNote(currentNoteIndex, animate: true));
-
-        double baseDspTime = AudioSettings.dspTime + (resetTimingWindow ? failureAdvanceDelay : 0f);
-        inputPhaseStartDspTime = baseDspTime - GetPatternBeatsBefore(currentNoteIndex) * GetBeatDuration();
-
-        if (drumButton != null)
-            SetDrumInteractable(true);
-
-        SetFeedback(ComposeFeedback(GetInputInstruction()), normalFeedbackColor);
-        noteTransitionLocked = false;
     }
 
     private void FinishCurrentAttempt()
@@ -939,18 +1000,22 @@ public class BasicRhythmGameManager : MonoBehaviour
             tutorialDemoShownForCurrentStep = false;
 
         attemptLevelRepetitions++;
-        lives--;
-        UpdateHud();
-
-        if (lives <= 0)
+        assistedAttempts++;
+        recoverySuccessStreak = 0;
+        if (assistedAttempts >= 2)
         {
-            attemptExitReason = "out_of_attempts";
-            ReportAttempt(false);
-            ShowGameSummary();
-            return;
+            assistedAttempts = 0;
+            if (!tutorialActive)
+                patternMeasures = Mathf.Max(1, patternMeasures - 1);
+            bpm = Mathf.Max(40f, bpm - 5f);
+            PrepareNextPattern();
+            roundFailures = 0;
+            SetFeedback(ComposeFeedback("Vamos más despacio con una pista"), normalFeedbackColor, true);
         }
-
-        SetFeedback(ComposeFeedback("Probemos otra vez"), failFeedbackColor);
+        else
+        {
+            SetFeedback(ComposeFeedback("Probemos otra vez con ayuda"), normalFeedbackColor, true);
+        }
         PlayVoice(tryAgainVoiceClip);
     }
 
@@ -1345,13 +1410,9 @@ public class BasicRhythmGameManager : MonoBehaviour
                 iconRect.anchoredPosition = new Vector2(blockX + localX, blockY + localY);
                 iconRect.sizeDelta = new Vector2(iconSize, iconSize);
 
-                FigureDefinition patternNote = GetPatternNoteAt(patternIndex);
                 patternIcons.Add(icon);
-                patternFillImages.Add(CreateFillImage(icon));
                 focusedBasePositions.Add(iconRect.anchoredPosition);
 
-                if (UsesSegmentedTapFigure(patternNote))
-                    CreateSegmentDividers(icon, GetRequiredTapCount(patternNote));
             }
         }
 
@@ -1371,8 +1432,10 @@ public class BasicRhythmGameManager : MonoBehaviour
             int rows = Mathf.CeilToInt(notesInBlock / 4f);
             float cellWidth = focusedPatternAreaSize.x / columns;
             float cellHeight = focusedPatternAreaSize.y / rows;
-            float iconSize = Mathf.Clamp(Mathf.Min(cellWidth, cellHeight) - iconSpacing, 96f, focusedPatternIconSize);
-                float totalHeight = rows * iconSize + (rows - 1) * iconSpacing;
+            float canvasHeight = rootCanvas != null ? ((RectTransform)rootCanvas.transform).rect.height : 800f;
+            float heightLimit = Mathf.Max(72f, (canvasHeight - 360f) * 0.4f);
+            float iconSize = Mathf.Min(Mathf.Clamp(Mathf.Min(cellWidth, cellHeight) - iconSpacing, 72f, focusedPatternIconSize), heightLimit);
+            Vector2 patternPosition = focusedPatternPosition + new Vector2(0f, Mathf.Max(0f, (800f - canvasHeight) * 0.25f));
 
             for (int noteIndex = 0; noteIndex < notesInBlock && patternIndex < noteCountInPattern; noteIndex++, patternIndex++)
             {
@@ -1393,17 +1456,13 @@ public class BasicRhythmGameManager : MonoBehaviour
                 float rowWidth = rowItems * iconSize + (rowItems - 1) * iconSpacing;
                 float localX = -rowWidth * 0.5f + iconSize * 0.5f + column * (iconSize + iconSpacing);
                 float localY = ((rows - 1) * (iconSize + iconSpacing) * 0.5f) - row * (iconSize + iconSpacing);
-                Vector2 anchored = focusedPatternPosition + new Vector2(localX, localY);
+                Vector2 anchored = patternPosition + new Vector2(localX, localY);
                 iconRect.anchoredPosition = anchored;
                 iconRect.sizeDelta = new Vector2(iconSize, iconSize);
 
-                FigureDefinition patternNote = GetPatternNoteAt(patternIndex);
                 patternIcons.Add(icon);
-                patternFillImages.Add(CreateFillImage(icon));
                 focusedBasePositions.Add(anchored);
 
-                if (UsesSegmentedTapFigure(patternNote))
-                    CreateSegmentDividers(icon, GetRequiredTapCount(patternNote));
             }
         }
     }
@@ -1417,8 +1476,10 @@ public class BasicRhythmGameManager : MonoBehaviour
         }
 
         patternIcons.Clear();
-        patternFillImages.Clear();
         focusedBasePositions.Clear();
+        progressNoteIndex = -1;
+        if (noteProgressRoot != null)
+            noteProgressRoot.gameObject.SetActive(false);
     }
 
     private Sprite GetVisualSpriteForPatternIndex(int patternIndex, int indexWithinBlock)
@@ -1445,14 +1506,15 @@ public class BasicRhythmGameManager : MonoBehaviour
         {
             HighlightPatternIcon(i, iconColor);
             SetFillColor(i, longNoteFillColor);
-            SetFillAmount(i, 0f);
         }
+
+        if (noteCountInPattern > 0)
+            ShowProgressForNote(0);
 
         if (useFocusedPatternPresentation)
         {
             lastFocusedBlockIndex = GetPatternBlockIndex(0);
             ApplyFocusedBlockVisibilityInstant(lastFocusedBlockIndex);
-            UpdateFocusedBlockProgress(lastFocusedBlockIndex);
         }
 
         UpdateTimingCue(false);
@@ -1463,7 +1525,9 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (index < 0 || index >= patternIcons.Count || patternIcons[index] == null)
             return;
 
-        patternIcons[index].color = color;
+        // Conservar las ilustraciones originales; sólo las tarjetas ya evaluadas reciben un tinte suave.
+        patternIcons[index].color = color == failFeedbackColor ? new Color(1f, 0.38f, 0.38f, 1f) :
+            color == successFeedbackColor ? new Color(0.62f, 0.95f, 0.64f, 1f) : Color.white;
     }
 
     private void SetPatternResultColor(int index, Color color, bool fillFully)
@@ -1476,19 +1540,22 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private void SetFillAmount(int index, float amount)
     {
-        if (index < 0 || index >= patternFillImages.Count || patternFillImages[index] == null)
+        if (index != progressNoteIndex || noteProgressFill == null)
             return;
 
-        patternFillImages[index].fillAmount = Mathf.Clamp01(amount);
-        patternFillImages[index].gameObject.SetActive(amount > 0f);
+        noteProgressFill.fillAmount = Mathf.Clamp01(amount);
+        noteProgressFill.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+            noteProgressTrack.rect.width * noteProgressFill.fillAmount);
     }
 
     private void SetFillColor(int index, Color color)
     {
-        if (index < 0 || index >= patternFillImages.Count || patternFillImages[index] == null)
+        if (index != progressNoteIndex || noteProgressFill == null)
             return;
 
-        patternFillImages[index].color = color;
+        if (!failureProgressActive || color != longNoteFillColor)
+            noteProgressFill.color = color == longNoteFillColor && IsSilenceFigure(GetPatternNoteAt(index))
+                ? silenceProgressColor : color;
     }
 
     private void UpdateFocusedPatternVisibility(int activeIndex)
@@ -1501,7 +1568,6 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (activeBlockIndex != lastFocusedBlockIndex)
         {
             lastFocusedBlockIndex = activeBlockIndex;
-            UpdateFocusedBlockProgress(activeBlockIndex);
             if (focusedBlockTransitionRoutine != null)
             {
                 StopCoroutine(focusedBlockTransitionRoutine);
@@ -1536,8 +1602,6 @@ public class BasicRhythmGameManager : MonoBehaviour
                 }
             }
 
-            if (i < patternFillImages.Count && patternFillImages[i] != null)
-                patternFillImages[i].gameObject.SetActive(visible && patternFillImages[i].fillAmount > 0f);
         }
     }
 
@@ -1557,7 +1621,6 @@ public class BasicRhythmGameManager : MonoBehaviour
         }
 
         lastFocusedBlockIndex = targetBlockIndex;
-        UpdateFocusedBlockProgress(targetBlockIndex);
 
         if (focusedBlockTransitionRoutine != null)
         {
@@ -1605,8 +1668,6 @@ public class BasicRhythmGameManager : MonoBehaviour
                     activeIndices.Add(i);
             }
 
-            if (i < patternFillImages.Count && patternFillImages[i] != null)
-                patternFillImages[i].gameObject.SetActive(visible && patternFillImages[i].fillAmount > 0f);
         }
 
         float elapsed = 0f;
@@ -1628,12 +1689,6 @@ public class BasicRhythmGameManager : MonoBehaviour
                 iconColor.a = t;
                 patternIcons[iconIndex].color = iconColor;
 
-                if (iconIndex < patternFillImages.Count && patternFillImages[iconIndex] != null)
-                {
-                    Color fillColor = patternFillImages[iconIndex].color;
-                    fillColor.a = t * longNoteFillColor.a;
-                    patternFillImages[iconIndex].color = fillColor;
-                }
             }
 
             yield return null;
@@ -1650,12 +1705,6 @@ public class BasicRhythmGameManager : MonoBehaviour
             iconColor.a = 1f;
             patternIcons[iconIndex].color = iconColor;
 
-            if (iconIndex < patternFillImages.Count && patternFillImages[iconIndex] != null)
-            {
-                Color fillColor = patternFillImages[iconIndex].color;
-                fillColor.a = longNoteFillColor.a;
-                patternFillImages[iconIndex].color = fillColor;
-            }
         }
 
         focusedBlockTransitionRoutine = null;
@@ -1667,58 +1716,6 @@ public class BasicRhythmGameManager : MonoBehaviour
             return -1;
 
         return patternBlockIndexByNote[noteIndex];
-    }
-
-    private void EnsureFocusedBlockProgressText()
-    {
-        if (rhythmPanel == null)
-            return;
-
-        Transform existing = rhythmPanel.Find("FocusedBlockProgressText");
-        if (existing == null)
-        {
-            GameObject textObject = new GameObject("FocusedBlockProgressText", typeof(RectTransform), typeof(TextMeshProUGUI));
-            RectTransform rect = textObject.GetComponent<RectTransform>();
-            rect.SetParent(rhythmPanel, false);
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = focusedPatternPosition + new Vector2(0f, -220f);
-            rect.sizeDelta = new Vector2(380f, 56f);
-
-            focusedBlockProgressText = textObject.GetComponent<TextMeshProUGUI>();
-            focusedBlockProgressText.alignment = TextAlignmentOptions.Center;
-            focusedBlockProgressText.enableAutoSizing = true;
-            focusedBlockProgressText.fontSizeMin = 22f;
-            focusedBlockProgressText.fontSizeMax = 34f;
-            focusedBlockProgressText.fontStyle = FontStyles.Bold;
-            focusedBlockProgressText.color = new Color(1f, 1f, 1f, 0.92f);
-            focusedBlockProgressText.raycastTarget = false;
-            if (levelText != null)
-                focusedBlockProgressText.font = levelText.font;
-        }
-        else
-        {
-            focusedBlockProgressText = existing.GetComponent<TMP_Text>();
-        }
-
-        if (focusedBlockProgressText != null)
-            focusedBlockProgressText.gameObject.SetActive(false);
-    }
-
-    private void UpdateFocusedBlockProgress(int activeBlockIndex)
-    {
-        if (focusedBlockProgressText == null)
-            return;
-
-        if (!useFocusedPatternPresentation || activeBlockIndex < 0)
-        {
-            focusedBlockProgressText.gameObject.SetActive(false);
-            return;
-        }
-
-        focusedBlockProgressText.gameObject.SetActive(true);
-        focusedBlockProgressText.text = "Bloque " + (activeBlockIndex + 1) + "/" + currentPatternBlockNoteCounts.Count;
     }
 
     private void EnsureRoundCelebrationRing()
@@ -1799,53 +1796,261 @@ public class BasicRhythmGameManager : MonoBehaviour
         roundCelebrationRoutine = null;
     }
 
-    private Image CreateFillImage(Image parentIcon)
+    private void EnsureNoteProgressBar()
     {
-        GameObject fillObject = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-        RectTransform fillRect = fillObject.GetComponent<RectTransform>();
-        fillRect.SetParent(parentIcon.transform, false);
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
-
-        Image fillImage = fillObject.GetComponent<Image>();
-        fillImage.sprite = parentIcon.sprite;
-        fillImage.color = longNoteFillColor;
-        fillImage.preserveAspect = true;
-        fillImage.type = Image.Type.Filled;
-        fillImage.fillMethod = Image.FillMethod.Vertical;
-        fillImage.fillOrigin = (int)Image.OriginVertical.Bottom;
-        fillImage.fillAmount = 0f;
-        fillImage.raycastTarget = false;
-        fillObject.SetActive(false);
-        return fillImage;
-    }
-
-    private void CreateSegmentDividers(Image parentIcon, int segments)
-    {
-        if (segments <= 1)
+        if (rootCanvas == null || drumButton == null || noteProgressRoot != null)
             return;
 
-        for (int i = 1; i < segments; i++)
-        {
-            GameObject dividerObject = new GameObject("Divider_" + i, typeof(RectTransform), typeof(Image));
-            RectTransform dividerRect = dividerObject.GetComponent<RectTransform>();
-            dividerRect.SetParent(parentIcon.transform, false);
-            dividerRect.anchorMin = new Vector2(0.18f, i / (float)segments);
-            dividerRect.anchorMax = new Vector2(0.82f, i / (float)segments);
-            dividerRect.pivot = new Vector2(0.5f, 0.5f);
-            dividerRect.sizeDelta = new Vector2(0f, 4f);
+        drumRect = drumButton.transform as RectTransform;
+        originalDrumPosition = drumRect.anchoredPosition;
+        GameObject bar = new GameObject("NoteProgressBar", typeof(RectTransform));
+        noteProgressRoot = bar.GetComponent<RectTransform>();
+        noteProgressRoot.SetParent(rootCanvas.transform, false);
+        noteProgressRoot.SetSiblingIndex(drumRect.GetSiblingIndex() + 1);
+        noteProgressRoot.anchorMin = new Vector2(0.2f, 0f);
+        noteProgressRoot.anchorMax = new Vector2(0.8f, 0f);
+        noteProgressRoot.pivot = new Vector2(0.5f, 0f);
+        noteProgressRoot.anchoredPosition = new Vector2(0f, 14f);
+        noteProgressRoot.sizeDelta = new Vector2(0f, 36f);
 
-            Image dividerImage = dividerObject.GetComponent<Image>();
-            dividerImage.color = new Color(1f, 1f, 1f, 0.85f);
-            dividerImage.raycastTarget = false;
+        noteProgressTexture = new Texture2D(32, 32, TextureFormat.RGBA32, false);
+        noteProgressTexture.filterMode = FilterMode.Bilinear;
+        for (int y = 0; y < 32; y++)
+        {
+            for (int x = 0; x < 32; x++)
+            {
+                float dx = Mathf.Max(0f, Mathf.Abs(x - 15.5f) - 1.5f);
+                float dy = Mathf.Max(0f, Mathf.Abs(y - 15.5f) - 1.5f);
+                noteProgressTexture.SetPixel(x, y, new Color(1f, 1f, 1f,
+                    Mathf.Clamp01(14.5f - Mathf.Sqrt(dx * dx + dy * dy))));
+            }
         }
+        noteProgressTexture.Apply();
+        noteProgressSprite = Sprite.Create(noteProgressTexture, new Rect(0f, 0f, 32f, 32f),
+            new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(14f, 14f, 14f, 14f));
+
+        GameObject track = new GameObject("NoteProgressTrack", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        noteProgressTrack = track.GetComponent<RectTransform>();
+        noteProgressTrack.SetParent(noteProgressRoot, false);
+        noteProgressTrack.anchorMin = Vector2.zero;
+        noteProgressTrack.anchorMax = Vector2.one;
+        noteProgressTrack.sizeDelta = Vector2.zero;
+        Image trackImage = track.GetComponent<Image>();
+        noteProgressTrackImage = trackImage;
+        trackImage.sprite = noteProgressSprite;
+        trackImage.type = Image.Type.Sliced;
+        trackImage.color = new Color(0.89f, 0.93f, 0.95f, 1f);
+        trackImage.raycastTarget = false;
+
+        GameObject fill = new GameObject("NoteProgressFill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        RectTransform fillRect = fill.GetComponent<RectTransform>();
+        fillRect.SetParent(noteProgressTrack, false);
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = new Vector2(0f, 1f);
+        fillRect.pivot = new Vector2(0f, 0.5f);
+        fillRect.sizeDelta = Vector2.zero;
+        noteProgressFill = fill.GetComponent<Image>();
+        noteProgressFill.sprite = noteProgressSprite;
+        noteProgressFill.type = Image.Type.Sliced;
+        noteProgressFill.color = longNoteFillColor;
+        noteProgressFill.raycastTarget = false;
+
+        for (int i = 0; i < 3; i++)
+        {
+            GameObject divider = new GameObject("BeatDivider" + (i + 1), typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = divider.GetComponent<RectTransform>();
+            rect.SetParent(noteProgressTrack, false);
+            rect.anchorMin = rect.anchorMax = new Vector2((i + 1) / 4f, 0.5f);
+            rect.sizeDelta = new Vector2(5f, 32f);
+            beatDividers[i] = divider.GetComponent<Image>();
+            beatDividers[i].color = new Color(0.08f, 0.19f, 0.28f, 0.9f);
+            beatDividers[i].raycastTarget = false;
+        }
+
+        LayoutNoteProgressBar();
+        noteProgressRoot.gameObject.SetActive(false);
+    }
+
+    private void LayoutNoteProgressBar()
+    {
+        if (noteProgressRoot == null || drumRect == null)
+            return;
+
+        RectTransform canvasRect = rootCanvas.transform as RectTransform;
+        lastProgressCanvasSize = canvasRect.rect.size;
+        // Reservar sitio debajo del tambor sin desplazar las tarjetas.
+        float drumY = Mathf.Max(originalDrumPosition.y, -canvasRect.rect.height * 0.5f + drumRect.rect.height * 0.5f + 65f);
+        drumRect.anchoredPosition = new Vector2(originalDrumPosition.x, drumY);
+        noteProgressFill.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+            noteProgressTrack.rect.width * noteProgressFill.fillAmount);
+    }
+
+    private void LateUpdate()
+    {
+        if (noteProgressRoot != null && rootCanvas != null &&
+            ((RectTransform)rootCanvas.transform).rect.size != lastProgressCanvasSize)
+            LayoutNoteProgressBar();
+        UpdateTutorialTapHint();
+        UpdateProgressTapHint();
+    }
+
+    private void EnsureTutorialTapHint()
+    {
+        if (rootCanvas == null || drumButton == null || tutorialTapHandImage != null)
+            return;
+
+        // Mano dibujada como sprite para no depender de fuentes de emoji del dispositivo.
+        tutorialHandTexture = new Texture2D(80, 96, TextureFormat.RGBA32, false);
+        tutorialHandTexture.filterMode = FilterMode.Bilinear;
+        Vector2 fingerStart = new Vector2(41f, 37f);
+        Vector2 fingerEnd = new Vector2(41f, 79f);
+        Vector2 thumbStart = new Vector2(26f, 28f);
+        Vector2 thumbEnd = new Vector2(15f, 44f);
+        for (int y = 0; y < 96; y++)
+        {
+            for (int x = 0; x < 80; x++)
+            {
+                Vector2 point = new Vector2(x + 0.5f, y + 0.5f);
+                Vector2 palm = (point - new Vector2(40f, 27f)) / new Vector2(19f, 22f);
+                float palmDistance = (palm.magnitude - 1f) * 19f;
+                float fingerDistance = DistanceToHandStroke(point, fingerStart, fingerEnd) - 8f;
+                float thumbDistance = DistanceToHandStroke(point, thumbStart, thumbEnd) - 7f;
+                float cuffDistance = Mathf.Max(Mathf.Abs(point.x - 40f) - 15f,
+                    Mathf.Abs(point.y - 9f) - 9f);
+                float skinDistance = Mathf.Min(palmDistance, fingerDistance, thumbDistance);
+                float outline = Mathf.Clamp01(1f - Mathf.Min(skinDistance, cuffDistance) / 1.5f);
+                float skin = Mathf.Clamp01(0.5f - skinDistance);
+                float cuff = Mathf.Clamp01(0.5f - cuffDistance);
+                Color pixel = new Color(0.13f, 0.22f, 0.32f, outline);
+                pixel = Color.Lerp(pixel, new Color(0.99f, 0.79f, 0.58f, 1f), skin);
+                pixel = Color.Lerp(pixel, new Color(0.29f, 0.75f, 0.85f, 1f), cuff);
+                tutorialHandTexture.SetPixel(x, y, pixel);
+            }
+        }
+        tutorialHandTexture.Apply();
+        tutorialHandSprite = Sprite.Create(tutorialHandTexture, new Rect(0f, 0f, 80f, 96f),
+            new Vector2(0.5f, 0.5f), 100f);
+
+        GameObject hint = new GameObject("TutorialTapHand", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        RectTransform rect = hint.GetComponent<RectTransform>();
+        rect.SetParent(rootCanvas.transform, false);
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = new Vector2(62f, 76f);
+        tutorialTapHandImage = hint.GetComponent<Image>();
+        tutorialTapHandImage.sprite = tutorialHandSprite;
+        tutorialTapHandImage.raycastTarget = false;
+        hint.SetActive(false);
+
+        if (noteProgressRoot != null)
+        {
+            GameObject progressHint = new GameObject("NextTapHand", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform pointer = progressHint.GetComponent<RectTransform>();
+            pointer.SetParent(noteProgressRoot, false);
+            pointer.anchorMin = pointer.anchorMax = new Vector2(0.5f, 0f);
+            pointer.pivot = new Vector2(0.5f, 0f);
+            pointer.sizeDelta = new Vector2(50f, 60f);
+            progressTapHandImage = progressHint.GetComponent<Image>();
+            progressTapHandImage.sprite = tutorialHandSprite;
+            progressTapHandImage.raycastTarget = false;
+            progressHint.SetActive(false);
+        }
+    }
+
+    private void UpdateProgressTapHint()
+    {
+        if (progressTapHandImage == null || noteProgressTrack == null)
+            return;
+
+        FigureDefinition note = GetCurrentNote();
+        bool visible = waitingForInput && !isPaused && !gameFinished &&
+            progressNoteIndex == currentNoteIndex && UsesSegmentedTapFigure(note) &&
+            currentNoteTapCount < GetRequiredTapCount(note);
+        progressTapHandImage.gameObject.SetActive(visible);
+        if (!visible)
+            return;
+
+        int required = GetRequiredTapCount(note);
+        float nextFraction = (currentNoteTapCount + 1f) / required;
+        RectTransform pointer = progressTapHandImage.rectTransform;
+        pointer.anchoredPosition = new Vector2((nextFraction - 0.5f) * noteProgressTrack.rect.width, 47f);
+        float pulse = 1f + 0.1f * Mathf.Sin(Time.unscaledTime * 9f);
+        pointer.localScale = Vector3.one * pulse;
+        progressTapHandImage.color = new Color(1f, 1f, 1f, 0.95f);
+    }
+
+    private static float DistanceToHandStroke(Vector2 point, Vector2 start, Vector2 end)
+    {
+        Vector2 segment = end - start;
+        return Vector2.Distance(point, start + segment * Mathf.Clamp01(Vector2.Dot(point - start, segment) / segment.sqrMagnitude));
+    }
+
+    private void UpdateTutorialTapHint()
+    {
+        if (tutorialTapHandImage == null || drumRect == null)
+            return;
+
+        bool discovery = InTutorialDrumWarmup();
+        bool fillPractice = InTutorialFillWarmup();
+        FigureDefinition note = GetCurrentNote();
+        bool input = waitingForInput && note != null && !IsSilenceFigure(note);
+        bool visible = tutorialActive && !isPaused && !gameFinished &&
+            (discovery || fillPractice || input);
+        tutorialTapHandImage.gameObject.SetActive(visible);
+        if (!visible)
+            return;
+
+        bool tapNow = discovery || (fillPractice && tutorialFillWarmupWaitingForTap);
+        if (input)
+        {
+            float beatDuration = GetBeatDuration();
+            double expectedStart = inputPhaseStartDspTime + GetPatternBeatsBefore(currentNoteIndex) * beatDuration;
+            double expectedTap = UsesSegmentedTapFigure(note)
+                ? GetExpectedTapTime(note, currentNoteTapCount + 1, expectedStart, beatDuration)
+                : expectedStart + note.noteBeats * beatDuration;
+            tapNow = System.Math.Abs(AudioSettings.dspTime - expectedTap) <= goodToleranceBeats * beatDuration;
+        }
+
+        RectTransform rect = tutorialTapHandImage.rectTransform;
+        rect.position = drumRect.TransformPoint(new Vector3(drumRect.rect.width * 0.5f + 26f,
+            -drumRect.rect.height * 0.15f, 0f));
+        rect.localScale = Vector3.one * (tapNow ? 1f + 0.08f * Mathf.Sin(Time.unscaledTime * 13f) : 0.85f);
+        tutorialTapHandImage.color = new Color(1f, 1f, 1f, tapNow ? 1f : 0.38f);
+    }
+
+    private void ShowProgressForNote(int index)
+    {
+        if (noteProgressRoot == null || index < 0 || index >= noteCountInPattern)
+            return;
+
+        progressNoteIndex = index;
+        FigureDefinition note = GetPatternNoteAt(index);
+        if (failureProgressRoutine != null)
+        {
+            StopCoroutine(failureProgressRoutine);
+            failureProgressRoutine = null;
+        }
+        failureProgressActive = false;
+        noteProgressTrackImage.color = new Color(0.89f, 0.93f, 0.95f, 1f);
+        noteProgressFill.color = IsSilenceFigure(note) ? silenceProgressColor : longNoteFillColor;
+        noteProgressFill.fillAmount = 0f;
+        noteProgressFill.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0f);
+        int sections = UsesSegmentedTapFigure(note) ? GetRequiredTapCount(note) : 1;
+        for (int i = 0; i < beatDividers.Length; i++)
+        {
+            bool visible = i < sections - 1;
+            beatDividers[i].gameObject.SetActive(visible);
+            if (visible)
+            {
+                RectTransform divider = beatDividers[i].rectTransform;
+                divider.anchorMin = divider.anchorMax = new Vector2((i + 1f) / sections, 0.5f);
+            }
+        }
+        noteProgressRoot.gameObject.SetActive(true);
     }
 
     private bool UsesSegmentedTapFigure(FigureDefinition figure)
     {
-        return figure != null && figure.type == FigureType.Redonda;
+        return figure != null && (figure.type == FigureType.Redonda || figure.type == FigureType.Blanca);
     }
 
     private bool IsSilenceFigure(FigureDefinition figure)
@@ -1867,6 +2072,8 @@ public class BasicRhythmGameManager : MonoBehaviour
         {
             case FigureType.Redonda:
                 return 4;
+            case FigureType.Blanca:
+                return 2;
             default:
                 return 0;
         }
@@ -1913,7 +2120,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             case FigureType.Redonda:
                 return "Redonda: 4 toques";
             case FigureType.Blanca:
-                return "Blanca: escucha";
+                return "Blanca: 2 toques";
             case FigureType.Negra:
                 return "Negra: escucha";
             case FigureType.Silencio:
@@ -1938,7 +2145,7 @@ public class BasicRhythmGameManager : MonoBehaviour
             case FigureType.Redonda:
                 return "Toca 4 veces";
             case FigureType.Blanca:
-                return "Toca al llenarse";
+                return "Toca a la mitad y al final";
             case FigureType.Negra:
                 return "Toca al llenarse";
             case FigureType.Silencio:
@@ -1968,7 +2175,7 @@ public class BasicRhythmGameManager : MonoBehaviour
         bool livesChanged = lastShownLives != lives;
 
         if (scoreText != null)
-            scoreText.text = "Puntos " + score;
+            scoreText.text = "Puntaje " + score;
 
         if (levelText != null)
             levelText.text = tutorialActive ? "Tutorial" : "Nivel " + level;
@@ -2000,12 +2207,12 @@ public class BasicRhythmGameManager : MonoBehaviour
         lastShownLives = lives;
     }
 
-    private void SetFeedback(string message, Color color)
+    private void SetFeedback(string message, Color color, bool forceVisible = false)
     {
         if (statusOverlayText == null)
             return;
 
-        if (color == normalFeedbackColor && waitingForInput)
+        if (!forceVisible && color == normalFeedbackColor && waitingForInput)
         {
             HideStatusOverlay();
             return;
@@ -2014,7 +2221,8 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (statusOverlayRoutine != null)
             StopCoroutine(statusOverlayRoutine);
 
-        float duration = color == failFeedbackColor ? statusMessageLongDuration : statusMessageDuration;
+        float duration = forceVisible ? Mathf.Max(1.2f, statusMessageLongDuration) :
+            color == failFeedbackColor ? statusMessageLongDuration : statusMessageDuration;
         statusOverlayRoutine = StartCoroutine(ShowStatusOverlay(message, color, duration));
     }
 
@@ -2097,8 +2305,11 @@ public class BasicRhythmGameManager : MonoBehaviour
             yield break;
 
         statusOverlayText.text = message;
-        statusOverlayText.color = color;
+        statusOverlayText.color = color == successFeedbackColor ? new Color(0.05f, 0.36f, 0.19f)
+            : color == failFeedbackColor ? new Color(0.49f, 0.12f, 0.17f)
+            : new Color(0.08f, 0.18f, 0.3f);
         UpdateStatusOverlayIcon(color);
+        PositionStatusAboveFigures();
         statusOverlayGroup.gameObject.SetActive(true);
 
         float elapsed = 0f;
@@ -2160,27 +2371,27 @@ public class BasicRhythmGameManager : MonoBehaviour
             RectTransform rect = overlayObject.GetComponent<RectTransform>();
             rect.SetParent(rootCanvas.transform, false);
             rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = rect.anchorMin;
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(0f, 40f);
-            rect.sizeDelta = new Vector2(1100f, 280f);
+            rect.anchoredPosition = new Vector2(0f, 210f);
+            rect.sizeDelta = new Vector2(620f, 100f);
 
             GameObject textObject = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             RectTransform textRect = textObject.GetComponent<RectTransform>();
             textRect.SetParent(rect, false);
             textRect.anchorMin = new Vector2(0f, 0f);
             textRect.anchorMax = new Vector2(1f, 1f);
-            textRect.offsetMin = new Vector2(0f, 0f);
-            textRect.offsetMax = new Vector2(0f, -20f);
+            textRect.offsetMin = new Vector2(8f, 4f);
+            textRect.offsetMax = new Vector2(-8f, -4f);
 
             GameObject iconObject = new GameObject("Icon", typeof(RectTransform), typeof(Image));
             RectTransform iconRect = iconObject.GetComponent<RectTransform>();
             iconRect.SetParent(rect, false);
-            iconRect.anchorMin = new Vector2(0.5f, 1f);
-            iconRect.anchorMax = new Vector2(0.5f, 1f);
+            iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+            iconRect.anchorMax = iconRect.anchorMin;
             iconRect.pivot = new Vector2(0.5f, 0.5f);
-            iconRect.anchoredPosition = new Vector2(0f, -24f);
-            iconRect.sizeDelta = new Vector2(132f, 132f);
+            iconRect.anchoredPosition = new Vector2(-125f, 0f);
+            iconRect.sizeDelta = new Vector2(44f, 44f);
             statusOverlayIconImage = iconObject.GetComponent<Image>();
             statusOverlayIconImage.preserveAspect = true;
             statusOverlayIconImage.raycastTarget = false;
@@ -2188,12 +2399,12 @@ public class BasicRhythmGameManager : MonoBehaviour
             statusOverlayText = textObject.GetComponent<TextMeshProUGUI>();
             statusOverlayText.alignment = TextAlignmentOptions.Center;
             statusOverlayText.enableAutoSizing = true;
-            statusOverlayText.fontSizeMin = 34f;
-            statusOverlayText.fontSizeMax = 74f;
+            statusOverlayText.fontSizeMin = 18f;
+            statusOverlayText.fontSizeMax = 28f;
             statusOverlayText.fontStyle = FontStyles.Bold;
             statusOverlayText.textWrappingMode = TextWrappingModes.Normal;
             statusOverlayText.raycastTarget = false;
-            statusOverlayText.margin = new Vector4(32f, 120f, 32f, 0f);
+            statusOverlayText.margin = Vector4.zero;
 
             if (levelText != null)
                 statusOverlayText.font = levelText.font;
@@ -2209,7 +2420,45 @@ public class BasicRhythmGameManager : MonoBehaviour
             statusOverlayIconImage = existing.GetComponentInChildren<Image>(true);
         }
 
+        // Dejar libre el espacio sobre las figuras para el mensaje, sin invadir el tambor.
+        if (rhythmPanel != null)
+            rhythmPanel.anchoredPosition = new Vector2(rhythmPanel.anchoredPosition.x, -40f);
+
+        if (statusOverlayRect != null)
+        {
+            RectTransform canvasRect = rootCanvas.transform as RectTransform;
+            statusOverlayRect.anchorMin = statusOverlayRect.anchorMax = new Vector2(0.5f, 0.5f);
+            statusOverlayRect.pivot = new Vector2(0.5f, 0.5f);
+            statusOverlayRect.sizeDelta = new Vector2(Mathf.Min(620f, canvasRect.rect.width - 32f), 100f);
+            PositionStatusAboveFigures();
+            statusOverlayRect.SetAsLastSibling();
+        }
+
+        if (statusOverlayGroup != null)
+        {
+            statusOverlayGroup.interactable = false;
+            statusOverlayGroup.blocksRaycasts = false;
+        }
+
         HideStatusOverlay();
+    }
+
+    private void PositionStatusAboveFigures()
+    {
+        if (statusOverlayRect == null || rootCanvas == null)
+            return;
+
+        RectTransform canvasRect = rootCanvas.transform as RectTransform;
+        float figureTop = 120f;
+        foreach (Image figure in patternIcons)
+        {
+            if (figure != null && figure.gameObject.activeInHierarchy)
+                figureTop = Mathf.Max(figureTop,
+                    RectTransformUtility.CalculateRelativeRectTransformBounds(canvasRect, figure.rectTransform).max.y);
+        }
+
+        statusOverlayRect.anchoredPosition = new Vector2(0f,
+            Mathf.Max(210f, figureTop + statusOverlayRect.rect.height * Mathf.Max(1f, statusMessagePopScale) * 0.5f + 18f));
     }
 
     private void UpdateStatusOverlayIcon(Color color)
@@ -2217,11 +2466,8 @@ public class BasicRhythmGameManager : MonoBehaviour
         if (statusOverlayIconImage == null)
             return;
 
-        Sprite icon = GetRegularStatusSprite();
-        if (color == successFeedbackColor)
-            icon = successStatusSprite;
-        else if (color == failFeedbackColor)
-            icon = failStatusSprite;
+        // Las instrucciones van sin ilustración: sólo el acierto muestra un check junto al mensaje.
+        Sprite icon = color == successFeedbackColor ? successStatusSprite : null;
 
         if (icon == null)
         {
@@ -2232,27 +2478,6 @@ public class BasicRhythmGameManager : MonoBehaviour
         statusOverlayIconImage.sprite = icon;
         statusOverlayIconImage.color = Color.white;
         statusOverlayIconImage.gameObject.SetActive(true);
-    }
-
-    private Sprite GetRegularStatusSprite()
-    {
-        FigureDefinition note = GetCurrentNote();
-        if (note != null && note.type == FigureType.Silencio && silenceStatusSprite != null)
-            return silenceStatusSprite;
-
-        if (tutorialFillWarmupWaitingForTap || waitingForInput)
-            return turnStatusSprite != null ? turnStatusSprite : regularStatusSprite;
-
-        if (regularStatusSprite == null)
-            return observeStatusSprite != null ? observeStatusSprite : waitStatusSprite;
-
-        if (observeStatusSprite != null)
-            return observeStatusSprite;
-
-        if (waitStatusSprite != null)
-            return waitStatusSprite;
-
-        return regularStatusSprite;
     }
 
     private void AnimateScorePanel()
@@ -2491,11 +2716,35 @@ public class BasicRhythmGameManager : MonoBehaviour
 
     private void RecordTimedTap(FigureDefinition figure, double signedOffsetSeconds)
     {
-        if (tutorialActive || figure == null || figure.type == FigureType.Silencio ||
-            !figureCounters.TryGetValue(figure.type, out BasicRhythmFigureMetric metric))
+        if (figure == null || figureMetrics == null)
             return;
 
         float offsetMs = (float)(signedOffsetSeconds * 1000.0);
+        float beatMs = Mathf.Max(1f, GetBeatDuration() * 1000f);
+        figureMetrics.taps.Add(new BasicRhythmTapMetric
+        {
+            figure = figure.type.ToString().ToLowerInvariant(),
+            noteIndex = currentNoteIndex,
+            tapIndex = currentNoteTapCount + 1,
+            timeSeconds = (float)(AudioSettings.dspTime - attemptStartedDspTime),
+            offsetMs = offsetMs,
+            result = figure.type == FigureType.Silencio ? "unexpected" :
+                Mathf.Abs(offsetMs) <= perfectToleranceBeats * beatMs ? "perfect" :
+                Mathf.Abs(offsetMs) <= goodToleranceBeats * beatMs ? "good" :
+                offsetMs < 0f ? "early" : "late",
+            tutorial = tutorialActive,
+        });
+
+        if (figureMetrics.taps.Count >= TapChunkSize && !attemptReportSubmitted &&
+            SessionManager.Instance != null && SessionManager.Instance.HasActiveSession &&
+            GameReportManager.Instance != null && PlayerProfileManager.Instance != null &&
+            PlayerProfileManager.Instance.HasActiveProfile)
+            ReportAttempt(false, true);
+
+        if (tutorialActive || figure.type == FigureType.Silencio ||
+            !figureCounters.TryGetValue(figure.type, out BasicRhythmFigureMetric metric))
+            return;
+
         metric.judgedTaps++;
         if (offsetMs < 0f) metric.earlyTaps++;
         else if (offsetMs > 0f) metric.lateTaps++;
@@ -2924,12 +3173,17 @@ public class BasicRhythmGameManager : MonoBehaviour
         }
     }
 
-    private void ReportAttempt(bool completed)
+    private void ReportAttempt(bool completed, bool checkpoint = false)
     {
-        if (attemptReportSubmitted || GameReportManager.Instance == null || SessionManager.Instance == null || !SessionManager.Instance.HasActiveSession)
+        if ((!checkpoint && attemptReportSubmitted) || GameReportManager.Instance == null ||
+            SessionManager.Instance == null || !SessionManager.Instance.HasActiveSession ||
+            (checkpoint && figureMetrics.taps.Count < TapChunkSize))
             return;
 
-        attemptReportSubmitted = true;
+        if (!checkpoint)
+            attemptReportSubmitted = true;
+        int savedTapCount = figureMetrics.taps.Count;
+        figureMetrics.chunkIndex = reportChunkIndex;
         AttemptReportData report = new AttemptReportData
         {
             miniGame = "basic_rhythm",
@@ -2942,12 +3196,17 @@ public class BasicRhythmGameManager : MonoBehaviour
             completed = completed,
             timeSeconds = Mathf.Max(1, Mathf.RoundToInt(Time.time - attemptStartedAt)),
             scoreFinal = score,
-            wasTutorial = tutorialActive,
-            exitReason = attemptExitReason,
+            wasTutorial = tutorialStepIndex > 0 || tutorialActive,
+            exitReason = checkpoint ? "checkpoint" : attemptExitReason,
             basicRhythm = figureMetrics,
         };
 
-        GameReportManager.Instance.ReportAttempt(report, null, error => Debug.LogWarning("BasicRhythm report error: " + error));
+        GameReportManager.Instance.ReportAttempt(report, () =>
+        {
+            if (!checkpoint) return;
+            figureMetrics.taps.RemoveRange(0, Mathf.Min(savedTapCount, figureMetrics.taps.Count));
+            reportChunkIndex++;
+        }, error => Debug.LogWarning("BasicRhythm report error: " + error));
     }
 
     private void AddTrigger(EventTrigger trigger, EventTriggerType type, UnityEngine.Events.UnityAction<BaseEventData> action)

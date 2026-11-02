@@ -11,6 +11,21 @@ Recordings/
 AtuRitmo/
 AtuRitmo.zip
 
+# Android build outputs (not project assets)
+*.apk
+*.aab
+*.apks
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+/.utmp/
+
+# Windows standalone player and its companion files
+/Windows/
+/Windows.rar
+/*.exe
+/*.dll
+/*_Data/
+/*_BurstDebugInformation_DoNotShip/
+
 # IDE
 .vs/
 .idea/
@@ -51,3 +66,21 @@ Packages/com.ivanmurzak.unity.mcp/
 skills-lock.json
 .tools
 documentation/
+
+# Local reports, generation history and helper scripts (not game inputs)
+/Docs/
+/Tools/
+/ARCHITECTURE.md
+/GeneratedAssets/
+
+# Unused art samples and design-only references; retain locally for review
+/Assets/Sprites/CrispJuice_Free_Sampler/
+/Assets/Sprites/CrispJuice_Free_Sampler.meta
+/Assets/Sprites/freegui/
+/Assets/Sprites/freegui.meta
+/Assets/Sprites/kenney_ui-pack/
+/Assets/Sprites/kenney_ui-pack.meta
+/Assets/Art/GenerationRequests/
+/Assets/Art/GenerationRequests.meta
+/Assets/Art/References/
+/Assets/Art/References.meta

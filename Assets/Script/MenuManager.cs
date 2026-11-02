@@ -66,6 +66,8 @@ public class MenuManager : MonoBehaviour
     private TMP_Text musicSettingsText;
     private TMP_Text effectsSettingsText;
     private TMP_Text speedSettingsText;
+    private Button hapticsButton;
+    private TMP_Text hapticsSettingsText;
 
     private void Awake()
     {
@@ -74,7 +76,9 @@ public class MenuManager : MonoBehaviour
         if (gameObject.scene.name != "MainScene")
             return;
 
+        LandscapePhoneCanvas.Configure(GetComponentInParent<Canvas>() ?? FindFirstObjectByType<Canvas>());
         ResolveReferences();
+        ConfigureBandGameCard();
         ResolvePanelTransitions();
         CacheBaseTransforms();
         ConfigureSettingsBox();
@@ -119,11 +123,30 @@ public class MenuManager : MonoBehaviour
 
     private void Update()
     {
+        UpdatePhoneMenuLayout();
         if (!enableIdleAnimation)
             return;
 
         float time = Time.unscaledTime;
         AnimateLogo(time);
+    }
+
+    private void UpdatePhoneMenuLayout()
+    {
+        if (perfilButton != null)
+        {
+            RectTransform profileRect = perfilButton.transform as RectTransform;
+            if (profileRect != null)
+                profileRect.anchoredPosition = LandscapePhoneCanvas.IsWidePhone
+                    ? new Vector2(500f, 260f) : new Vector2(550f, 330f);
+        }
+        if (backButton != null)
+        {
+            RectTransform backRect = backButton.transform as RectTransform;
+            if (backRect != null)
+                backRect.anchoredPosition = LandscapePhoneCanvas.IsWidePhone
+                    ? new Vector2(190f, -84f) : new Vector2(149f, -84f);
+        }
     }
 
     public void LoadScene(string sceneName)
@@ -145,6 +168,46 @@ public class MenuManager : MonoBehaviour
         else if (sceneName == "BasicrhythmScene") NarrationPlayer.Say("menu_ritmo_basico");
         else if (sceneName == "TempoTapScene") NarrationPlayer.Say("menu_tempo_tap");
         SceneTransitionController.LoadScene(sceneName);
+    }
+
+    private void ConfigureBandGameCard()
+    {
+        if (gamesPanel == null) return;
+        Transform panel = gamesPanel.transform;
+        string[] names = { "SimonScene", "TempoTapScene", "BasicrhythmScene" };
+        Vector2[] positions = { new Vector2(-205f, -35f), new Vector2(205f, -35f),
+            new Vector2(-205f, -245f) };
+        for (int i = 0; i < names.Length; i++)
+        {
+            RectTransform card = panel.Find(names[i]) as RectTransform;
+            if (card == null) return; // Never disturb a different menu layout.
+            card.anchoredPosition = positions[i];
+            card.sizeDelta = new Vector2(200f, 200f);
+        }
+        if (panel.Find("BandaMusicalScene") != null) return;
+
+        GameObject objectButton = new GameObject("BandaMusicalScene", typeof(RectTransform),
+            typeof(CanvasRenderer), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+        RectTransform rect = objectButton.GetComponent<RectTransform>();
+        rect.SetParent(panel, false);
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(205f, -245f);
+        rect.sizeDelta = new Vector2(200f, 200f);
+        objectButton.GetComponent<UnityEngine.UI.Image>().color = new Color32(255, 228, 151, 255);
+        objectButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(() => LoadScene("BandaMusical"));
+        GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.SetParent(rect, false);
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+        TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
+        label.text = "LA BANDA\nMUSICAL";
+        label.font = TMP_Settings.defaultFontAsset;
+        label.fontSize = 27f;
+        label.color = new Color32(31, 56, 92, 255);
+        label.alignment = TextAlignmentOptions.Center;
+        label.raycastTarget = false;
     }
 
     public void ShowMainOptions()
@@ -274,6 +337,7 @@ public class MenuManager : MonoBehaviour
     private void ConfigureSettingsBox()
     {
         GameSettings.EnsureInitialized();
+        ConfigureHapticsControl();
 
         if (musicScrollbar != null)
         {
@@ -300,6 +364,70 @@ public class MenuManager : MonoBehaviour
         }
 
         RefreshSettingsBoxLabels();
+    }
+
+    private void ConfigureHapticsControl()
+    {
+        if (settingsBox == null)
+            return;
+
+        RectTransform settingsArea = settingsBox.transform.parent as RectTransform;
+        if (settingsArea == null)
+            return;
+
+        Transform existing = settingsArea.Find("HapticsButton");
+        if (existing == null)
+        {
+            GameObject root = new GameObject("HapticsButton", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            RectTransform rect = root.GetComponent<RectTransform>();
+            rect.SetParent(settingsArea, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(425f, -50f);
+            rect.sizeDelta = new Vector2(310f, 112f);
+            Image image = root.GetComponent<Image>();
+            image.color = new Color(1f, 0.941f, 0.816f, 1f);
+            Outline outline = root.AddComponent<Outline>();
+            outline.effectColor = new Color(0.094f, 0.188f, 0.31f, 0.9f);
+            outline.effectDistance = new Vector2(3f, -3f);
+            root.AddComponent<UIButtonPulse>();
+
+            GameObject label = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            RectTransform labelRect = label.GetComponent<RectTransform>();
+            labelRect.SetParent(rect, false);
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(10f, 4f);
+            labelRect.offsetMax = new Vector2(-10f, -4f);
+            existing = rect;
+        }
+
+        hapticsButton = existing.GetComponent<Button>();
+        hapticsSettingsText = existing.GetComponentInChildren<TMP_Text>(true);
+        if (hapticsSettingsText != null)
+        {
+            hapticsSettingsText.fontSize = 32f;
+            hapticsSettingsText.enableAutoSizing = true;
+            hapticsSettingsText.fontSizeMin = 28f;
+            hapticsSettingsText.fontSizeMax = 32f;
+            hapticsSettingsText.fontStyle = FontStyles.Bold;
+            hapticsSettingsText.color = new Color(0.094f, 0.188f, 0.31f, 1f);
+            hapticsSettingsText.alignment = TextAlignmentOptions.Center;
+            hapticsSettingsText.raycastTarget = false;
+        }
+
+        if (hapticsButton != null)
+        {
+            hapticsButton.onClick.RemoveListener(OnHapticsButtonClicked);
+            hapticsButton.onClick.AddListener(OnHapticsButtonClicked);
+        }
+    }
+
+    private void OnHapticsButtonClicked()
+    {
+        GameSettings.SetHapticsEnabled(!GameSettings.HapticsEnabled);
+        if (GameSettings.HapticsEnabled)
+            AccessibleHaptics.Success();
     }
 
     private void OnMusicScrollbarChanged(float value)
@@ -344,6 +472,9 @@ public class MenuManager : MonoBehaviour
 
         if (speedSettingsText != null)
             speedSettingsText.text = $"{Mathf.RoundToInt(GameSettings.GameplaySpeed * 100f)}%";
+
+        if (hapticsSettingsText != null)
+            hapticsSettingsText.text = GameSettings.HapticsEnabled ? "Vibración\nACTIVADA" : "Vibración\nDESACTIVADA";
     }
 
     private void ResolvePanelTransitions()
@@ -443,7 +574,9 @@ public class MenuManager : MonoBehaviour
 
         logoRect.anchoredPosition = logoBasePosition + logoTransitionOffset + new Vector2(0f, floatOffset);
         logoRect.localRotation = logoBaseRotation * Quaternion.Euler(0f, 0f, wobbleOffset + logoTransitionRotation);
-        logoRect.localScale = logoBaseScale * logoTransitionScale;
+        float phoneGameLogoScale = LandscapePhoneCanvas.IsWidePhone && gamesPanel != null && gamesPanel.activeSelf
+            ? 0.72f : 1f;
+        logoRect.localScale = logoBaseScale * logoTransitionScale * phoneGameLogoScale;
     }
 
     private void StartMenuAccent(MenuPanelState panelState)
