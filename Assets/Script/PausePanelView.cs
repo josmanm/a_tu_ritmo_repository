@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public class PausePanelView : MonoBehaviour
@@ -8,17 +10,30 @@ public class PausePanelView : MonoBehaviour
     [SerializeField] private string contentRootName = "PauseBox";
     [SerializeField] private float overlayFadeDuration = 0.18f;
 
+    [Header("Estilo del menu principal")]
+    [Tooltip("Reemplaza la imagen de madera por el panel crema y botones reales con el estilo del menu principal.")]
+    [SerializeField] private bool applyMainMenuStyle = true;
+    [SerializeField] private string pauseTitle = "Pausa";
+    [SerializeField] private Vector2 boxSize = new Vector2(540f, 560f);
+    [SerializeField] private Vector2 buttonSize = new Vector2(380f, 96f);
+
+    private const string TitleObjectName = "PauseTitle";
+    private bool menuStyleApplied;
+    private TMP_Text titleText;
+
     private UIPanelTransition panelTransition;
     private CanvasGroup canvasGroup;
     private Coroutine fadeRoutine;
 
     private void Awake()
     {
+        ApplyMenuStyle();
         ResolveReferences();
     }
 
     public void InitializeHidden()
     {
+        ApplyMenuStyle();
         ResolveReferences();
 
         if (panelTransition != null)
@@ -39,6 +54,7 @@ public class PausePanelView : MonoBehaviour
 
     public void Show()
     {
+        ApplyMenuStyle();
         ResolveReferences();
         gameObject.SetActive(true);
 
@@ -86,6 +102,56 @@ public class PausePanelView : MonoBehaviour
             gameObject.SetActive(false);
             onComplete?.Invoke();
         }));
+    }
+
+    /// <summary>Cambia el titulo del menu (por ejemplo al terminar la partida).</summary>
+    public void SetTitle(string title)
+    {
+        ApplyMenuStyle();
+        if (titleText != null)
+            MenuStyle.StyleTitle(titleText, title);
+    }
+
+    /// <summary>
+    /// Convierte la caja de pausa al estilo del menu principal: panel crema, titulo multicolor
+    /// y botones pildora (Continuar, Reiniciar, Salir al menu). Solo se aplica una vez.
+    /// </summary>
+    public void ApplyMenuStyle()
+    {
+        if (!applyMainMenuStyle || menuStyleApplied)
+            return;
+
+        RectTransform box = transform.Find(contentRootName) as RectTransform;
+        if (box == null)
+            return;
+
+        menuStyleApplied = true;
+
+        MenuStyle.PlaceCentered(box, box.anchoredPosition, boxSize);
+        MenuStyle.StylePanel(box.GetComponent<Image>());
+
+        float top = boxSize.y * 0.5f;
+        titleText = MenuStyle.GetOrCreateText(box, TitleObjectName);
+        MenuStyle.PlaceCentered(titleText.rectTransform, new Vector2(0f, top - 80f), new Vector2(boxSize.x - 60f, 80f));
+        MenuStyle.StyleTitle(titleText, pauseTitle);
+
+        float firstButtonY = top - 195f;
+        float step = buttonSize.y + 20f;
+        StylePauseButton(box, "ResumeButton", "Continuar", MenuButtonColor.Green, MenuIcon.Play, firstButtonY);
+        StylePauseButton(box, "ResumenButton", "Continuar", MenuButtonColor.Green, MenuIcon.Play, firstButtonY);
+        StylePauseButton(box, "RestartButton", "Reiniciar", MenuButtonColor.Yellow, MenuIcon.None, firstButtonY - step);
+        StylePauseButton(box, "MenuButton", "Salir al menú", MenuButtonColor.Red, MenuIcon.Exit, firstButtonY - step * 2f);
+    }
+
+    private void StylePauseButton(Transform box, string objectName, string label, MenuButtonColor color, MenuIcon icon, float y)
+    {
+        Transform buttonTransform = box.Find(objectName);
+        Button button = buttonTransform != null ? buttonTransform.GetComponent<Button>() : null;
+        if (button == null)
+            return;
+
+        MenuStyle.PlaceCentered(buttonTransform as RectTransform, new Vector2(0f, y), buttonSize);
+        MenuStyle.StyleButton(button, label, color, icon);
     }
 
     private void ResolveReferences()

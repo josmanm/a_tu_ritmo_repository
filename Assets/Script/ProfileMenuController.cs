@@ -63,6 +63,7 @@ public class ProfileMenuController : MonoBehaviour
         }
 
         ResolveReferences();
+        StyleProfileMenu();
         StyleStatusAndRefreshButton();
         EnsureCardsContainer();
         EnsureCreatePopup();
@@ -176,12 +177,36 @@ public class ProfileMenuController : MonoBehaviour
 
         if (updateButton != null)
         {
-            RectTransform refreshRect = updateButton.GetComponent<RectTransform>();
-            refreshRect.anchoredPosition = new Vector2(350f, 190f);
-            refreshRect.sizeDelta = new Vector2(Mathf.Max(refreshRect.sizeDelta.x, 190f), 88f);
-            Image refreshImage = updateButton.GetComponent<Image>();
-            if (refreshImage != null)
-                refreshImage.preserveAspect = true;
+            MenuStyle.PlaceCentered(updateButton.GetComponent<RectTransform>(), new Vector2(318f, 190f), new Vector2(200f, 76f));
+            MenuStyle.StyleButton(updateButton, "Actualizar", MenuButtonColor.Yellow);
+        }
+    }
+
+    /// <summary>
+    /// Aplica el estilo del menu principal al menu de escoger perfil:
+    /// panel crema, titulo multicolor y botones pildora de color.
+    /// </summary>
+    private void StyleProfileMenu()
+    {
+        if (panelRoot == null)
+            return;
+
+        MenuStyle.StylePanel(panelRoot.GetComponent<Image>(), 64f);
+
+        TMP_Text title = FindTextByName(panelRoot.transform, "perfilText");
+        if (title != null)
+            MenuStyle.StyleTitle(title, "¿Quién va a jugar?", 56f);
+
+        if (continueButton != null)
+        {
+            MenuStyle.PlaceCentered(continueButton.GetComponent<RectTransform>(), new Vector2(175f, -210f), new Vector2(320f, 96f));
+            MenuStyle.StyleButton(continueButton, "Continuar", MenuButtonColor.Green, MenuIcon.Play);
+        }
+
+        if (newPerfilButton != null)
+        {
+            MenuStyle.PlaceCentered(newPerfilButton.GetComponent<RectTransform>(), new Vector2(-175f, -210f), new Vector2(320f, 96f));
+            MenuStyle.StyleButton(newPerfilButton, "Crear perfil", MenuButtonColor.Purple);
         }
     }
 
@@ -271,43 +296,54 @@ public class ProfileMenuController : MonoBehaviour
         if (panelRect == null)
             return;
 
-        createPopupRoot = new GameObject("CreateProfilePopup", typeof(RectTransform), typeof(Image));
-        RectTransform popupRect = createPopupRoot.GetComponent<RectTransform>();
-        popupRect.SetParent(panelRect, false);
-        popupRect.anchorMin = new Vector2(0.5f, 0.5f);
-        popupRect.anchorMax = new Vector2(0.5f, 0.5f);
-        popupRect.pivot = new Vector2(0.5f, 0.5f);
-        popupRect.anchoredPosition = Vector2.zero;
-        popupRect.sizeDelta = new Vector2(560f, 410f);
+        // La escena guarda una version antigua del popup; se reemplaza por la nueva con el estilo del menu principal.
+        Transform stalePopup = panelRect.Find("CreateProfilePopup");
+        if (stalePopup != null)
+            Destroy(stalePopup.gameObject);
 
-        Image popupImage = createPopupRoot.GetComponent<Image>();
-        popupImage.color = new Color(1f, 0.99f, 0.97f, 0.98f);
+        // Fondo oscuro que cubre el menu de perfiles mientras se crea uno nuevo.
+        createPopupRoot = new GameObject("CreateProfilePopup", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        RectTransform blockerRect = createPopupRoot.GetComponent<RectTransform>();
+        blockerRect.SetParent(panelRect, false);
+        blockerRect.anchorMin = Vector2.zero;
+        blockerRect.anchorMax = Vector2.one;
+        blockerRect.offsetMin = Vector2.zero;
+        blockerRect.offsetMax = Vector2.zero;
+        createPopupRoot.GetComponent<Image>().color = new Color(0.05f, 0.08f, 0.16f, 0.45f);
 
-        CreateLabel("Crear perfil", createPopupRoot.transform, new Vector2(0f, 160f), new Vector2(340f, 48f), 34f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
+        GameObject box = new GameObject("CreateProfileBox", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        RectTransform boxRect = box.GetComponent<RectTransform>();
+        boxRect.SetParent(blockerRect, false);
+        MenuStyle.PlaceCentered(boxRect, Vector2.zero, new Vector2(640f, 520f));
+        MenuStyle.StylePanel(box.GetComponent<Image>(), 56f);
 
-        createNameInput = CreateInputField(createPopupRoot.transform, new Vector2(0f, 84f), new Vector2(400f, 68f), "Nombre del jugador");
+        TMP_Text title = MenuStyle.GetOrCreateText(boxRect, "Title");
+        MenuStyle.PlaceCentered(title.rectTransform, new Vector2(0f, 190f), new Vector2(520f, 76f));
+        MenuStyle.StyleTitle(title, "Crear perfil", 52f);
 
-        createAvatarLabel = CreateLabel("Avatar 1", createPopupRoot.transform, new Vector2(0f, 25f), new Vector2(320f, 38f), 28f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
+        createNameInput = CreateInputField(boxRect, new Vector2(0f, 100f), new Vector2(460f, 80f), "Nombre del jugador");
 
-        CreateAvatarSelectorButtons();
+        createAvatarLabel = CreateLabel("Avatar 1", boxRect, new Vector2(0f, 30f), new Vector2(360f, 40f), 30f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
 
-        Button cancelButton = CreateActionButton(createPopupRoot.transform, "Cancelar", new Vector2(-110f, -141f), new Vector2(188f, 88f), new Color(0.86f, 0.86f, 0.89f, 1f));
+        CreateAvatarSelectorButtons(boxRect);
+
+        Button cancelButton = CreateActionButton(boxRect, "Cancelar", new Vector2(-140f, -188f), new Vector2(250f, 88f), MenuButtonColor.Red, MenuIcon.None);
         cancelButton.onClick.AddListener(() => createPopupRoot.SetActive(false));
 
-        Button confirmButton = CreateActionButton(createPopupRoot.transform, "Guardar", new Vector2(110f, -141f), new Vector2(188f, 88f), new Color(0.52f, 0.8f, 0.45f, 1f));
+        Button confirmButton = CreateActionButton(boxRect, "Guardar", new Vector2(140f, -188f), new Vector2(250f, 88f), MenuButtonColor.Green, MenuIcon.Play);
         confirmButton.onClick.AddListener(ConfirmCreateProfile);
 
         createPopupRoot.SetActive(false);
     }
 
-    private void CreateAvatarSelectorButtons()
+    private void CreateAvatarSelectorButtons(Transform parent)
     {
         for (int i = 0; i < 3; i++)
         {
             int avatarIndex = i;
-            Button avatarButton = CreateIconButton(createPopupRoot.transform, new Vector2(-120f + i * 120f, -44f), new Vector2(88f, 88f));
+            Button avatarButton = CreateIconButton(parent, new Vector2(-140f + i * 140f, -62f), new Vector2(112f, 112f));
             avatarButtons.Add(avatarButton);
-            Image icon = GetOrCreateAvatarImage(avatarButton.transform, new Vector2(70f, 70f), Vector2.zero);
+            Image icon = GetOrCreateAvatarImage(avatarButton.transform, new Vector2(86f, 86f), Vector2.zero);
             icon.sprite = GetAvatarSpriteByIndex(avatarIndex);
             icon.color = icon.sprite != null ? Color.white : GetFallbackAvatarColor(avatarIndex);
             icon.raycastTarget = false;
@@ -333,8 +369,9 @@ public class ProfileMenuController : MonoBehaviour
             Outline outline = avatarButtons[i].GetComponent<Outline>();
             if (outline == null)
                 outline = avatarButtons[i].gameObject.AddComponent<Outline>();
-            outline.effectColor = i == selectedAvatarIndex ? DarkText : new Color(0.094f, 0.188f, 0.31f, 0.2f);
-            outline.effectDistance = i == selectedAvatarIndex ? new Vector2(4f, -4f) : new Vector2(2f, -2f);
+            bool selected = i == selectedAvatarIndex;
+            outline.effectColor = selected ? MenuStyle.GetBodyColor(MenuButtonColor.Green) : new Color(0.094f, 0.188f, 0.31f, 0.2f);
+            outline.effectDistance = selected ? new Vector2(6f, -6f) : new Vector2(2f, -2f);
         }
     }
 
@@ -750,7 +787,9 @@ public class ProfileMenuController : MonoBehaviour
         rect.anchoredPosition = anchoredPosition;
         rect.sizeDelta = size;
 
-        root.GetComponent<Image>().color = Color.white;
+        Image background = root.GetComponent<Image>();
+        MenuStyle.StylePill(background, MenuButtonColor.Blue, size.y);
+        background.color = Color.white;
         TMP_InputField input = root.GetComponent<TMP_InputField>();
 
         GameObject viewport = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
@@ -758,16 +797,16 @@ public class ProfileMenuController : MonoBehaviour
         viewportRect.SetParent(rect, false);
         viewportRect.anchorMin = Vector2.zero;
         viewportRect.anchorMax = Vector2.one;
-        viewportRect.offsetMin = new Vector2(18f, 10f);
-        viewportRect.offsetMax = new Vector2(-18f, -10f);
+        viewportRect.offsetMin = new Vector2(32f, 12f);
+        viewportRect.offsetMax = new Vector2(-32f, -12f);
 
-        TMP_Text text = CreateLabel(string.Empty, viewportRect, Vector2.zero, Vector2.zero, 26f, FontStyles.Normal, new Color(0.14f, 0.14f, 0.22f, 1f), TextAlignmentOptions.Left);
+        TMP_Text text = CreateLabel(string.Empty, viewportRect, Vector2.zero, Vector2.zero, 30f, FontStyles.Bold, DarkText, TextAlignmentOptions.Left);
         text.rectTransform.anchorMin = Vector2.zero;
         text.rectTransform.anchorMax = Vector2.one;
         text.rectTransform.offsetMin = Vector2.zero;
         text.rectTransform.offsetMax = Vector2.zero;
 
-        TMP_Text placeholderText = CreateLabel(placeholder, viewportRect, Vector2.zero, Vector2.zero, 24f, FontStyles.Italic, new Color(0.52f, 0.52f, 0.6f, 1f), TextAlignmentOptions.Left);
+        TMP_Text placeholderText = CreateLabel(placeholder, viewportRect, Vector2.zero, Vector2.zero, 28f, FontStyles.Italic, new Color(0.45f, 0.5f, 0.6f, 1f), TextAlignmentOptions.Left);
         placeholderText.rectTransform.anchorMin = Vector2.zero;
         placeholderText.rectTransform.anchorMax = Vector2.one;
         placeholderText.rectTransform.offsetMin = Vector2.zero;
@@ -779,22 +818,16 @@ public class ProfileMenuController : MonoBehaviour
         return input;
     }
 
-    private static Button CreateActionButton(Transform parent, string label, Vector2 anchoredPosition, Vector2 size, Color color)
+    private static Button CreateActionButton(Transform parent, string label, Vector2 anchoredPosition, Vector2 size, MenuButtonColor color, MenuIcon icon)
     {
         GameObject root = new GameObject(label + "Button", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
         RectTransform rect = root.GetComponent<RectTransform>();
         rect.SetParent(parent, false);
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = size;
+        MenuStyle.PlaceCentered(rect, anchoredPosition, size);
 
-        root.GetComponent<Image>().color = color;
-        TMP_Text buttonText = CreateLabel(label, root.transform, Vector2.zero, size - new Vector2(16f, 12f), 32f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
-        buttonText.fontSizeMin = 30f;
-        buttonText.raycastTarget = false;
-        return root.GetComponent<Button>();
+        Button button = root.GetComponent<Button>();
+        MenuStyle.StyleButton(button, label, color, icon);
+        return button;
     }
 
     private static Button CreateIconButton(Transform parent, Vector2 anchoredPosition, Vector2 size)
@@ -808,8 +841,11 @@ public class ProfileMenuController : MonoBehaviour
         rect.anchoredPosition = anchoredPosition;
         rect.sizeDelta = size;
 
-        root.GetComponent<Image>().color = new Color(0.95f, 0.94f, 0.9f, 1f);
-        return root.GetComponent<Button>();
+        MenuStyle.StylePanel(root.GetComponent<Image>(), 24f);
+        Button button = root.GetComponent<Button>();
+        if (root.GetComponent<UIButtonPulse>() == null)
+            root.AddComponent<UIButtonPulse>();
+        return button;
     }
 
     private static Image GetOrCreateAvatarImage(Transform parent, Vector2 size, Vector2 anchoredPosition)

@@ -153,37 +153,8 @@ public static class MainSceneVisualSetup
         if (button.name == "Play" || button.name == "Settings")
         {
             label.color = Color.white;
-            label.text = FormatTwoLetterColorGroups(plainText);
+            label.text = MenuStyle.FormatTwoLetterColorGroups(plainText);
         }
-    }
-
-    private static string FormatTwoLetterColorGroups(string text)
-    {
-        Color[] palette =
-        {
-            new Color(1f, 0.45f, 0.72f),
-            new Color(1f, 0.74f, 0.32f),
-            new Color(0.46f, 0.86f, 0.99f),
-            new Color(0.56f, 0.94f, 0.62f),
-        };
-
-        System.Text.StringBuilder builder = new System.Text.StringBuilder(text.Length * 20);
-        int paletteIndex = 0;
-
-        for (int i = 0; i < text.Length; i += 2)
-        {
-            int length = Mathf.Min(2, text.Length - i);
-            string group = text.Substring(i, length);
-            string colorHex = ColorUtility.ToHtmlStringRGB(palette[paletteIndex % palette.Length]);
-            builder.Append("<color=#");
-            builder.Append(colorHex);
-            builder.Append('>');
-            builder.Append(group);
-            builder.Append("</color>");
-            paletteIndex++;
-        }
-
-        return builder.ToString();
     }
 
     private static string StripRichText(string text)

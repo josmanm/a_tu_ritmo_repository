@@ -428,13 +428,16 @@ public class SimonGameManager : MonoBehaviour
         if (canvas == null)
             return;
 
-        memoryModeButton = CreateLearningButton(canvas.transform, "MemoryModeButton", "Memoria", new Vector2(-140f, -278f));
-        rhythmModeButton = CreateLearningButton(canvas.transform, "RhythmModeButton", "Ritmo", new Vector2(140f, -278f));
+        StyleStartButton();
+
+        Vector2 modeButtonSize = new Vector2(250f, 70f);
+        memoryModeButton = CreateLearningButton(canvas.transform, "MemoryModeButton", "Memoria", new Vector2(-140f, -278f), modeButtonSize, MenuButtonColor.Blue);
+        rhythmModeButton = CreateLearningButton(canvas.transform, "RhythmModeButton", "Ritmo", new Vector2(140f, -278f), modeButtonSize, MenuButtonColor.Blue);
         memoryModeButton.onClick.AddListener(() => SelectMode(SimonMode.Classic));
         rhythmModeButton.onClick.AddListener(() => SelectMode(SimonMode.Compass));
 
         if (replayButton == null)
-            replayButton = CreateLearningButton(canvas.transform, "PracticeReplayButton", "Escuchar otra vez", new Vector2(0f, -352f));
+            replayButton = CreateLearningButton(canvas.transform, "PracticeReplayButton", "Escuchar otra vez", new Vector2(0f, -352f), new Vector2(340f, 76f), MenuButtonColor.Yellow);
 
         EnsureRhythmCue(canvas.transform);
     }
@@ -516,34 +519,21 @@ public class SimonGameManager : MonoBehaviour
             rhythmCueGroup.alpha = 0f;
     }
 
-    private Button CreateLearningButton(Transform parent, string objectName, string text, Vector2 position)
+    private Button CreateLearningButton(Transform parent, string objectName, string text, Vector2 position, Vector2 size, MenuButtonColor color, MenuIcon icon = MenuIcon.None)
     {
         GameObject buttonObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
         RectTransform rect = buttonObject.GetComponent<RectTransform>();
         rect.SetParent(parent, false);
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = rect.anchorMin;
-        rect.anchoredPosition = position;
-        rect.sizeDelta = new Vector2(245f, 54f);
+        MenuStyle.PlaceCentered(rect, position, size);
 
-        Image background = buttonObject.GetComponent<Image>();
-        background.color = new Color(0.12f, 0.25f, 0.42f, 1f);
+        Button button = buttonObject.GetComponent<Button>();
+        MenuStyle.StyleButton(button, text, color, icon);
 
-        GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-        labelRect.SetParent(rect, false);
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = Vector2.zero;
-        labelRect.offsetMax = Vector2.zero;
-        TMP_Text label = labelObject.GetComponent<TMP_Text>();
-        label.text = text;
-        label.font = statusText != null ? statusText.font : label.font;
-        label.fontSize = 27f;
-        label.alignment = TextAlignmentOptions.Center;
-        label.color = Color.white;
-        label.raycastTarget = false;
-        return buttonObject.GetComponent<Button>();
+        TMP_Text label = buttonObject.GetComponentInChildren<TMP_Text>(true);
+        if (label != null && statusText != null)
+            label.font = statusText.font;
+
+        return button;
     }
 
     private void SelectMode(SimonMode mode)
@@ -561,12 +551,24 @@ public class SimonGameManager : MonoBehaviour
 
     private void RefreshModeButtons()
     {
+        // El modo elegido se pinta verde y el otro azul, con el estilo del menu principal.
         if (memoryModeButton != null)
-            memoryModeButton.GetComponent<Image>().color = simonMode == SimonMode.Classic
-                ? new Color(0.19f, 0.6f, 0.45f, 1f) : new Color(0.12f, 0.25f, 0.42f, 1f);
+            MenuStyle.StyleButton(memoryModeButton, "Memoria", simonMode == SimonMode.Classic ? MenuButtonColor.Green : MenuButtonColor.Blue);
         if (rhythmModeButton != null)
-            rhythmModeButton.GetComponent<Image>().color = simonMode == SimonMode.Compass
-                ? new Color(0.19f, 0.6f, 0.45f, 1f) : new Color(0.12f, 0.25f, 0.42f, 1f);
+            MenuStyle.StyleButton(rhythmModeButton, "Ritmo", simonMode == SimonMode.Compass ? MenuButtonColor.Green : MenuButtonColor.Blue);
+    }
+
+    /// <summary>Boton START con el mismo estilo que "Jugar" del menu principal.</summary>
+    private void StyleStartButton()
+    {
+        if (startButton == null)
+            return;
+
+        RectTransform rect = startButton.transform as RectTransform;
+        if (rect != null)
+            MenuStyle.PlaceCentered(rect, rect.anchoredPosition, new Vector2(260f, 76f));
+
+        MenuStyle.StyleButton(startButton, "Jugar", MenuButtonColor.Green, MenuIcon.Play);
     }
 
     private void SetModeButtonsVisible(bool visible)

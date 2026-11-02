@@ -989,13 +989,18 @@ public class BasicRhythmGameManager : MonoBehaviour
             rect.SetParent(container, false);
             rect.anchorMin = new Vector2(0.5f, 0.5f);
             rect.anchorMax = rect.anchorMin;
-            rect.anchoredPosition = new Vector2(0f, 160f);
-            rect.sizeDelta = new Vector2(450f, 150f);
+            // Ocupa el espacio del boton Continuar (oculto al terminar), bajo el titulo del panel.
+            rect.anchoredPosition = new Vector2(0f, 95f);
+            rect.sizeDelta = new Vector2(460f, 130f);
             gameSummaryText = label.GetComponent<TMP_Text>();
             gameSummaryText.font = statusOverlayText != null ? statusOverlayText.font : levelText != null ? levelText.font : gameSummaryText.font;
             gameSummaryText.fontSize = 26f;
             gameSummaryText.alignment = TextAlignmentOptions.Center;
-            gameSummaryText.color = new Color(0.1f, 0.2f, 0.35f, 1f);
+            gameSummaryText.color = MenuStyle.DarkText;
+            gameSummaryText.fontStyle = FontStyles.Bold;
+            gameSummaryText.enableAutoSizing = true;
+            gameSummaryText.fontSizeMin = 20f;
+            gameSummaryText.fontSizeMax = 26f;
             gameSummaryText.raycastTarget = false;
         }
 
@@ -1003,7 +1008,10 @@ public class BasicRhythmGameManager : MonoBehaviour
         PlayVoice(endVoiceClip);
         pausePanel.transform.SetAsLastSibling();
         if (pausePanelView != null)
+        {
+            pausePanelView.SetTitle("¡Muy bien!");
             pausePanelView.Show();
+        }
         else
             pausePanel.SetActive(true);
     }
