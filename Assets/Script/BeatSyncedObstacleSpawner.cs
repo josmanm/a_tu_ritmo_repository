@@ -18,7 +18,12 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
     public GameObject obstaclePrefab;
     public Sprite logSprite;
     public Sprite birdSprite;
+    public Sprite[] birdFrames;
+    [Min(1f)] public float birdFramesPerSecond = 12f;
+    [Min(0.01f)] public float birdVisualScale = 5f;
     [Min(0.01f)] public float logVisualScale = 1f;
+    [Tooltip("Tamaño visible del tronco en unidades de mundo; cero conserva la escala anterior.")]
+    public Vector2 logVisualSize = Vector2.zero;
     public Collider2D groundCollider;
     public Transform runner;          // Runner transform (posición x fija)
     public Transform destroyPoint;    // Punto a la izquierda
@@ -56,7 +61,9 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
     int beatCount;
     static Sprite fallbackSprite;
     Collider2D runnerCollider;
+    float standingRunnerHeight;
     RunnerController2D runnerController;
+    RunnerCollision runnerCollision;
     readonly List<ObstacleMoverBeat> activeObstacles = new();
     readonly List<ScheduledObstacle> scheduledObstacles = new();
     int obstacleCount;
@@ -71,13 +78,39 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
         if (runner != null && runnerCollider == null)
             runnerCollider = runner.GetComponent<Collider2D>();
 
+        if (runnerCollider != null && standingRunnerHeight <= 0f)
+            standingRunnerHeight = runnerCollider.bounds.size.y;
+
         if (runner != null && runnerController == null)
             runnerController = runner.GetComponent<RunnerController2D>();
+
+        if (runner != null && runnerCollision == null)
+            runnerCollision = runner.GetComponent<RunnerCollision>();
     }
 
     void OnDisable()
     {
         if (beat != null) beat.OnBeat -= HandleBeat;
+    }
+
+    void Update()
+    {
+        if (!gameStarted || runnerCollision == null || runnerCollision.game == null)
+            return;
+
+        // A mistimed jump can clear the collider physically, but only a valid
+        // beat may mark the obstacle as avoided. Wait for late assisted taps.
+        double now = AudioSettings.dspTime;
+        double grace = runnerCollision.game.CurrentAssistMs * 0.001 + 0.04;
+        foreach (ScheduledObstacle scheduled in scheduledObstacles)
+        {
+            ObstacleMoverBeat mover = scheduled.mover;
+            if (mover == null || mover.avoidedOnBeat || mover.penaltyApplied ||
+                now < scheduled.beatTime + grace || mover.transform.position.x > mover.runnerX)
+                continue;
+
+            runnerCollision.RegisterMissedObstacle(mover);
+        }
     }
 
     void HandleBeat(double beatDspTime)
@@ -87,8 +120,8 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
         beatCount++;
 
         // Leave enough time for the previous jump or slide to finish.
-        int spacing = difficultyStage >= 1 ? 2 : 3;
-        if (beatCount % spacing != 0) return;
+        int spacing = difficultyStage >= 1 ? 2 : Mathf.Max(2, beatSpacing);
+        if ((beatCount - 1) % spacing != 0) return;
 
         double targetBeatTime = beatDspTime + beat.IntervalSec * beatsAhead;
         SpawnForTargetBeat(targetBeatTime);
@@ -112,12 +145,15 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
         bool wideGround = action == ObstacleAction.Jump && obstacleCount % 3 == 1;
         obstacleCount++;
 
-        float runnerTop = runnerCollider != null ? runnerCollider.bounds.max.y : runner.position.y + 0.8f;
+        // La altura del ave no debe depender de si el jugador salta o se agacha al generarla.
+        float runnerTop = groundCollider != null && standingRunnerHeight > 0f
+            ? groundCollider.bounds.max.y + standingRunnerHeight
+            : runnerCollider != null ? runnerCollider.bounds.max.y : runner.position.y + 0.8f;
         // The log's painted base sits about 0.3 units below its sprite pivot.
         // Place it against the actual ground collider, not the old square's centre.
         float groundTop = groundCollider != null ? groundCollider.bounds.max.y : obstacleY;
         float logY = logSprite != null ? groundTop + 0.3f : obstacleY;
-        var pos = new Vector3(spawnX, action == ObstacleAction.Duck ? runnerTop + 0.03f : logY, 0f);
+        var pos = new Vector3(spawnX, action == ObstacleAction.Duck ? runnerTop - 0.2f : logY, 0f);
         GameObject obs = action == ObstacleAction.Duck || obstaclePrefab == null
             ? CreateFallbackObstacle(pos) : Instantiate(obstaclePrefab, pos, Quaternion.identity);
 
@@ -130,10 +166,13 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
             collider.isTrigger = true;
             obs.transform.localScale = Vector3.one;
             SpriteRenderer birdRenderer = obs.GetComponentInChildren<SpriteRenderer>();
-            if (birdSprite != null)
+            if ((birdFrames != null && birdFrames.Length > 0) || birdSprite != null)
             {
-                birdRenderer.sprite = birdSprite;
-                birdRenderer.transform.localScale = Vector3.one;
+                birdRenderer.sprite = birdFrames != null && birdFrames.Length > 0 ? birdFrames[0] : birdSprite;
+                birdRenderer.color = Color.white;
+                birdRenderer.flipX = true;
+                birdRenderer.transform.localScale = Vector3.one *
+                    (birdFrames != null && birdFrames.Length > 0 ? birdVisualScale : 1f);
                 // Narrower than the wings to allow a forgiving slide.
                 birdRenderer.transform.localPosition = new Vector3(0f, 0.1f, 0f);
             }
@@ -162,11 +201,15 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
                 obstacleRenderer.sprite = logSprite;
                 obstacleRenderer.color = Color.white;
                 // Keep the prefab's root collider independent from the artwork scale.
-                if (obstacleRenderer.transform == obs.transform && !Mathf.Approximately(logVisualScale, 1f))
+                Vector3 visualScale = logVisualSize.x > 0f && logVisualSize.y > 0f
+                    ? new Vector3(logVisualSize.x / logSprite.bounds.size.x,
+                        logVisualSize.y / logSprite.bounds.size.y, 1f)
+                    : Vector3.one * logVisualScale;
+                if (obstacleRenderer.transform == obs.transform && visualScale != Vector3.one)
                 {
                     var visual = new GameObject("RockVisual");
                     visual.transform.SetParent(obs.transform, false);
-                    visual.transform.localScale = Vector3.one * logVisualScale;
+                    visual.transform.localScale = visualScale;
                     var rockRenderer = visual.AddComponent<SpriteRenderer>();
                     rockRenderer.sprite = logSprite;
                     rockRenderer.sortingOrder = obstacleRenderer.sortingOrder;
@@ -174,7 +217,7 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
                 }
                 else if (obstacleRenderer.transform != obs.transform)
                 {
-                    obstacleRenderer.transform.localScale = Vector3.one * logVisualScale;
+                    obstacleRenderer.transform.localScale = visualScale;
                     obstacleRenderer.transform.localPosition = Vector3.zero;
                 }
                 BoxCollider2D logCollider = obs.GetComponent<BoxCollider2D>();
@@ -188,6 +231,8 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
 
         var mover = obs.GetComponent<ObstacleMoverBeat>();
         if (mover == null) mover = obs.AddComponent<ObstacleMoverBeat>();
+        if (action == ObstacleAction.Duck && birdFrames != null && birdFrames.Length > 0)
+            mover.ConfigureAnimation(obs.GetComponentInChildren<SpriteRenderer>(), birdFrames, birdFramesPerSecond);
 
         float obstacleHalfWidth = GetHalfWidth(obs.GetComponent<Collider2D>());
         float obstacleTopY = GetTopY(obs.GetComponent<Collider2D>(), obstacleY);
@@ -416,6 +461,11 @@ public class BeatSyncedObstacleSpawner : MonoBehaviour
     float GetNominalJumpMultiplier()
     {
         return ClampJumpMultiplier(logJumpMultiplier);
+    }
+
+    public float GetFreeJumpMultiplier()
+    {
+        return GetNominalJumpMultiplier();
     }
 
     float ClampJumpMultiplier(float multiplier)

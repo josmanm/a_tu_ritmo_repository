@@ -13,6 +13,84 @@ MonoBehaviour:
   m_Name: ChatterboxVoiceCatalog
   m_EditorClassIdentifier: Assembly-CSharp::ChatterboxVoiceCatalog
   entries:
+  - id: banda_acierto
+    clip: {fileID: 8300000, guid: a44470ded5938e3429ab72de44d8129a, type: 3}
+  - id: banda_ahora_tu
+    clip: {fileID: 8300000, guid: 6b9bbb3f0969de1478e6ddfa9ad71350, type: 3}
+  - id: banda_cuenta_cuatro
+    clip: {fileID: 8300000, guid: ccf25bad789cb964087efe975ff803b4, type: 3}
+  - id: banda_empieza_cancion
+    clip: {fileID: 8300000, guid: eccd28b02839b8a4b9ba156e015a47b7, type: 3}
+  - id: banda_error_amable
+    clip: {fileID: 8300000, guid: f1a55dc8bcf45754baf0e0e20fa7dce4, type: 3}
+  - id: banda_escucha_animales
+    clip: {fileID: 8300000, guid: b39579271b59fb04bb7ed6a8ec3fa2b7, type: 3}
+  - id: banda_fin_exito
+    clip: {fileID: 8300000, guid: 80ef9f91ea7e3f74f929bec33c7978f7, type: 3}
+  - id: banda_final_bravo
+    clip: {fileID: 8300000, guid: 2be6bd582ce558c4ea0308de7dda766e, type: 3}
+  - id: banda_llega_gato
+    clip: {fileID: 8300000, guid: 0d6e4ad0a4f0a384786d62de27debe9e, type: 3}
+  - id: banda_llega_oso
+    clip: {fileID: 8300000, guid: 5476f39968aed134694ba7b847aa8004, type: 3}
+  - id: banda_logro_asi_se_hace
+    clip: {fileID: 8300000, guid: d863766e33dd51141a6859fa84e1d54c, type: 3}
+  - id: banda_logro_bien_tocado
+    clip: {fileID: 8300000, guid: f29d82627ff0b8e41897890ea64806b8, type: 3}
+  - id: banda_logro_buen_ritmo
+    clip: {fileID: 8300000, guid: 3b806a647e684ae419ce357143bf8f1c, type: 3}
+  - id: banda_logro_excelente
+    clip: {fileID: 8300000, guid: fc2f39ba65fb2224d9cf69f56a474395, type: 3}
+  - id: banda_logro_genial
+    clip: {fileID: 8300000, guid: 0393f9242cd5a9a4fb3d88695f1991dc, type: 3}
+  - id: banda_logro_muy_bien
+    clip: {fileID: 8300000, guid: f678e8edeb2ed714e97458ea1f017841, type: 3}
+  - id: banda_logro_perfecto
+    clip: {fileID: 8300000, guid: 6002c0cbe8c0d8442a2a1420418cd49f, type: 3}
+  - id: banda_logro_seguir_pulso
+    clip: {fileID: 8300000, guid: 84140b8515ad9a74cb1648243776b8ac, type: 3}
+  - id: banda_nivel_1_animo
+    clip: {fileID: 8300000, guid: c204809f9136e5d49ad34fc2f4d742b4, type: 3}
+  - id: banda_nivel_1_intro
+    clip: {fileID: 8300000, guid: 5ea26f166e9ca7541a5b2f13fbfd8ce8, type: 3}
+  - id: banda_nivel_1_logro
+    clip: {fileID: 8300000, guid: 01bfa1ca13e2cd842aedfc7d27f6c555, type: 3}
+  - id: banda_nivel_1_progreso
+    clip: {fileID: 8300000, guid: db83b09fd98c9b641ac341f1ad57ef21, type: 3}
+  - id: banda_nivel_2_con_gato
+    clip: {fileID: 8300000, guid: 571c8336473f8fb40a3062d317bf0673, type: 3}
+  - id: banda_nivel_2_intro
+    clip: {fileID: 8300000, guid: 47e4adfbaf6155e4086d17bfe53ad81e, type: 3}
+  - id: banda_nivel_2_logro
+    clip: {fileID: 8300000, guid: 91b3115282e60d441826e86c857c3f68, type: 3}
+  - id: banda_nivel_2_progreso
+    clip: {fileID: 8300000, guid: 569ea539659d5fe4ca5a76f34b797180, type: 3}
+  - id: banda_nivel_3_felicitacion
+    clip: {fileID: 8300000, guid: 39f74047c3219f648afd16ca596d8311, type: 3}
+  - id: banda_nivel_3_intro
+    clip: {fileID: 8300000, guid: b9820d2f634275447af504e96bc02db0, type: 3}
+  - id: banda_nivel_3_logro
+    clip: {fileID: 8300000, guid: 52b796a60f43d5e4dba7ec9e8193267b, type: 3}
+  - id: banda_nivel_3_sin_luz
+    clip: {fileID: 8300000, guid: d11c865034ee8664cbe46177380f290f, type: 3}
+  - id: banda_observa_mono
+    clip: {fileID: 8300000, guid: e1e8557fb29074345bb55892dae88f73, type: 3}
+  - id: banda_otra_vez
+    clip: {fileID: 8300000, guid: 00eddca44a55134479d4e5f8cd1bcac9, type: 3}
+  - id: banda_que_es_pulso
+    clip: {fileID: 8300000, guid: 168fd56e4318560409939ad43c5ed3ce, type: 3}
+  - id: banda_reintento
+    clip: {fileID: 8300000, guid: e86d0f8863ef1014395cda7485ffbd1e, type: 3}
+  - id: banda_reto_musica_baja
+    clip: {fileID: 8300000, guid: a8d35846ed6eed043b96f05feabc2321, type: 3}
+  - id: banda_reto_sin_luz
+    clip: {fileID: 8300000, guid: e13ac03935b9d7b469d1f87a530025a3, type: 3}
+  - id: banda_reto_sin_musica
+    clip: {fileID: 8300000, guid: 5e206c64bdcd63c4c92e8d2fe99bc0b4, type: 3}
+  - id: banda_seguimos_juntos
+    clip: {fileID: 8300000, guid: ecc80764ce496ea46a801b843d4f934a, type: 3}
+  - id: banda_vuelve_la_banda
+    clip: {fileID: 8300000, guid: 9c7903bcd648179469417b5bc1bf8ad6, type: 3}
   - id: basico_blanca
     clip: {fileID: 8300000, guid: 29ef680271317764bbd0810cd762664e, type: 3}
   - id: basico_corchea

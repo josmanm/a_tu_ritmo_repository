@@ -39,6 +39,8 @@ public class BandaMusicalGameManager : MonoBehaviour
     public UnityEngine.UI.Button replayButton;
     public UnityEngine.UI.Button backButton;
     public TopHudPanelView topHud;
+    [Header("Pausa")]
+    public GameObject pausePanel;
     public AudioSource voiceSource;
     [Header("Optional narration: assign recordings of these exact phrases")]
     public AudioClip discoverVoice; // ¡Hola! ¡Toca el tambor!
@@ -73,6 +75,30 @@ public class BandaMusicalGameManager : MonoBehaviour
     private bool playingMainLevels;
     private int score;
     private BandaSongConfiguration selectedSong;
+    private PausePanelView pauseView;
+    private bool isPaused;
+    private ChatterboxVoiceCatalog voiceCatalog;
+    private bool allLevelsSucceeded;
+    public bool IsPaused => isPaused;
+    [SerializeField] private UnityEngine.UI.Button startButton;
+
+    private static readonly string[] LevelIntroductions =
+    {
+        "banda_nivel_1_intro", "banda_nivel_2_intro", "banda_nivel_3_intro"
+    };
+
+    private static readonly string[] LevelSuccesses =
+    {
+        "banda_nivel_1_logro", "banda_nivel_2_logro", "banda_nivel_3_logro"
+    };
+
+    // Played only at quiet instructional intervals, never on individual drum hits.
+    private static readonly string[,] Encouragements =
+    {
+        { "banda_nivel_1_progreso", "banda_nivel_1_animo", "banda_logro_muy_bien", "banda_logro_asi_se_hace" },
+        { "banda_nivel_2_progreso", "banda_nivel_2_con_gato", "banda_logro_excelente", "banda_logro_buen_ritmo" },
+        { "banda_logro_seguir_pulso", "banda_logro_perfecto", "banda_logro_bien_tocado", "banda_nivel_3_felicitacion" }
+    };
 
     private void Start()
     {
@@ -87,9 +113,48 @@ public class BandaMusicalGameManager : MonoBehaviour
         rhythm.Beat += OnBeat;
         UnityEngine.UI.Button menu = topHud != null && topHud.MenuButton != null
             ? topHud.MenuButton : backButton;
-        if (menu != null) menu.onClick.AddListener(ReturnToMenu);
+        if (pausePanel != null)
+        {
+            pauseView = pausePanel.GetComponent<PausePanelView>();
+            if (pauseView != null) pauseView.InitializeHidden();
+            else pausePanel.SetActive(false);
+            Transform box = pausePanel.transform.Find("PauseBox");
+            if (box != null)
+            {
+                BindPauseButton(box, "ResumeButton", ResumeGame);
+                BindPauseButton(box, "CloseButton", ResumeGame);
+                BindPauseButton(box, "RestartButton", RestartFromPause);
+                BindPauseButton(box, "MenuButton", ReturnToMenu);
+            }
+        }
+        if (menu != null)
+        {
+            menu.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+            menu.onClick.AddListener(pausePanel != null ? (UnityEngine.Events.UnityAction)PauseGame : ReturnToMenu);
+        }
         if (menu != backButton && backButton != null) backButton.gameObject.SetActive(false);
         if (replayButton != null) replayButton.onClick.AddListener(Restart);
+        if (startButton != null)
+        {
+            startButton.onClick.RemoveAllListeners();
+            startButton.onClick.AddListener(StartGameFromButton);
+            startButton.gameObject.SetActive(true);
+            if (replayButton != null) replayButton.gameObject.SetActive(false);
+            cat.gameObject.SetActive(false);
+            bear.gameObject.SetActive(false);
+            monkey.gameObject.SetActive(true);
+            SetHand(false);
+            if (message != null) message.text = "Pulsa JUGAR para comenzar";
+            UpdateHud("Tutorial");
+        }
+        else
+            Restart();
+    }
+
+    public void StartGameFromButton()
+    {
+        if (startButton != null && !startButton.gameObject.activeSelf)
+            return;
         Restart();
     }
 
@@ -110,6 +175,8 @@ public class BandaMusicalGameManager : MonoBehaviour
 
     public void Restart()
     {
+        if (startButton != null) startButton.gameObject.SetActive(false);
+        if (isPaused) ClosePause();
         if (activity != null) StopCoroutine(activity);
         if (rhythm != null) rhythm.StopSequence();
         if (drum != null) drum.EndBeatGuide();
@@ -123,6 +190,8 @@ public class BandaMusicalGameManager : MonoBehaviour
         completed = false;
         playingMainLevels = false;
         score = 0;
+        allLevelsSucceeded = true;
+        if (voiceSource != null) voiceSource.Stop();
         UpdateHud("Tutorial");
         discovering = false;
         accepting = false;
@@ -147,6 +216,7 @@ public class BandaMusicalGameManager : MonoBehaviour
 
     public void OnDrumTap(double dspTime)
     {
+        if (isPaused) return;
         if (discovering)
         {
             tappedDiscovery = true;
@@ -196,17 +266,29 @@ public class BandaMusicalGameManager : MonoBehaviour
         Say("¡Hola! ¡Toca el tambor!", discoverVoice);
         yield return new WaitUntil(() => tappedDiscovery);
         discovering = false;
-        yield return new WaitForSecondsRealtime(0.6f);
+        yield return new WaitForSeconds(0.6f);
 
-        Say("Mira: el tambor brilla con cada pulso", listenVoice);
+        yield return NarrateBeforeBeat("Cada brillo marca un pulso. Escucha y observa.", "banda_que_es_pulso");
+        yield return NarrateBeforeBeat("Primero toca el mono. Fíjate en su ritmo.", "banda_observa_mono");
+        yield return NarrateBeforeBeat("Uno, dos, tres, cuatro.", "banda_cuenta_cuatro");
+        yield return NarrateBeforeBeat("Mira: el tambor brilla con cada pulso", "", listenVoice);
         yield return PlaySection(4, false, false, true);
-        Say("¡Toca cuando el tambor brille!", togetherVoice);
+        if (togetherVoice != null)
+            yield return NarrateBeforeBeat("¡Toca cuando el tambor brille!", "", togetherVoice);
+        else
+            Say("¡Toca cuando el tambor brille!", null);
         yield return PlaySection(4, true, true, true);
+        if (sectionHits >= 2)
+            yield return NarrateBeforeBeat("¡Lo estás haciendo genial!", "banda_logro_genial");
 
+        yield return NarrateBeforeBeat("Ahora toca tú. Sigue el brillo del tambor.", "banda_ahora_tu");
         int independentTries = 0;
         do
         {
-            Say("Ahora tú: toca cuando brille", null);
+            if (independentTries > 0)
+                yield return NarrateBeforeBeat("Escucha el pulso e inténtalo de nuevo.", "banda_reintento");
+            else
+                Say("Ahora tú: toca cuando brille", null);
             yield return PlaySection(4, true, true, false);
             if (sectionHits >= 2) break;
             independentTries++;
@@ -214,11 +296,22 @@ public class BandaMusicalGameManager : MonoBehaviour
             if (allowHelp && independentTries < 2) yield return ShowHelp();
         } while (independentTries < 2);
 
+        if (sectionHits >= 2)
+        {
+            yield return NarrateBeforeBeat("¡Eso es! Estás siguiendo el ritmo.", "banda_acierto");
+            yield return NarrateBeforeBeat("¡Muy bien! Vamos a tocar una canción.", "banda_empieza_cancion");
+        }
+        else
+            yield return NarrateBeforeBeat("Si te equivocas, no pasa nada. Sigue escuchando.", "banda_error_amable");
+
         for (int level = 0; level < levels.Length; level++)
         {
             currentLevel = level;
             UpdateHud("Nivel " + (level + 1));
             BandaLevelConfiguration config = levels[level];
+            if (level == 2)
+                yield return NarrateBeforeBeat("Escucha al mono, al gato y al oso.", "banda_escucha_animales");
+            yield return NarrateBeforeBeat(config.label + ": toca cuando brille", LevelIntroductions[Mathf.Min(level, LevelIntroductions.Length - 1)]);
             bool hasLevelLoops = config.guidedLoop != null && config.backgroundLoop != null;
             // Only change tempo when the corresponding music changes too.
             rhythm.bpm = hasLevelLoops ? config.bpm :
@@ -250,31 +343,42 @@ public class BandaMusicalGameManager : MonoBehaviour
                 if (allowHelp && tries < 2)
                 {
                     yield return ShowHelp();
+                    yield return NarrateBeforeBeat("Escucha y vuelve a intentarlo.", "banda_reintento");
                     yield return PlaySection(4, false, false, true);
                 }
             } while (tries < 2);
 
             bool accompanied = sectionHits >= Mathf.CeilToInt(expectedBeats * config.successFraction);
+            if (!accompanied) allLevelsSucceeded = false;
             if (star != null) star.gameObject.SetActive(accompanied);
-            if (accompanied && positiveSound != null && voiceSource != null)
-                voiceSource.PlayOneShot(positiveSound, GameSettings.EffectsVolume);
-            Say(!accompanied ? "¡Seguimos juntos!" : level == 0 ? "¡Muy bien! ¡Llegó el gato!" :
-                level == 1 ? "¡Genial! ¡Llegó el oso!" : "¡La banda toca junta!", null);
+            if (accompanied && positiveSound != null && drum.source != null)
+                drum.source.PlayOneShot(positiveSound, GameSettings.EffectsVolume);
+            if (accompanied)
+                yield return NarrateBeforeBeat(level == 2 ? "¡La banda toca junta!" : "¡Muy bien!", LevelSuccesses[Mathf.Min(level, LevelSuccesses.Length - 1)]);
+            else
+                yield return NarrateBeforeBeat("¡Seguimos juntos!", "banda_seguimos_juntos");
             if (level == 0) cat.gameObject.SetActive(true);
             if (level == 1) bear.gameObject.SetActive(true);
-            if (level < 2 && animalHit != null && voiceSource != null)
-                voiceSource.PlayOneShot(animalHit, 0.35f * GameSettings.EffectsVolume);
-            yield return new WaitForSecondsRealtime(1.8f);
+            if (level < 2 && animalHit != null && drum.source != null)
+                drum.source.PlayOneShot(animalHit, 0.35f * GameSettings.EffectsVolume);
+            if (level == 0)
+                yield return NarrateBeforeBeat("¡El gato se une a la banda!", "banda_llega_gato");
+            if (level == 1)
+                yield return NarrateBeforeBeat("¡El oso se une a la banda!", "banda_llega_oso");
+            yield return new WaitForSeconds(0.3f);
             if (star != null) star.gameObject.SetActive(false);
         }
 
         completed = true;
         playingMainLevels = false;
         SetHand(false);
-        Say("¡Lo logramos! ¿Tocamos otra vez?", null);
         if (star != null) star.gameObject.SetActive(true);
         if (replayButton != null) replayButton.gameObject.SetActive(true);
         recorder.Save(levels.Length, Mathf.RoundToInt(rhythm.bpm), true);
+        if (allLevelsSucceeded)
+            yield return NarrateBeforeBeat("¡Lo lograste! La banda ya toca junta.", "banda_fin_exito");
+        yield return NarrateBeforeBeat("¡Bravo! ¡Lo conseguimos juntos!", "banda_final_bravo");
+        Narrate("¿Quieres tocar otra vez? Pulsa Otra vez.", "banda_otra_vez");
         activity = null;
     }
 
@@ -295,7 +399,7 @@ public class BandaMusicalGameManager : MonoBehaviour
         cat.FinishPhrase();
         bear.FinishPhrase();
         SetHand(false);
-        yield return new WaitForSecondsRealtime(0.4f);
+        yield return new WaitForSeconds(0.4f);
     }
 
     private IEnumerator PlayLoopedLevel(BandaLevelConfiguration config, int beats, bool showHand)
@@ -318,21 +422,56 @@ public class BandaMusicalGameManager : MonoBehaviour
         double lastWindowEnd = rhythm.FirstBeatDspTime + (beats - 1) * rhythm.Interval + rhythm.toleranceSeconds;
         double audioEnd = rhythm.FirstBeatDspTime + beats * rhythm.Interval;
         int previousChallenge = 0;
+        int nextAnnouncement = 1;
+        int nextEncouragement = 0;
+        int lastEncouragedHits = 0;
+        float[] encouragementTimes = { 7f, 24f, 39f, 54f };
         while (AudioSettings.dspTime < lastWindowEnd)
         {
-            int challenge = rhythm.ChallengeIndexAt(AudioSettings.dspTime);
+            double now = AudioSettings.dspTime;
+            double elapsed = now - rhythm.FirstBeatDspTime;
+            // Speak BEFORE the five-second challenge, leaving its actual beats unobstructed.
+            if (nextAnnouncement <= 3 && nextAnnouncement * 15d < config.levelDurationSeconds)
+            {
+                string cueId = nextAnnouncement == 1 ? "banda_reto_musica_baja" :
+                    nextAnnouncement == 2 ? "banda_reto_sin_musica" :
+                    currentLevel == 2 ? "banda_nivel_3_sin_luz" : "banda_reto_sin_luz";
+                AudioClip cue = Voice(cueId);
+                double lead = (cue != null ? cue.length : 1.5f) + 0.2d;
+                if (elapsed >= nextAnnouncement * 15d - lead)
+                {
+                    Narrate(nextAnnouncement == 1 ? "¡Tu momento! Sigue el ritmo." :
+                        nextAnnouncement == 2 ? "La música descansa. Mantén el pulso." :
+                        "Ahora sin luz. Recuerda el ritmo.", cueId);
+                    nextAnnouncement++;
+                }
+            }
+            if (nextEncouragement < encouragementTimes.Length &&
+                elapsed >= encouragementTimes[nextEncouragement])
+            {
+                if (sectionHits > lastEncouragedHits &&
+                    (voiceSource == null || !voiceSource.isPlaying))
+                {
+                    lastEncouragedHits = sectionHits;
+                    int row = Mathf.Min(currentLevel, Encouragements.GetLength(0) - 1);
+                    Narrate("¡Buen ritmo!", Encouragements[row, nextEncouragement]);
+                }
+                nextEncouragement++;
+            }
+            int challenge = rhythm.ChallengeIndexAt(now);
             if (challenge != previousChallenge)
             {
                 if (challenge == 0)
                 {
                     drum.SetBeatCueVisible(true);
                     SetHand(showHand);
-                    Say(config.label + ": ¡la banda vuelve contigo!", null);
+                    Narrate(config.label + ": ¡la banda vuelve contigo!", "banda_vuelve_la_banda");
                 }
                 else
                 {
                     SetHand(false);
                     drum.SetBeatCueVisible(challenge != 3);
+                    // The announcement was played ahead of time; update only the subtitle.
                     Say(challenge == 1 ? "¡Tu momento! Toca cuando brille" :
                         challenge == 2 ? "¡Ahora tú! Toca cuando brille" :
                         "¡Ahora tú! Sigue el ritmo sin luz", null);
@@ -349,15 +488,18 @@ public class BandaMusicalGameManager : MonoBehaviour
         cat.FinishPhrase();
         bear.FinishPhrase();
         SetHand(false);
-        yield return new WaitForSecondsRealtime(0.4f);
+        yield return new WaitForSeconds(0.4f);
     }
 
     private IEnumerator ShowHelp()
     {
         recorder.Metrics.helpCount++;
         if (ear != null) ear.gameObject.SetActive(true);
-        Say("¡Escuchemos otra vez!", helpVoice);
-        yield return new WaitForSecondsRealtime(1.2f);
+        if (helpVoice != null)
+            yield return NarrateBeforeBeat("¡Escuchemos otra vez!", "", helpVoice);
+        else
+            yield return NarrateBeforeBeat("Si te equivocas, no pasa nada. Sigue escuchando.", "banda_error_amable");
+        yield return new WaitForSeconds(0.2f);
         if (ear != null) ear.gameObject.SetActive(false);
     }
 
@@ -375,6 +517,7 @@ public class BandaMusicalGameManager : MonoBehaviour
 
     private void Update()
     {
+        if (isPaused) return;
         if (hand != null && hand.gameObject.activeSelf)
         {
             float press = discovering
@@ -390,6 +533,7 @@ public class BandaMusicalGameManager : MonoBehaviour
 
     public void ReturnToMenu()
     {
+        if (isPaused) ClosePause();
         if (!completed && recorder != null)
             recorder.Save(Mathf.Max(1, currentLevel + 1), Mathf.RoundToInt(rhythm.bpm), false);
         if (rhythm != null) rhythm.StopSequence();
@@ -399,12 +543,80 @@ public class BandaMusicalGameManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (isPaused) ClosePause();
         if (rhythm != null)
         {
             rhythm.Beat -= OnBeat;
             rhythm.StopSequence();
         }
         BackgroundMusicPlayer.SetBandaMusicFocus(false);
+    }
+
+    private AudioClip Voice(string id)
+    {
+        if (voiceCatalog == null)
+            voiceCatalog = Resources.Load<ChatterboxVoiceCatalog>("ChatterboxVoiceCatalog");
+        return voiceCatalog != null ? voiceCatalog.Find(id) : null;
+    }
+
+    private AudioClip Narrate(string caption, string id, AudioClip fallback = null)
+    {
+        AudioClip clip = Voice(id) ?? fallback;
+        Say(caption, clip);
+        return clip;
+    }
+
+    private IEnumerator NarrateBeforeBeat(string caption, string id, AudioClip fallback = null)
+    {
+        AudioClip clip = Narrate(caption, id, fallback);
+        // The next voice or the first musical beat must not cut the instruction short.
+        if (clip != null && voiceSource != null)
+            yield return new WaitForSeconds(clip.length + 0.15f);
+    }
+
+    private static void BindPauseButton(Transform box, string name, UnityEngine.Events.UnityAction action)
+    {
+        UnityEngine.UI.Button button = box.Find(name)?.GetComponent<UnityEngine.UI.Button>();
+        if (button == null) return;
+        button.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+        button.onClick.AddListener(action);
+    }
+
+    private void PauseGame()
+    {
+        if (isPaused || pausePanel == null) return;
+        isPaused = true;
+        pausePanel.transform.SetAsLastSibling();
+        if (pauseView != null) pauseView.Show();
+        else pausePanel.SetActive(true);
+        // Unity freezes AudioSettings.dspTime while AudioListener.pause is true.
+        // Scheduled WAV loops, scoring, character frames and challenge windows
+        // therefore resume at the same musical phase, without rescheduling.
+        AudioListener.pause = true;
+        Time.timeScale = 0f;
+    }
+
+    private void ResumeGame()
+    {
+        if (!isPaused) return;
+        ClosePause();
+        if (pauseView != null) pauseView.Hide();
+        else pausePanel.SetActive(false);
+    }
+
+    private void RestartFromPause()
+    {
+        ClosePause();
+        if (pauseView != null) pauseView.InitializeHidden();
+        else pausePanel.SetActive(false);
+        Restart();
+    }
+
+    private void ClosePause()
+    {
+        isPaused = false;
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
     }
 
     // Can be connected to a future song-selection UI or changed in the Inspector.

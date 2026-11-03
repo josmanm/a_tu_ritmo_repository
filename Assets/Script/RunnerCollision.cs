@@ -31,11 +31,12 @@ public class RunnerCollision : MonoBehaviour
             return;
 
         ObstacleMoverBeat mover = other.GetComponentInParent<ObstacleMoverBeat>();
-        if (mover != null && (mover.avoidedOnBeat || pendingCollisions.Contains(mover)))
+        if (mover != null && (mover.avoidedOnBeat || mover.penaltyApplied || pendingCollisions.Contains(mover)))
             return;
 
         if (runner != null && runner.IsInvulnerable)
         {
+            if (mover != null) mover.penaltyApplied = true;
             Destroy(other.gameObject);
             return;
         }
@@ -65,11 +66,12 @@ public class RunnerCollision : MonoBehaviour
             yield return null;
 
         pendingCollisions.Remove(mover);
-        if (other == null || mover == null || mover.avoidedOnBeat)
+        if (other == null || mover == null || mover.avoidedOnBeat || mover.penaltyApplied)
             yield break;
 
         if (runner != null && runner.IsInvulnerable)
         {
+            mover.penaltyApplied = true;
             Destroy(other.gameObject);
             yield break;
         }
@@ -79,6 +81,14 @@ public class RunnerCollision : MonoBehaviour
 
     void RegisterHit(Collider2D other)
     {
+        ObstacleMoverBeat mover = other.GetComponentInParent<ObstacleMoverBeat>();
+        if (mover != null)
+        {
+            if (mover.avoidedOnBeat || mover.penaltyApplied)
+                return;
+            mover.penaltyApplied = true;
+        }
+
         if (game != null)
             game.RegisterCollision(stabilityPenalty);
 
@@ -86,6 +96,23 @@ public class RunnerCollision : MonoBehaviour
             runner.TriggerHitInvulnerability();
 
         Destroy(other.gameObject);
+    }
+
+    public void RegisterMissedObstacle(ObstacleMoverBeat mover)
+    {
+        if (mover == null || mover.avoidedOnBeat || mover.penaltyApplied)
+            return;
+
+        if (runner != null && runner.IsInvulnerable)
+        {
+            mover.penaltyApplied = true;
+            Destroy(mover.gameObject);
+            return;
+        }
+
+        Collider2D collider = mover.GetComponent<Collider2D>();
+        if (collider != null)
+            RegisterHit(collider);
     }
 
     bool IsObstacle(Collider2D other)

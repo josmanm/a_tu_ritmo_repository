@@ -133,6 +133,9 @@ public class RunnerController2D : MonoBehaviour
 
     public bool Jump(float multiplier = 1f)
     {
+        // The first tap can arrive before Update has refreshed the ground probe.
+        if (gameStarted && !isGrounded)
+            UpdateGroundedState();
         if (!gameStarted || !isGrounded || IsDucking || rb == null) return false;
 
         float jumpVelocity = jumpForce * multiplier;

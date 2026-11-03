@@ -78,6 +78,7 @@ public class DrumInputController : MonoBehaviour, IPointerDownHandler
 
     public void Strike()
     {
+        if (game != null && game.IsPaused) return;
         if (source != null && hitClip != null)
             source.PlayOneShot(hitClip, GameSettings.EffectsVolume);
         hitUntil = Time.unscaledTime + 0.13f;
@@ -86,6 +87,7 @@ public class DrumInputController : MonoBehaviour, IPointerDownHandler
 
     private void Update()
     {
+        if (game != null && game.IsPaused) return;
         bool pressed = Time.unscaledTime < hitUntil;
         float cue = CueStrength(AudioSettings.dspTime);
         transform.localScale = Vector3.one * (pressed ? 0.94f : 1f + 0.12f * cue);

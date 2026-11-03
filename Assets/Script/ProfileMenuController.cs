@@ -18,6 +18,9 @@ public class ProfileMenuController : MonoBehaviour
     [SerializeField] private Button continueButton;
     [SerializeField] private Button newPerfilButton;
     [SerializeField] private Button updateButton;
+    [SerializeField] private bool useProfileArtwork;
+    [SerializeField] private GameObject selectionContent;
+    [SerializeField] private GameObject profileBackdrop;
     private Button exitButton;
 
     [Header("Cards")]
@@ -40,6 +43,8 @@ public class ProfileMenuController : MonoBehaviour
     [SerializeField] private Sprite cancelHover;
     [SerializeField] private Sprite cancelPressed;
     [SerializeField] private Sprite cancelDisabled;
+    [SerializeField] private Sprite refreshNormal;
+    [SerializeField] private Sprite refreshPressed;
 
     private readonly List<PlayerProfileData> loadedProfiles = new List<PlayerProfileData>();
     private readonly List<Button> profileCardButtons = new List<Button>();
@@ -83,7 +88,8 @@ public class ProfileMenuController : MonoBehaviour
 
         ResolveReferences();
         GameCanvasBackgroundCover.Attach(GetComponentInParent<Canvas>(), "Background");
-        StyleStatusAndRefreshButton();
+        if (!useProfileArtwork)
+            StyleStatusAndRefreshButton();
         EnsureCardsContainer();
         EnsureCreatePopup();
         ConfigureButtons();
@@ -127,6 +133,15 @@ public class ProfileMenuController : MonoBehaviour
 
         panelRoot.SetActive(true);
         panelRoot.transform.SetAsLastSibling();
+        if (profileBackdrop != null)
+        {
+            profileBackdrop.transform.SetSiblingIndex(Mathf.Max(0, panelRoot.transform.GetSiblingIndex() - 1));
+            profileBackdrop.SetActive(true);
+        }
+        if (selectionContent != null)
+            selectionContent.SetActive(true);
+        if (createPopupRoot != null)
+            createPopupRoot.SetActive(false);
         RefreshProfileButtonSkins();
         FitPanelToCanvas();
         RefreshActiveProfileDisplay();
@@ -142,6 +157,8 @@ public class ProfileMenuController : MonoBehaviour
 
         if (panelRoot != null)
             panelRoot.SetActive(false);
+        if (profileBackdrop != null)
+            profileBackdrop.SetActive(false);
     }
 
     private void LateUpdate()
@@ -164,7 +181,7 @@ public class ProfileMenuController : MonoBehaviour
             (canvas.rect.height - 100f) / panel.rect.height);
         scale = Mathf.Max(0.55f, scale);
         panel.localScale = Vector3.one * scale;
-        if (createPopupRoot != null)
+        if (createPopupRoot != null && !useProfileArtwork)
             createPopupRoot.transform.localScale = Vector3.one;
     }
 
@@ -184,6 +201,21 @@ public class ProfileMenuController : MonoBehaviour
 
         if (updateButton == null)
             updateButton = FindButtonByName(panelRoot != null ? panelRoot.transform : null, "Update");
+
+        if (useProfileArtwork && panelRoot != null)
+        {
+            if (selectionContent == null)
+            {
+                Transform selection = panelRoot.transform.Find("ProfileSelectionContent");
+                if (selection != null) selectionContent = selection.gameObject;
+            }
+            if (profileBackdrop == null)
+            {
+                Transform backdrop = panelRoot.transform.parent != null
+                    ? panelRoot.transform.parent.Find("ProfileBackdrop") : null;
+                if (backdrop != null) profileBackdrop = backdrop.gameObject;
+            }
+        }
     }
 
     private void StyleStatusAndRefreshButton()
@@ -228,7 +260,9 @@ public class ProfileMenuController : MonoBehaviour
             Image refreshImage = updateButton.GetComponent<Image>();
             if (refreshImage != null)
                 refreshImage.preserveAspect = false;
-            StyleGameButton(updateButton);
+            StyleGameButton(updateButton, refreshNormal != null ? refreshNormal : buttonNormal,
+                refreshNormal != null ? refreshNormal : buttonHover,
+                refreshPressed != null ? refreshPressed : buttonPressed, buttonDisabled);
             SetButtonText(updateButton, "Actualizar", 26f);
         }
     }
@@ -258,6 +292,7 @@ public class ProfileMenuController : MonoBehaviour
         foreach (Button button in new[] { continueButton, newPerfilButton })
         {
             if (button == null) continue;
+            if (useProfileArtwork) continue;
             RectTransform rect = button.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(250f, 82f);
             bool isCreate = button == newPerfilButton;
@@ -275,20 +310,24 @@ public class ProfileMenuController : MonoBehaviour
         if (panelRoot == null)
             return;
 
-        Transform existing = panelRoot.transform.Find("ExitProfileButton");
+        Transform existing = FindChild(panelRoot.transform, "ExitProfileButton");
         if (existing != null)
             exitButton = existing.GetComponent<Button>();
         if (exitButton == null)
         {
-            exitButton = CreateActionButton(panelRoot.transform, "Salir", new Vector2(0f, -295f),
+            exitButton = CreateActionButton(selectionContent != null ? selectionContent.transform : panelRoot.transform,
+                "Salir", new Vector2(0f, -295f),
                 new Vector2(208f, 72f), Color.white);
             exitButton.gameObject.name = "ExitProfileButton";
         }
 
-        StyleGameButton(exitButton, cancelNormal, cancelHover, cancelPressed, cancelDisabled);
-        SetButtonText(exitButton, "Salir", 28f);
+        if (!useProfileArtwork)
+        {
+            StyleGameButton(exitButton, cancelNormal, cancelHover, cancelPressed, cancelDisabled);
+            SetButtonText(exitButton, "Salir", 28f);
+        }
         exitButton.onClick.RemoveAllListeners();
-        exitButton.onClick.AddListener(Application.Quit);
+        exitButton.onClick.AddListener(Hide);
         // A scene-saved popup must still cover the navigation buttons when it is open.
         if (createPopupRoot != null)
             createPopupRoot.transform.SetAsLastSibling();
@@ -393,7 +432,10 @@ public class ProfileMenuController : MonoBehaviour
         Transform existingPopup = panelRoot.transform.Find("CreateProfilePopup");
         if (existingPopup != null)
         {
-            ConfigureExistingCreatePopup(existingPopup);
+            if (useProfileArtwork)
+                ConfigureArtworkCreatePopup(existingPopup);
+            else
+                ConfigureExistingCreatePopup(existingPopup);
             return;
         }
 
@@ -408,11 +450,11 @@ public class ProfileMenuController : MonoBehaviour
 
         Image popupImage = createPopupRoot.GetComponent<Image>();
         popupImage.sprite = createPanelSprite;
-        popupImage.type = createPanelSprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        popupImage.type = createPanelSprite != null && createPanelSprite.border.sqrMagnitude > 0f ? Image.Type.Sliced : Image.Type.Simple;
         popupImage.color = createPanelSprite != null ? Color.white : new Color(1f, 0.99f, 0.97f, 0.98f);
 
         CreateLabel("Crear perfil", createPopupRoot.transform, new Vector2(0f, 190f), new Vector2(340f, 48f), 34f,
-            FontStyles.Bold, createPanelSprite != null ? Color.white : DarkText, TextAlignmentOptions.Center);
+            FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
 
         createNameInput = CreateInputField(createPopupRoot.transform, new Vector2(0f, 105f), new Vector2(440f, 72f), "Nombre del jugador");
         StyleNameInput();
@@ -423,7 +465,7 @@ public class ProfileMenuController : MonoBehaviour
 
         Button cancelButton = CreateActionButton(createPopupRoot.transform, "Cancelar", new Vector2(-114f, -190f), new Vector2(208f, 72f), new Color(0.86f, 0.86f, 0.89f, 1f));
         ConfigurePopupAction(cancelButton, new Vector2(-114f, -190f), cancelNormal, cancelHover,
-            cancelPressed, cancelDisabled, () => createPopupRoot.SetActive(false));
+            cancelPressed, cancelDisabled, CloseCreatePopup);
 
         Button confirmButton = CreateActionButton(createPopupRoot.transform, "Guardar", new Vector2(114f, -190f), new Vector2(208f, 72f), new Color(0.52f, 0.8f, 0.45f, 1f));
         ConfigurePopupAction(confirmButton, new Vector2(114f, -190f), confirmNormal, confirmHover,
@@ -442,7 +484,7 @@ public class ProfileMenuController : MonoBehaviour
         if (panelImage != null)
         {
             panelImage.sprite = createPanelSprite;
-            panelImage.type = createPanelSprite != null ? Image.Type.Sliced : Image.Type.Simple;
+            panelImage.type = createPanelSprite != null && createPanelSprite.border.sqrMagnitude > 0f ? Image.Type.Sliced : Image.Type.Simple;
             panelImage.color = createPanelSprite != null ? Color.white : new Color(1f, 0.99f, 0.97f, 0.98f);
         }
 
@@ -460,7 +502,7 @@ public class ProfileMenuController : MonoBehaviour
             if (text == null) continue;
             if (text.text == "Crear perfil")
             {
-                text.color = createPanelSprite != null ? Color.white : DarkText;
+                text.color = DarkText;
                 text.rectTransform.anchoredPosition = new Vector2(0f, 190f);
             }
             else
@@ -498,9 +540,53 @@ public class ProfileMenuController : MonoBehaviour
         }
 
         ConfigurePopupAction(FindButtonByName(popup, "CancelarButton"), new Vector2(-114f, -190f),
-            cancelNormal, cancelHover, cancelPressed, cancelDisabled, () => createPopupRoot.SetActive(false));
+            cancelNormal, cancelHover, cancelPressed, cancelDisabled, CloseCreatePopup);
         ConfigurePopupAction(FindButtonByName(popup, "GuardarButton"), new Vector2(114f, -190f),
             confirmNormal, confirmHover, confirmPressed, confirmDisabled, ConfirmCreateProfile);
+        SelectAvatarIndex(0);
+        createPopupRoot.SetActive(false);
+    }
+
+    private void ConfigureArtworkCreatePopup(Transform popup)
+    {
+        createPopupRoot = popup.gameObject;
+        createNameInput = popup.GetComponentInChildren<TMP_InputField>(true);
+        createAvatarLabel = null;
+        foreach (Transform child in popup)
+        {
+            TMP_Text text = child.GetComponent<TMP_Text>();
+            if (text != null && text.text != "Crear perfil")
+                createAvatarLabel = text;
+        }
+
+        avatarButtons.Clear();
+        foreach (Transform child in popup)
+            if (child.name == "AvatarButton" && child.TryGetComponent(out Button button))
+                avatarButtons.Add(button);
+        avatarButtons.Sort((a, b) => a.GetComponent<RectTransform>().anchoredPosition.x
+            .CompareTo(b.GetComponent<RectTransform>().anchoredPosition.x));
+
+        for (int i = 0; i < avatarButtons.Count; i++)
+        {
+            int avatarIndex = i;
+            Button button = avatarButtons[i];
+            Image icon = button.transform.Find("AvatarImage")?.GetComponent<Image>();
+            if (icon != null)
+                icon.sprite = GetAvatarSpriteByIndex(i);
+            TMP_Text avatarName = button.transform.Find("Text")?.GetComponent<TMP_Text>();
+            if (avatarName != null)
+            {
+                avatarName.text = GetAvatarDisplayName(i);
+                avatarName.gameObject.SetActive(true);
+            }
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => SelectAvatarIndex(avatarIndex));
+        }
+
+        ConfigurePopupAction(FindButtonByName(popup, "CancelarButton"), Vector2.zero,
+            null, null, null, null, CloseCreatePopup);
+        ConfigurePopupAction(FindButtonByName(popup, "GuardarButton"), Vector2.zero,
+            null, null, null, null, ConfirmCreateProfile);
         SelectAvatarIndex(0);
         createPopupRoot.SetActive(false);
     }
@@ -509,6 +595,12 @@ public class ProfileMenuController : MonoBehaviour
         Sprite pressed, Sprite disabled, UnityEngine.Events.UnityAction action)
     {
         if (button == null) return;
+        if (useProfileArtwork)
+        {
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(action);
+            return;
+        }
         RectTransform rect = button.GetComponent<RectTransform>();
         rect.anchoredPosition = position;
         rect.sizeDelta = new Vector2(208f, 72f);
@@ -672,7 +764,7 @@ public class ProfileMenuController : MonoBehaviour
         if (skin == null)
             skin = button.gameObject.AddComponent<CartoonButtonSkin>();
         // Keep the button's colour visible even when entering is not yet available.
-        skin.Configure(normal, hover, pressed, normal, normal);
+        skin.Configure(normal, hover, pressed, disabled != null ? disabled : normal, normal);
         // A selected UI button must keep its saturated normal colour on touch devices.
         SpriteState states = button.spriteState;
         states.selectedSprite = normal;
@@ -681,7 +773,10 @@ public class ProfileMenuController : MonoBehaviour
 
     private void RefreshProfileButtonSkins()
     {
-        StyleGameButton(updateButton);
+        if (useProfileArtwork) return;
+        StyleGameButton(updateButton, refreshNormal != null ? refreshNormal : buttonNormal,
+            refreshNormal != null ? refreshNormal : buttonHover,
+            refreshPressed != null ? refreshPressed : buttonPressed, buttonDisabled);
         StyleGameButton(newPerfilButton);
         StyleGameButton(continueButton, confirmNormal, confirmHover, confirmPressed, confirmDisabled);
         StyleGameButton(exitButton, cancelNormal, cancelHover, cancelPressed, cancelDisabled);
@@ -740,7 +835,7 @@ public class ProfileMenuController : MonoBehaviour
 
         card.name = profile.playerId;
         RectTransform rect = card.GetComponent<RectTransform>();
-        if (rect != null)
+        if (rect != null && !useProfileArtwork)
             rect.sizeDelta = new Vector2(CardWidth, CardHeight);
 
         Image background = card.GetComponent<Image>();
@@ -755,14 +850,19 @@ public class ProfileMenuController : MonoBehaviour
 
         if (label != null)
         {
-            label.text = GetTruncatedProfileName(profile.name);
+            label.text = GetProfileDisplayName(profile.name);
             label.enableAutoSizing = true;
-            label.rectTransform.anchoredPosition = new Vector2(0f, -56f);
-            label.rectTransform.sizeDelta = new Vector2(132f, 38f);
-            label.fontSizeMin = 20f;
-            label.fontSizeMax = 25f;
-            label.fontSize = 25f;
-            label.color = DarkText;
+            if (!useProfileArtwork)
+            {
+                label.rectTransform.anchoredPosition = new Vector2(0f, -56f);
+                label.rectTransform.sizeDelta = new Vector2(132f, 38f);
+            }
+            label.fontSizeMin = useProfileArtwork ? 12f : 20f;
+            label.fontSizeMax = useProfileArtwork ? 22f : 25f;
+            label.fontSize = useProfileArtwork ? 22f : 25f;
+            label.color = useProfileArtwork ? Color.white : DarkText;
+            if (useProfileArtwork)
+                label.margin = new Vector4(4f, 0f, 4f, 0f);
             label.fontStyle = FontStyles.Bold;
             label.raycastTarget = false;
             label.overflowMode = TextOverflowModes.Ellipsis;
@@ -836,8 +936,18 @@ public class ProfileMenuController : MonoBehaviour
             createNameInput.text = string.Empty;
 
         SelectAvatarIndex(0);
+        if (selectionContent != null)
+            selectionContent.SetActive(false);
         createPopupRoot.SetActive(true);
         NarrationPlayer.Say("perfil_crear");
+    }
+
+    private void CloseCreatePopup()
+    {
+        if (createPopupRoot != null)
+            createPopupRoot.SetActive(false);
+        if (selectionContent != null)
+            selectionContent.SetActive(true);
     }
 
     private void ConfirmCreateProfile()
@@ -850,8 +960,7 @@ public class ProfileMenuController : MonoBehaviour
 
         PlayerProfileManager.Instance.CreateProfile(playerName, avatarName, profile =>
         {
-            if (createPopupRoot != null)
-                createPopupRoot.SetActive(false);
+            CloseCreatePopup();
 
             NarrationPlayer.Say("perfil_listo");
             RefreshActiveProfileDisplay();
@@ -891,6 +1000,22 @@ public class ProfileMenuController : MonoBehaviour
 
         bool isActive = PlayerProfileManager.Instance != null && PlayerProfileManager.Instance.HasActiveProfile && PlayerProfileManager.Instance.ActiveProfile.playerId == profile.playerId;
         Color accent = GetAccentColor(index);
+        if (useProfileArtwork)
+        {
+            background.color = Color.white;
+            Outline selectedOutline = background.GetComponent<Outline>();
+            if (selectedOutline == null && isActive)
+                selectedOutline = background.gameObject.AddComponent<Outline>();
+            if (selectedOutline != null)
+            {
+                selectedOutline.enabled = isActive;
+                selectedOutline.effectColor = accent;
+                selectedOutline.effectDistance = new Vector2(5f, -5f);
+            }
+            if (label != null)
+                label.text = GetProfileDisplayName(profile.name);
+            return;
+        }
         background.color = isActive ? Color.white : new Color(1f, 1f, 1f, 0.94f);
 
         Outline outline = background.GetComponent<Outline>();
@@ -908,7 +1033,7 @@ public class ProfileMenuController : MonoBehaviour
         if (label != null)
         {
             label.color = DarkText;
-            label.text = GetTruncatedProfileName(profile.name);
+            label.text = GetProfileDisplayName(profile.name);
         }
     }
 
@@ -965,12 +1090,9 @@ public class ProfileMenuController : MonoBehaviour
             statusText.text = string.IsNullOrWhiteSpace(message) ? string.Empty : message;
     }
 
-    private static string GetTruncatedProfileName(string profileName)
+    private static string GetProfileDisplayName(string profileName)
     {
-        if (string.IsNullOrWhiteSpace(profileName) || profileName.Length <= 9)
-            return profileName;
-
-        return profileName.Substring(0, 9).TrimEnd() + "...";
+        return profileName?.Trim() ?? string.Empty;
     }
 
     private Sprite GetAvatarSprite(string avatarName)
@@ -1007,7 +1129,14 @@ public class ProfileMenuController : MonoBehaviour
 
     private string GetAvatarDisplayName(int index)
     {
-        return GetAvatarOptionName(index).Replace('_', ' ');
+        // Los identificadores guardados pertenecen a los avatares antiguos;
+        // el texto visible debe describir los dibujos actuales sin migrar perfiles.
+        switch (index)
+        {
+            case 0: return "Oso naranja";
+            case 1: return "Conejo azul";
+            default: return "Estrella amarilla";
+        }
     }
 
     private static string GetAvatarShortName(int index)
@@ -1148,7 +1277,7 @@ public class ProfileMenuController : MonoBehaviour
 
         root.GetComponent<Image>().color = color;
         TMP_Text buttonText = CreateLabel(label, root.transform, Vector2.zero, size - new Vector2(16f, 12f), 26f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
-        buttonText.fontSizeMin = 22f;
+            buttonText.fontSizeMin = 22f;
         buttonText.raycastTarget = false;
         return root.GetComponent<Button>();
     }

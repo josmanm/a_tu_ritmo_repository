@@ -33,6 +33,7 @@ public class MenuManager : MonoBehaviour
     [Header("Panels")]
     [SerializeField] private GameObject mainOptionsPanel;
     [SerializeField] private GameObject gamesPanel;
+    [SerializeField] private Sprite bandGameLogo;
     [SerializeField] private GameObject settingsPanel;
 
     [Header("Optional")]
@@ -174,40 +175,45 @@ public class MenuManager : MonoBehaviour
     {
         if (gamesPanel == null) return;
         Transform panel = gamesPanel.transform;
-        string[] names = { "SimonScene", "TempoTapScene", "BasicrhythmScene" };
-        Vector2[] positions = { new Vector2(-205f, -35f), new Vector2(205f, -35f),
-            new Vector2(-205f, -245f) };
+        Transform basicRhythm = panel.Find("BasicrhythmScene");
+        if (basicRhythm != null)
+            basicRhythm.gameObject.SetActive(false);
+
+        string[] names = { "SimonScene", "TempoTapScene" };
+        Vector2[] positions = { new Vector2(-400f, -70f), new Vector2(0f, -70f) };
         for (int i = 0; i < names.Length; i++)
         {
             RectTransform card = panel.Find(names[i]) as RectTransform;
             if (card == null) return; // Never disturb a different menu layout.
             card.anchoredPosition = positions[i];
-            card.sizeDelta = new Vector2(200f, 200f);
+            card.sizeDelta = new Vector2(300f, 300f);
         }
-        if (panel.Find("BandaMusicalScene") != null) return;
-
-        GameObject objectButton = new GameObject("BandaMusicalScene", typeof(RectTransform),
-            typeof(CanvasRenderer), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
-        RectTransform rect = objectButton.GetComponent<RectTransform>();
-        rect.SetParent(panel, false);
+        RectTransform rect = panel.Find("BandaMusicalScene") as RectTransform;
+        if (rect == null)
+        {
+            GameObject objectButton = new GameObject("BandaMusicalScene", typeof(RectTransform),
+                typeof(CanvasRenderer), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+            rect = objectButton.GetComponent<RectTransform>();
+            rect.SetParent(panel, false);
+        }
         rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = new Vector2(205f, -245f);
-        rect.sizeDelta = new Vector2(200f, 200f);
-        objectButton.GetComponent<UnityEngine.UI.Image>().color = new Color32(255, 228, 151, 255);
-        objectButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(() => LoadScene("BandaMusical"));
-        GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-        labelRect.SetParent(rect, false);
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
-        TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
-        label.text = "LA BANDA\nMUSICAL";
-        label.font = TMP_Settings.defaultFontAsset;
-        label.fontSize = 27f;
-        label.color = new Color32(31, 56, 92, 255);
-        label.alignment = TextAlignmentOptions.Center;
-        label.raycastTarget = false;
+        rect.anchoredPosition = new Vector2(400f, -70f);
+        rect.sizeDelta = new Vector2(300f, 300f);
+        UnityEngine.UI.Image image = rect.GetComponent<UnityEngine.UI.Image>();
+        if (image != null)
+        {
+            image.sprite = bandGameLogo;
+            image.color = Color.white;
+            image.preserveAspect = true;
+        }
+        Button button = rect.GetComponent<Button>();
+        if (button != null)
+        {
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => LoadScene("BandaMusical"));
+            if (button.GetComponent<UIButtonPulse>() == null)
+                button.gameObject.AddComponent<UIButtonPulse>();
+        }
     }
 
     public void ShowMainOptions()

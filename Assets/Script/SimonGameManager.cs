@@ -98,6 +98,8 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private Button pauseMenuButton;
 
     [Header("Seleccion de modo")]
+    [SerializeField] private RectTransform modeSelectionRoot;
+    [SerializeField] private Sprite modeSelectionArtwork;
     [SerializeField] private Sprite memoryModeCardSprite;
     [SerializeField] private Sprite rhythmModeCardSprite;
     [SerializeField] private Sprite memoryModeHoverSprite;
@@ -310,7 +312,6 @@ public class SimonGameManager : MonoBehaviour
     private Button memoryModeButton;
     private Button rhythmModeButton;
     private Button exitModeSelectionButton;
-    private RectTransform modeSelectionRoot;
     private bool modeChosen;
     private CanvasGroup rhythmCueGroup;
     private RectTransform rhythmCueRect;
@@ -446,15 +447,48 @@ public class SimonGameManager : MonoBehaviour
 
     private void EnsureLearningControls()
     {
-        Canvas canvas = startButton != null ? startButton.GetComponentInParent<Canvas>() : null;
+        Canvas canvas = modeSelectionRoot != null ? modeSelectionRoot.GetComponentInParent<Canvas>() :
+            startButton != null ? startButton.GetComponentInParent<Canvas>() : null;
         if (canvas == null)
             return;
 
-        GameObject selection = new GameObject("ModeSelection", typeof(RectTransform));
-        modeSelectionRoot = selection.GetComponent<RectTransform>();
-        modeSelectionRoot.SetParent(canvas.transform, false);
-        modeSelectionRoot.anchorMin = modeSelectionRoot.anchorMax = new Vector2(0.5f, 0.5f);
-        modeSelectionRoot.sizeDelta = new Vector2(820f, 370f);
+        if (modeSelectionRoot == null)
+        {
+            GameObject selection = new GameObject("ModeSelection", typeof(RectTransform));
+            modeSelectionRoot = selection.GetComponent<RectTransform>();
+            modeSelectionRoot.SetParent(canvas.transform, false);
+            modeSelectionRoot.anchorMin = modeSelectionRoot.anchorMax = new Vector2(0.5f, 0.5f);
+            modeSelectionRoot.sizeDelta = modeSelectionArtwork != null ? new Vector2(620f, 620f) : new Vector2(820f, 370f);
+        }
+        bool hasSeparateTitle = modeSelectionRoot.Find("ModeTitle") != null;
+        if (modeSelectionArtwork != null || hasSeparateTitle)
+        {
+            // The scene-authored RectTransform is never resized/repositioned here.
+            Image artwork = modeSelectionRoot.GetComponent<Image>();
+            if (artwork == null && !hasSeparateTitle)
+                artwork = modeSelectionRoot.gameObject.AddComponent<Image>();
+            if (artwork != null)
+            {
+                if (artwork.sprite == null && !hasSeparateTitle)
+                    artwork.sprite = modeSelectionArtwork;
+                artwork.raycastTarget = false;
+            }
+
+            memoryModeButton = GetOrCreateIllustratedModeButton("MemoryModeButton",
+                new Rect(12f / 256f, 94f / 256f, 116f / 256f, 52f / 256f));
+            rhythmModeButton = GetOrCreateIllustratedModeButton("RhythmModeButton",
+                new Rect(132f / 256f, 94f / 256f, 113f / 256f, 52f / 256f));
+            exitModeSelectionButton = GetOrCreateIllustratedModeButton("ExitModeSelectionButton",
+                new Rect(48f / 256f, 28f / 256f, 161f / 256f, 54f / 256f));
+            memoryModeButton.onClick.AddListener(() => SelectMode(SimonMode.Classic));
+            rhythmModeButton.onClick.AddListener(() => SelectMode(SimonMode.Compass));
+            exitModeSelectionButton.onClick.AddListener(LoadMainScene);
+
+            if (replayButton == null)
+                replayButton = CreateLearningButton(canvas.transform, "PracticeReplayButton", "Escuchar otra vez", new Vector2(0f, -352f));
+            EnsureRhythmCue(canvas.transform);
+            return;
+        }
 
         CreateModeText(modeSelectionRoot, "Title", "¿Cómo quieres jugar?", new Vector2(0f, 150f),
             new Vector2(750f, 68f), 43f, FontStyles.Bold);
@@ -475,6 +509,27 @@ public class SimonGameManager : MonoBehaviour
             replayButton = CreateLearningButton(canvas.transform, "PracticeReplayButton", "Escuchar otra vez", new Vector2(0f, -352f));
 
         EnsureRhythmCue(canvas.transform);
+    }
+
+    private Button GetOrCreateIllustratedModeButton(string name, Rect normalizedBounds)
+    {
+        Transform existing = modeSelectionRoot.Find(name);
+        Button existingButton = existing != null ? existing.GetComponent<Button>() : null;
+        if (existingButton != null)
+            return existingButton;
+
+        GameObject target = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        RectTransform rect = target.GetComponent<RectTransform>();
+        rect.SetParent(modeSelectionRoot, false);
+        rect.anchorMin = normalizedBounds.min;
+        rect.anchorMax = normalizedBounds.max;
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
+        Image hitArea = target.GetComponent<Image>();
+        hitArea.color = Color.clear;
+        hitArea.raycastTarget = true;
+        Button button = target.GetComponent<Button>();
+        button.transition = Selectable.Transition.None;
+        return button;
     }
 
     private Button CreateModeCard(string objectName, string title, string description, Vector2 position,
@@ -814,8 +869,12 @@ public class SimonGameManager : MonoBehaviour
 
         lives = maxLives;
         UpdateLivesUI();
-        NarrationPlayer.Say(simonMode == SimonMode.Classic ? "simon_memoria_practica" : "simon_ritmo_inicio");
-        float introSeconds = Mathf.Max(sequenceIntroMessageSeconds, NarrationPlayer.RemainingSeconds + 0.15f);
+        float introSeconds = sequenceIntroMessageSeconds;
+        if (simonMode == SimonMode.Compass)
+        {
+            NarrationPlayer.Say("simon_ritmo_inicio");
+            introSeconds = Mathf.Max(introSeconds, NarrationPlayer.RemainingSeconds + 0.15f);
+        }
         showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage(BuildRoundIntroMessage(), warningColor, introSeconds));
     }
 
@@ -851,8 +910,12 @@ public class SimonGameManager : MonoBehaviour
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
-        NarrationPlayer.Say(simonMode == SimonMode.Classic ? "simon_memoria_repetir" : "voz_observa");
-        float replaySeconds = Mathf.Max(sequenceIntroMessageSeconds, NarrationPlayer.RemainingSeconds + 0.15f);
+        float replaySeconds = sequenceIntroMessageSeconds;
+        if (simonMode == SimonMode.Compass)
+        {
+            NarrationPlayer.Say("voz_observa");
+            replaySeconds = Mathf.Max(replaySeconds, NarrationPlayer.RemainingSeconds + 0.15f);
+        }
         showSequenceRoutine = StartCoroutine(BeginSequenceAfterMessage(BuildReplayMessage(), warningColor, replaySeconds));
     }
 
@@ -1397,24 +1460,19 @@ public class SimonGameManager : MonoBehaviour
             yield return new WaitForSeconds(activeDuration);
 
             ShowAllOff();
-            if (restDuration > 0f)
+            if (i < sequence.Count - 1 && restDuration > 0f)
                 yield return new WaitForSeconds(restDuration);
         }
 
         if (metronomeController != null)
             metronomeController.StopMetronome();
 
-        currentState = GameState.Idle;
         playerIndex = 0;
-
-        yield return StartCoroutine(ShowStatusThenHide(BuildPlayerTurnMessage(), normalColor, playerTurnMessageSeconds, animate: false));
-
+        HideStatus();
         ResetPlayerTimeLimit();
         currentState = GameState.PlayerTurn;
         StartBoardStateTransition(boardPlayerTurnScale);
         SetInput(true);
-        if (learningPhase == LearningPhase.GuidedPractice && sequence.Count > 0)
-            ShowOn(sequence[0]);
         SetStartButtonInteractable(true);
         if (replayButton != null) replayButton.interactable = learningPhase == LearningPhase.GuidedPractice;
 
@@ -1503,10 +1561,9 @@ public class SimonGameManager : MonoBehaviour
 
         replaysUsedThisLevel = 0;
         string transitionMessage = assessed ? BuildLevelCompleteMessage() : simonMode == SimonMode.Classic
-            ? "Muy bien!\nAhora intenta sin ayudas" : "Muy bien!\nAhora sigue el pulso";
-        string voiceId = assessed ? "simon_nueva_ronda" : simonMode == SimonMode.Classic
-            ? "simon_memoria_intento" : "voz_observa";
-        float transitionVoice = NarrationPlayer.Say(voiceId);
+            ? "Muy bien!\nRepite la secuencia" : "Muy bien!\nAhora sigue el pulso";
+        float transitionVoice = assessed ? NarrationPlayer.Say("simon_nueva_ronda")
+            : simonMode == SimonMode.Compass ? NarrationPlayer.Say("voz_observa") : 0f;
         yield return StartCoroutine(ShowStatusThenHide(transitionMessage, successColor,
             Mathf.Max(feedbackMessageSeconds, transitionVoice + 0.15f)));
 
@@ -3331,11 +3388,7 @@ public class SimonGameManager : MonoBehaviour
     {
         ShowOn(idx);
         yield return new WaitForSeconds(GetBeatDuration() * soundDurationRatio);
-        if (simonMode == SimonMode.Classic && learningPhase == LearningPhase.GuidedPractice &&
-            currentState == GameState.PlayerTurn && playerIndex < sequence.Count)
-            ShowOn(sequence[playerIndex]);
-        else
-            ShowAllOff();
+        ShowAllOff();
     }
 
     private float GetBeatDuration()

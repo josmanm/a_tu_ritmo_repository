@@ -1,13 +1,13 @@
 fileFormatVersion: 2
-guid: 32406a9ad4b2c4048b285e4dc94ba828
+guid: 8e892244691997347bc59c76d1034b3c
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -189673541112438166
-    second: feedback and racha_0
+      213: -3012452959973461976
+    second: icono_pause_0
   - first:
-      213: -536488073333045175
-    second: feedback and racha_1
+      213: 5328072507841836852
+    second: icono_pause_1
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -116,45 +116,45 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: feedback and racha_0
+      name: icono_pause_0
       rect:
         serializedVersion: 2
-        x: 81
-        y: 332
-        width: 669
-        height: 385
+        x: 25
+        y: 21
+        width: 46
+        height: 118
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a62e3b65be42e5df0800000000000000
-      internalID: -189673541112438166
+      spriteID: 820353a5efd9136d0800000000000000
+      internalID: -3012452959973461976
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: feedback and racha_1
+      name: icono_pause_1
       rect:
         serializedVersion: 2
-        x: 823
-        y: 378
-        width: 646
-        height: 279
+        x: 89
+        y: 21
+        width: 46
+        height: 118
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 94800c290f20e88f0800000000000000
-      internalID: -536488073333045175
+      spriteID: 437ff6f67bd11f940800000000000000
+      internalID: 5328072507841836852
       vertices: []
       indices: 
       edges: []
@@ -163,7 +163,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 328c675aae48ee0489e398af7c667d33
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -173,8 +173,8 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      feedback and racha_0: -189673541112438166
-      feedback and racha_1: -536488073333045175
+      icono_pause_0: -3012452959973461976
+      icono_pause_1: 5328072507841836852
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

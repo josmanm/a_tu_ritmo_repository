@@ -230,7 +230,7 @@ public class TempoTapGameManager : MonoBehaviour
                 start.anchorMin = start.anchorMax = new Vector2(0.5f, 0.5f);
                 start.pivot = new Vector2(0.5f, 0.5f);
                 start.anchoredPosition = new Vector2(0f, -245f);
-                start.sizeDelta = new Vector2(219f, 64f);
+                start.sizeDelta = new Vector2(280f, 90f);
             }
             if (back != null && bpmText == null)
             {
@@ -434,7 +434,7 @@ public class TempoTapGameManager : MonoBehaviour
         if (Math.Abs(nearest - dspTime) > Math.Abs(nearest - beatController.IntervalSec - dspTime))
             nearest -= beatController.IntervalSec;
         RecordTapDetail(dspTime, nearest, (float)((dspTime - nearest) * 1000.0), intervalMs, "calibration", true);
-        SetFeedback($"¡Bien! Pulso {calibrationTaps.Count}", 0.5f);
+        SetFeedback($"Pulso de prueba {calibrationTaps.Count}", 0.5f);
     }
 
     private void ApplyMeasuredStartingTempo()
@@ -579,25 +579,38 @@ public class TempoTapGameManager : MonoBehaviour
         double tapTime = AudioSettings.dspTime;
         if (warmupPending)
         {
+            JumpWithoutBeatAction();
             RecordCalibrationTap(tapTime);
             return;
         }
         if (!IsAcceptingTaps)
+        {
+            JumpWithoutBeatAction();
             return;
+        }
 
         if (tapTime < firstJudgedBeatDspTime - assistMs * 0.001 || !beatController.IsRunning)
+        {
+            JumpWithoutBeatAction();
             return;
+        }
 
         float deltaMs = beatController.GetSignedDeltaToNearestBeatMs(tapTime, out double judgedBeatTime);
         if (judgedBeatTime < firstJudgedBeatDspTime - 0.0001)
+        {
+            JumpWithoutBeatAction();
             return;
+        }
 
         if (ignoreExtraTapsOnSameBeat && !double.IsNaN(lastJudgedBeatTime) && Math.Abs(judgedBeatTime - lastJudgedBeatTime) < 0.0001)
+        {
+            JumpWithoutBeatAction();
             return;
+        }
 
-        float effectivePerfectMs = Mathf.Min(CurrentPerfectMs, (float)beatController.IntervalSec * 120f);
-        float effectiveGoodMs = CurrentGoodMs;
         float effectiveAssistMs = CurrentAssistMs;
+        float effectiveGoodMs = Mathf.Min(CurrentGoodMs, effectiveAssistMs);
+        float effectivePerfectMs = Mathf.Min(CurrentPerfectMs, effectiveGoodMs, (float)beatController.IntervalSec * 120f);
         float absMs = Mathf.Abs(deltaMs);
         BeatSyncedObstacleSpawner.ObstacleAction action = obstacleSpawner != null
             ? obstacleSpawner.GetActionForBeat(judgedBeatTime) : BeatSyncedObstacleSpawner.ObstacleAction.Tap;
@@ -605,7 +618,10 @@ public class TempoTapGameManager : MonoBehaviour
         if (absMs > effectiveAssistMs)
         {
             if (!double.IsNaN(lastMissedBeatTime) && Math.Abs(judgedBeatTime - lastMissedBeatTime) < 0.0001)
+            {
+                JumpWithoutBeatAction();
                 return;
+            }
             lastMissedBeatTime = judgedBeatTime;
         }
         else
@@ -660,6 +676,8 @@ public class TempoTapGameManager : MonoBehaviour
                 float targetTime = deltaMs < 0f ? goodEarlyTargetContactTime : goodLateTargetContactTime;
                 PerformBeatAction(judgedBeatTime, action, goodJumpMultiplier, targetTime);
             }
+            else
+                JumpWithoutBeatAction();
         }
         else if (absMs <= effectiveAssistMs)
         {
@@ -690,6 +708,7 @@ public class TempoTapGameManager : MonoBehaviour
         }
         else
         {
+            JumpWithoutBeatAction();
             totalTapsJudged++;
             missCount++;
             streak = 0;
@@ -742,9 +761,17 @@ public class TempoTapGameManager : MonoBehaviour
             performed = runner.Duck(obstacleSpawner != null ? obstacleSpawner.GetDuckDuration() : 1.1f);
         else if (action == BeatSyncedObstacleSpawner.ObstacleAction.Jump)
             performed = runner.Jump(GetAdaptiveMultiplier(multiplier, contactTime, action));
+        else
+            JumpWithoutBeatAction();
 
         if (performed)
             obstacleSpawner?.MarkActionSuccessForBeat(beatTime, action);
+    }
+
+    private void JumpWithoutBeatAction()
+    {
+        if (runner != null)
+            runner.Jump(obstacleSpawner != null ? obstacleSpawner.GetFreeJumpMultiplier() : 1f);
     }
 
     public void RegisterCollision(float penalty)
@@ -802,7 +829,10 @@ public class TempoTapGameManager : MonoBehaviour
             return;
 
         if (runner != null)
+        {
             runner.SetGameStarted(true);
+            JumpWithoutBeatAction();
+        }
         if (startPanel != null)
             startPanel.SetActive(false);
     }

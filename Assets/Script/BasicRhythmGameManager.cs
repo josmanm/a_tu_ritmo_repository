@@ -127,6 +127,7 @@ public class BasicRhythmGameManager : MonoBehaviour
     private Image figureIconTemplate;
     private RectTransform rhythmPanel;
     private Button drumButton;
+    [SerializeField] private Button startButton;
     private Button menuButton;
     private GameObject pausePanel;
     private Button resumeButton;
@@ -270,8 +271,27 @@ public class BasicRhythmGameManager : MonoBehaviour
         attemptExitReason = "completed";
 
         UpdateHud();
-        SetFeedback(ComposeFeedback("Escucha"), normalFeedbackColor);
+        if (startButton != null)
+        {
+            SetFeedback(ComposeFeedback("Pulsa JUGAR para comenzar"), normalFeedbackColor);
+            startButton.onClick.RemoveAllListeners();
+            startButton.onClick.AddListener(StartGameFromButton);
+            startButton.gameObject.SetActive(true);
+        }
+        else
+            StartGameFromButton();
+    }
 
+    public void StartGameFromButton()
+    {
+        if (roundRoutine != null || gameFinished)
+            return;
+
+        if (startButton != null)
+            startButton.gameObject.SetActive(false);
+        attemptStartedAt = Time.time;
+        attemptStartedDspTime = AudioSettings.dspTime;
+        SetFeedback(ComposeFeedback("Escucha"), normalFeedbackColor);
         roundRoutine = StartCoroutine(RunRoundLoop());
     }
 

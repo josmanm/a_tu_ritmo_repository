@@ -8,7 +8,7 @@ public static class ChatterboxVoiceCatalogBuilder
 {
     private const string AudioFolder = "Assets/Audio/";
     private const string CatalogPath = "Assets/Resources/ChatterboxVoiceCatalog.asset";
-    private static readonly string[] Prefixes = { "basico_", "menu_", "perfil_", "simon_", "tempo_", "voz_" };
+    private static readonly string[] Prefixes = { "banda_", "basico_", "menu_", "perfil_", "simon_", "tempo_", "voz_" };
 
     [MenuItem("Tools/Simondice/Actualizar voces Chatterbox")]
     public static void RefreshCatalog()
@@ -23,6 +23,10 @@ public static class ChatterboxVoiceCatalogBuilder
                 continue;
 
             string name = Path.GetFileNameWithoutExtension(path);
+            // The Banda music loops also start with "banda_"; only its voice folder is narration.
+            if (name.StartsWith("banda_", StringComparison.OrdinalIgnoreCase) &&
+                !path.StartsWith("Assets/Audio/audios_banda_voz/", StringComparison.OrdinalIgnoreCase))
+                continue;
             bool isVoice = false;
             foreach (string prefix in Prefixes)
                 if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) { isVoice = true; break; }

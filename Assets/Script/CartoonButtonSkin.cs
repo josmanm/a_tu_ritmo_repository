@@ -35,7 +35,9 @@ public class CartoonButtonSkin : MonoBehaviour
             return;
 
         image.sprite = normal;
-        image.type = Image.Type.Sliced;
+        // Kit PNGs without a 9-slice border must render as Simple; Sliced
+        // would stretch their highlights and contours unpredictably.
+        image.type = normal.border.sqrMagnitude > 0f ? Image.Type.Sliced : Image.Type.Simple;
         image.preserveAspect = false;
         image.color = Color.white;
         button.targetGraphic = image;
