@@ -150,6 +150,11 @@ public class MenuManager : MonoBehaviour
     public void ShowMainOptions()
     {
         NarrationPlayer.Say("menu_volver");
+        if (logoRect != null)
+            logoRect.gameObject.SetActive(true);
+
+        if (perfilButton != null)
+            perfilButton.gameObject.SetActive(true);
         ShowPanel(mainOptionsPanel, mainOptionsTransition, gamesPanel, gamesTransition, settingsPanel, settingsTransition);
         StartMenuAccent(MenuPanelState.MainOptions);
         SetBackButtonVisible(false);
@@ -158,6 +163,12 @@ public class MenuManager : MonoBehaviour
     public void ShowGames()
     {
         NarrationPlayer.Say("menu_elegir_juego");
+        if (logoRect != null)
+            logoRect.gameObject.SetActive(false);
+
+        if (perfilButton != null)
+            perfilButton.gameObject.SetActive(false);
+
         ShowPanel(gamesPanel, gamesTransition, mainOptionsPanel, mainOptionsTransition, settingsPanel, settingsTransition);
         StartMenuAccent(MenuPanelState.Games);
         SetBackButtonVisible(true);
@@ -435,7 +446,7 @@ public class MenuManager : MonoBehaviour
 
     private void AnimateLogo(float time)
     {
-        if (logoRect == null)
+        if (logoRect == null || !logoRect.gameObject.activeInHierarchy)
             return;
 
         float floatOffset = Mathf.Sin(time * logoFloatSpeed) * logoFloatAmount;

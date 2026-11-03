@@ -103,8 +103,8 @@ public class SimonGameManager : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private AudioClip failClip;
-/*     [SerializeField] private AudioClip gameOverClip; */
-/*     [SerializeField] private AudioClip levelUpClip; */
+    [SerializeField] private AudioClip gameOverClip;
+    [SerializeField] private AudioClip levelUpClip;
     [SerializeField] private AudioClip roundTransitionClip;
 
     [Header("Efectos visuales")]
@@ -115,8 +115,8 @@ public class SimonGameManager : MonoBehaviour
 
     [Header("Dificultad suave")]
     [SerializeField] private float pauseBetweenRounds = 0.8f;
-/*     [SerializeField] private float playerResponseBeatWindow = 3f;
-    [SerializeField] private float minimumResponseTime = 1.5f; */
+    [SerializeField] private float playerResponseBeatWindow = 3f;
+    [SerializeField] private float minimumResponseTime = 1.5f;
     [SerializeField] private int levelsBeforeFiveColors = 7;
     [SerializeField] private int levelsBeforeSevenColors = 14;
 

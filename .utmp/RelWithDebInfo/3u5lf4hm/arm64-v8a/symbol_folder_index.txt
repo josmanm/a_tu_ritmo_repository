@@ -1,0 +1,1 @@
+C:\Users\victo\OneDrive\Documentos\DocumentosU\Unity\a_tu_ritmo_repository\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\build\intermediates\cxx\RelWithDebInfo\3u5lf4hm\obj\arm64-v8a

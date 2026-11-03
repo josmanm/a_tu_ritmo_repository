@@ -31,16 +31,22 @@ public class ProfileMenuController : MonoBehaviour
     private static readonly Color DarkText = new Color(0.094f, 0.188f, 0.31f, 1f);
 
     private ScrollRect profilesScrollRect;
-    private TMP_InputField createNameInput;
-    private TMP_Text createAvatarLabel;
-    private GameObject createPopupRoot;
+    [Header("Create Profile UI")]
+    [SerializeField] private GameObject createProfilePanel;
+    [SerializeField] private TMP_InputField createNameInput;
+    [SerializeField] private TMP_Text createAvatarLabel;
+    [SerializeField] private Transform avatarContainer;
+    [SerializeField] private Button cancelCreateButton;
+    [SerializeField] private Button confirmCreateButton;
     private int selectedAvatarIndex;
     private bool waitingForFirebase;
-
+    [Header("Avatar Selector")]
+    [SerializeField] private GameObject cardAvatarPrefab;
+    [SerializeField] private float avatarCardSpacing = 18f;
     private const float CardsViewportWidth = 820f;
     private const float CardsViewportHeight = 260f;
-    private const float CardWidth = 176f;
-    private const float CardHeight = 214f;
+  /*   private const float CardWidth = 176f;
+    private const float CardHeight = 214f; */
     private const float CardSpacing = 28f;
 
     private void Awake()
@@ -65,7 +71,7 @@ public class ProfileMenuController : MonoBehaviour
         ResolveReferences();
         StyleStatusAndRefreshButton();
         EnsureCardsContainer();
-        EnsureCreatePopup();
+        ConfigureCreateProfileUI();
         ConfigureButtons();
 
         if (PlayerProfileManager.Instance != null)
@@ -100,7 +106,7 @@ public class ProfileMenuController : MonoBehaviour
     {
         ResolveReferences();
         EnsureCardsContainer();
-        EnsureCreatePopup();
+        ConfigureCreateProfileUI();
 
         if (panelRoot == null)
             return;
@@ -115,8 +121,8 @@ public class ProfileMenuController : MonoBehaviour
 
     public void Hide()
     {
-        if (createPopupRoot != null)
-            createPopupRoot.SetActive(false);
+        if (createProfilePanel != null)
+            createProfilePanel.SetActive(false);
 
         if (panelRoot != null)
             panelRoot.SetActive(false);
@@ -140,46 +146,31 @@ public class ProfileMenuController : MonoBehaviour
             updateButton = FindButtonByName(panelRoot != null ? panelRoot.transform : null, "Update");
     }
 
+    
     private void StyleStatusAndRefreshButton()
     {
+
+        if (statusText == null && panelRoot != null)
+        {
+            Transform surface = FindChild(panelRoot.transform, "StatusSurface");
+
+            if (surface != null)
+                statusText = FindTextByName(surface, "Status");
+        }
+
         if (statusText != null)
         {
-            RectTransform statusRect = statusText.rectTransform;
-            statusRect.anchoredPosition = new Vector2(-132f, 190f);
-            statusRect.sizeDelta = new Vector2(540f, 76f);
             statusText.color = DarkText;
-            statusText.fontSize = 28f;
-            statusText.enableAutoSizing = true;
-            statusText.fontSizeMin = 26f;
-            statusText.fontSizeMax = 28f;
             statusText.fontStyle = FontStyles.Bold;
             statusText.alignment = TextAlignmentOptions.Center;
             statusText.textWrappingMode = TextWrappingModes.Normal;
             statusText.raycastTarget = false;
-
-            Transform surface = panelRoot.transform.Find("StatusSurface");
-            if (surface == null)
-            {
-                GameObject surfaceObject = new GameObject("StatusSurface", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                RectTransform surfaceRect = surfaceObject.GetComponent<RectTransform>();
-                surfaceRect.SetParent(panelRoot.transform, false);
-                surfaceRect.anchorMin = surfaceRect.anchorMax = new Vector2(0.5f, 0.5f);
-                surfaceRect.pivot = new Vector2(0.5f, 0.5f);
-                surfaceRect.anchoredPosition = statusRect.anchoredPosition;
-                surfaceRect.sizeDelta = statusRect.sizeDelta;
-                Image surfaceImage = surfaceObject.GetComponent<Image>();
-                surfaceImage.color = new Color(1f, 0.941f, 0.816f, 1f);
-                surfaceImage.raycastTarget = false;
-                surfaceRect.SetSiblingIndex(statusRect.GetSiblingIndex());
-            }
         }
 
         if (updateButton != null)
         {
-            RectTransform refreshRect = updateButton.GetComponent<RectTransform>();
-            refreshRect.anchoredPosition = new Vector2(350f, 190f);
-            refreshRect.sizeDelta = new Vector2(Mathf.Max(refreshRect.sizeDelta.x, 190f), 88f);
             Image refreshImage = updateButton.GetComponent<Image>();
+
             if (refreshImage != null)
                 refreshImage.preserveAspect = true;
         }
@@ -262,81 +253,125 @@ public class ProfileMenuController : MonoBehaviour
         profilesScrollRect.content = cardsContainer;
     }
 
-    private void EnsureCreatePopup()
+    private void ConfigureCreateProfileUI()
     {
-        if (panelRoot == null || createPopupRoot != null)
+        if (createProfilePanel == null)
+        {
+            Debug.LogError(
+                "Asigna CreatePerfilPanel en ProfileMenuController."
+            );
             return;
+        }
 
-        RectTransform panelRect = panelRoot.GetComponent<RectTransform>();
-        if (panelRect == null)
+        if (createNameInput == null ||
+            createAvatarLabel == null ||
+            avatarContainer == null ||
+            cancelCreateButton == null ||
+            confirmCreateButton == null)
+        {
+            Debug.LogError(
+                "Faltan referencias en la interfaz de creación de perfil."
+            );
             return;
+        }
 
-        createPopupRoot = new GameObject("CreateProfilePopup", typeof(RectTransform), typeof(Image));
-        RectTransform popupRect = createPopupRoot.GetComponent<RectTransform>();
-        popupRect.SetParent(panelRect, false);
-        popupRect.anchorMin = new Vector2(0.5f, 0.5f);
-        popupRect.anchorMax = new Vector2(0.5f, 0.5f);
-        popupRect.pivot = new Vector2(0.5f, 0.5f);
-        popupRect.anchoredPosition = Vector2.zero;
-        popupRect.sizeDelta = new Vector2(560f, 410f);
+        createProfilePanel.SetActive(false);
 
-        Image popupImage = createPopupRoot.GetComponent<Image>();
-        popupImage.color = new Color(1f, 0.99f, 0.97f, 0.98f);
+        cancelCreateButton.onClick.RemoveAllListeners();
+        cancelCreateButton.onClick.AddListener(() =>
+        {
+            createProfilePanel.SetActive(false);
+        });
 
-        CreateLabel("Crear perfil", createPopupRoot.transform, new Vector2(0f, 160f), new Vector2(340f, 48f), 34f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
-
-        createNameInput = CreateInputField(createPopupRoot.transform, new Vector2(0f, 84f), new Vector2(400f, 68f), "Nombre del jugador");
-
-        createAvatarLabel = CreateLabel("Avatar 1", createPopupRoot.transform, new Vector2(0f, 25f), new Vector2(320f, 38f), 28f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
+        confirmCreateButton.onClick.RemoveAllListeners();
+        confirmCreateButton.onClick.AddListener(ConfirmCreateProfile);
 
         CreateAvatarSelectorButtons();
 
-        Button cancelButton = CreateActionButton(createPopupRoot.transform, "Cancelar", new Vector2(-110f, -141f), new Vector2(188f, 88f), new Color(0.86f, 0.86f, 0.89f, 1f));
-        cancelButton.onClick.AddListener(() => createPopupRoot.SetActive(false));
+        createNameInput.onValueChanged.RemoveListener(
+            OnCreateProfileNameChanged
+        );
 
-        Button confirmButton = CreateActionButton(createPopupRoot.transform, "Guardar", new Vector2(110f, -141f), new Vector2(188f, 88f), new Color(0.52f, 0.8f, 0.45f, 1f));
-        confirmButton.onClick.AddListener(ConfirmCreateProfile);
+        createNameInput.onValueChanged.AddListener(
+            OnCreateProfileNameChanged
+        );
 
-        createPopupRoot.SetActive(false);
+        UpdateCreateProfileButton();
     }
 
+    private void OnCreateProfileNameChanged(string value)
+    {
+        UpdateCreateProfileButton();
+    }
     private void CreateAvatarSelectorButtons()
     {
-        for (int i = 0; i < 3; i++)
+        avatarButtons.Clear();
+
+        // Eliminar las tarjetas anteriores.
+        for (int i = avatarContainer.childCount - 1; i >= 0; i--)
         {
-            int avatarIndex = i;
-            Button avatarButton = CreateIconButton(createPopupRoot.transform, new Vector2(-120f + i * 120f, -44f), new Vector2(88f, 88f));
-            avatarButtons.Add(avatarButton);
-            Image icon = GetOrCreateAvatarImage(avatarButton.transform, new Vector2(70f, 70f), Vector2.zero);
-            icon.sprite = GetAvatarSpriteByIndex(avatarIndex);
-            icon.color = icon.sprite != null ? Color.white : GetFallbackAvatarColor(avatarIndex);
-            icon.raycastTarget = false;
-
-            TMP_Text fallback = CreateLabel(GetAvatarShortName(avatarIndex), avatarButton.transform, Vector2.zero, new Vector2(70f, 32f), 26f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
-            fallback.raycastTarget = false;
-            fallback.gameObject.SetActive(icon.sprite == null);
-
-            avatarButton.onClick.AddListener(() => SelectAvatarIndex(avatarIndex));
+            Destroy(avatarContainer.GetChild(i).gameObject);
         }
 
-        SelectAvatarIndex(0);
+        // Crear únicamente los tres avatares.
+        int count = Mathf.Min(3, avatarSprites.Length);
+
+        for (int i = 0; i < count; i++)
+        {
+            int index = i;
+
+            GameObject card = Instantiate(
+                cardAvatarPrefab,
+                avatarContainer,
+                false
+            );
+
+            Transform face = card.transform.Find("AvatarImage");
+            Image faceImage = face.GetComponent<Image>();
+
+            faceImage.sprite = avatarSprites[i];
+            faceImage.preserveAspect = true;
+
+            Button button = card.GetComponent<Button>();
+
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(
+                () => SelectAvatarIndex(index)
+            );
+
+            avatarButtons.Add(button);
+        }
+
+        selectedAvatarIndex = -1;
+        UpdateCreateProfileButton();
     }
 
+    private void UpdateCreateProfileButton()
+    {
+        if (confirmCreateButton == null)
+            return;
+
+        bool hasName = createNameInput != null &&
+                    !string.IsNullOrWhiteSpace(createNameInput.text);
+
+        bool hasAvatar = selectedAvatarIndex >= 0 &&
+                        selectedAvatarIndex < avatarSprites.Length;
+
+        confirmCreateButton.interactable = hasName && hasAvatar;
+    }
+
+
+    
     private void SelectAvatarIndex(int avatarIndex)
     {
-        selectedAvatarIndex = Mathf.Clamp(avatarIndex, 0, 2);
-        if (createAvatarLabel != null)
-            createAvatarLabel.text = GetAvatarDisplayName(selectedAvatarIndex);
+        selectedAvatarIndex = avatarIndex;
 
-        for (int i = 0; i < avatarButtons.Count; i++)
-        {
-            Outline outline = avatarButtons[i].GetComponent<Outline>();
-            if (outline == null)
-                outline = avatarButtons[i].gameObject.AddComponent<Outline>();
-            outline.effectColor = i == selectedAvatarIndex ? DarkText : new Color(0.094f, 0.188f, 0.31f, 0.2f);
-            outline.effectDistance = i == selectedAvatarIndex ? new Vector2(4f, -4f) : new Vector2(2f, -2f);
-        }
+        if (createAvatarLabel != null)
+            createAvatarLabel.text = GetAvatarDisplayName(avatarIndex);
+
+        UpdateCreateProfileButton();
     }
+
 
     private void LoadProfilesOrWaitForFirebase()
     {
@@ -390,35 +425,27 @@ public class ProfileMenuController : MonoBehaviour
             return;
 
         card.name = profile.playerId;
-        RectTransform rect = card.GetComponent<RectTransform>();
-        if (rect != null)
-            rect.sizeDelta = new Vector2(CardWidth, CardHeight);
 
-        Image background = card.GetComponent<Image>();
         TMP_Text label = card.GetComponentInChildren<TMP_Text>(true);
-        Image avatarImage = GetOrCreateAvatarImage(card.transform, new Vector2(86f, 86f), new Vector2(0f, 28f));
+
+        Image avatarImage = GetOrCreateAvatarImage(
+            card.transform,
+            new Vector2(120f, 120f),
+            new Vector2(0f, 28f)
+        );
 
         if (avatarImage != null)
         {
             avatarImage.sprite = GetAvatarSprite(profile.avatar);
-            avatarImage.color = avatarImage.sprite != null ? Color.white : GetFallbackAvatarColor(index);
         }
 
         if (label != null)
         {
             label.text = GetTruncatedProfileName(profile.name);
-            label.enableAutoSizing = true;
-            label.fontSizeMin = 26f;
-            label.fontSizeMax = 30f;
-            label.fontSize = 30f;
-            label.color = DarkText;
-            label.fontStyle = FontStyles.Bold;
-            label.raycastTarget = false;
-            label.overflowMode = TextOverflowModes.Ellipsis;
-            label.textWrappingMode = TextWrappingModes.NoWrap;
         }
 
         Button button = card.GetComponent<Button>();
+
         if (button == null)
             button = card.AddComponent<Button>();
 
@@ -427,9 +454,8 @@ public class ProfileMenuController : MonoBehaviour
 
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(() => SelectProfile(profile));
-        profileCardButtons.Add(button);
 
-        ApplyCardVisualState(background, label, profile, index);
+        profileCardButtons.Add(button);
     }
 
     private GameObject CreateCardInstance()
@@ -440,13 +466,7 @@ public class ProfileMenuController : MonoBehaviour
         if (cardProfilePrefab != null)
             return Instantiate(cardProfilePrefab, cardsContainer, false);
 
-        GameObject fallback = new GameObject("ProfileCard", typeof(RectTransform), typeof(Image), typeof(Button));
-        RectTransform rect = fallback.GetComponent<RectTransform>();
-        rect.SetParent(cardsContainer, false);
-        rect.sizeDelta = new Vector2(CardWidth, CardHeight);
-        fallback.GetComponent<Image>().color = Color.white;
-        CreateLabel(string.Empty, fallback.transform, new Vector2(0f, -66f), new Vector2(140f, 34f), 26f, FontStyles.Bold, new Color(0.13f, 0.12f, 0.36f, 1f), TextAlignmentOptions.Center);
-        return fallback;
+       return null;
     }
 
     private void SelectProfile(PlayerProfileData profile)
@@ -475,39 +495,63 @@ public class ProfileMenuController : MonoBehaviour
         SessionManager.Instance.StartSessionForPlayer(PlayerProfileManager.Instance.ActiveProfile, _ => Hide(), ShowStatusMessage);
     }
 
+    
+    
     private void OnNewProfileClicked()
     {
-        EnsureCreatePopup();
-        if (createPopupRoot == null)
+        if (createProfilePanel == null)
             return;
 
-        if (createNameInput != null)
-            createNameInput.text = string.Empty;
+        createNameInput.text = string.Empty;
 
-        SelectAvatarIndex(0);
-        createPopupRoot.SetActive(true);
+        selectedAvatarIndex = -1;
+
+        if (createAvatarLabel != null)
+            createAvatarLabel.text = "Seleccionar un avatar";
+
+        UpdateCreateProfileButton();
+
+        createProfilePanel.SetActive(true);
+        createProfilePanel.transform.SetAsLastSibling();
+
         NarrationPlayer.Say("perfil_crear");
     }
 
+   
     private void ConfirmCreateProfile()
     {
+        if (selectedAvatarIndex < 0 ||
+            selectedAvatarIndex >= avatarSprites.Length ||
+            createNameInput == null ||
+            string.IsNullOrWhiteSpace(createNameInput.text))
+        {
+            UpdateCreateProfileButton();
+            return;
+        }
         if (PlayerProfileManager.Instance == null)
             return;
 
-        string playerName = createNameInput != null ? createNameInput.text : string.Empty;
+        string playerName = createNameInput != null
+            ? createNameInput.text
+            : string.Empty;
+
         string avatarName = GetAvatarOptionName(selectedAvatarIndex);
 
-        PlayerProfileManager.Instance.CreateProfile(playerName, avatarName, profile =>
-        {
-            if (createPopupRoot != null)
-                createPopupRoot.SetActive(false);
+        PlayerProfileManager.Instance.CreateProfile(
+            playerName,
+            avatarName,
+            profile =>
+            {
+                if (createProfilePanel != null)
+                    createProfilePanel.SetActive(false);
 
-            NarrationPlayer.Say("perfil_listo");
-            RefreshActiveProfileDisplay();
-            LoadProfilesOrWaitForFirebase();
-        }, ShowStatusMessage);
+                NarrationPlayer.Say("perfil_listo");
+                RefreshActiveProfileDisplay();
+                LoadProfilesOrWaitForFirebase();
+            },
+            ShowStatusMessage
+        );
     }
-
     private void RefreshActiveProfileDisplay()
     {
         if (PlayerProfileManager.Instance != null && PlayerProfileManager.Instance.HasActiveProfile)
@@ -541,18 +585,6 @@ public class ProfileMenuController : MonoBehaviour
         bool isActive = PlayerProfileManager.Instance != null && PlayerProfileManager.Instance.HasActiveProfile && PlayerProfileManager.Instance.ActiveProfile.playerId == profile.playerId;
         Color accent = GetAccentColor(index);
         background.color = isActive ? Color.white : new Color(1f, 1f, 1f, 0.94f);
-
-        Outline outline = background.GetComponent<Outline>();
-        if (outline == null)
-            outline = background.gameObject.AddComponent<Outline>();
-        outline.effectColor = isActive ? accent : new Color(accent.r, accent.g, accent.b, 0.75f);
-        outline.effectDistance = isActive ? new Vector2(8f, -8f) : new Vector2(5f, -5f);
-
-        Shadow shadow = background.GetComponent<Shadow>();
-        if (shadow == null)
-            shadow = background.gameObject.AddComponent<Shadow>();
-        shadow.effectColor = new Color(0.45f, 0.36f, 0.24f, 0.16f);
-        shadow.effectDistance = new Vector2(0f, -10f);
 
         if (label != null)
         {
@@ -611,12 +643,19 @@ public class ProfileMenuController : MonoBehaviour
 
     private static string GetTruncatedProfileName(string profileName)
     {
-        if (string.IsNullOrWhiteSpace(profileName) || profileName.Length <= 9)
+        if (string.IsNullOrWhiteSpace(profileName))
             return profileName;
 
-        return profileName.Substring(0, 9).TrimEnd() + "...";
-    }
+        profileName = profileName.Trim();
 
+        profileName = char.ToUpper(profileName[0]) +
+                    profileName.Substring(1).ToLower();
+
+        if (profileName.Length > 9)
+            return profileName.Substring(0, 9).TrimEnd() + "...";
+
+        return profileName;
+    }
     private Sprite GetAvatarSprite(string avatarName)
     {
         string[] avatarOptions = PlayerProfileManager.Instance != null ? PlayerProfileManager.Instance.GetAvatarOptions() : null;
@@ -715,103 +754,6 @@ public class ProfileMenuController : MonoBehaviour
         return null;
     }
 
-    private static TMP_Text CreateLabel(string value, Transform parent, Vector2 anchoredPosition, Vector2 size, float fontSize, FontStyles style, Color color, TextAlignmentOptions alignment)
-    {
-        GameObject obj = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-        RectTransform rect = obj.GetComponent<RectTransform>();
-        rect.SetParent(parent, false);
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = size;
-
-        TMP_Text text = obj.GetComponent<TextMeshProUGUI>();
-        text.text = value;
-        text.fontSize = fontSize;
-        text.fontStyle = style;
-        text.color = color;
-        text.alignment = alignment;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = Mathf.Min(fontSize, 16f);
-        text.fontSizeMax = fontSize;
-        text.textWrappingMode = TextWrappingModes.NoWrap;
-        return text;
-    }
-
-    private static TMP_InputField CreateInputField(Transform parent, Vector2 anchoredPosition, Vector2 size, string placeholder)
-    {
-        GameObject root = new GameObject("NameInput", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(TMP_InputField));
-        RectTransform rect = root.GetComponent<RectTransform>();
-        rect.SetParent(parent, false);
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = size;
-
-        root.GetComponent<Image>().color = Color.white;
-        TMP_InputField input = root.GetComponent<TMP_InputField>();
-
-        GameObject viewport = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
-        RectTransform viewportRect = viewport.GetComponent<RectTransform>();
-        viewportRect.SetParent(rect, false);
-        viewportRect.anchorMin = Vector2.zero;
-        viewportRect.anchorMax = Vector2.one;
-        viewportRect.offsetMin = new Vector2(18f, 10f);
-        viewportRect.offsetMax = new Vector2(-18f, -10f);
-
-        TMP_Text text = CreateLabel(string.Empty, viewportRect, Vector2.zero, Vector2.zero, 26f, FontStyles.Normal, new Color(0.14f, 0.14f, 0.22f, 1f), TextAlignmentOptions.Left);
-        text.rectTransform.anchorMin = Vector2.zero;
-        text.rectTransform.anchorMax = Vector2.one;
-        text.rectTransform.offsetMin = Vector2.zero;
-        text.rectTransform.offsetMax = Vector2.zero;
-
-        TMP_Text placeholderText = CreateLabel(placeholder, viewportRect, Vector2.zero, Vector2.zero, 24f, FontStyles.Italic, new Color(0.52f, 0.52f, 0.6f, 1f), TextAlignmentOptions.Left);
-        placeholderText.rectTransform.anchorMin = Vector2.zero;
-        placeholderText.rectTransform.anchorMax = Vector2.one;
-        placeholderText.rectTransform.offsetMin = Vector2.zero;
-        placeholderText.rectTransform.offsetMax = Vector2.zero;
-
-        input.textViewport = viewportRect;
-        input.textComponent = text as TextMeshProUGUI;
-        input.placeholder = placeholderText;
-        return input;
-    }
-
-    private static Button CreateActionButton(Transform parent, string label, Vector2 anchoredPosition, Vector2 size, Color color)
-    {
-        GameObject root = new GameObject(label + "Button", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-        RectTransform rect = root.GetComponent<RectTransform>();
-        rect.SetParent(parent, false);
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = size;
-
-        root.GetComponent<Image>().color = color;
-        TMP_Text buttonText = CreateLabel(label, root.transform, Vector2.zero, size - new Vector2(16f, 12f), 32f, FontStyles.Bold, DarkText, TextAlignmentOptions.Center);
-        buttonText.fontSizeMin = 30f;
-        buttonText.raycastTarget = false;
-        return root.GetComponent<Button>();
-    }
-
-    private static Button CreateIconButton(Transform parent, Vector2 anchoredPosition, Vector2 size)
-    {
-        GameObject root = new GameObject("AvatarButton", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-        RectTransform rect = root.GetComponent<RectTransform>();
-        rect.SetParent(parent, false);
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = size;
-
-        root.GetComponent<Image>().color = new Color(0.95f, 0.94f, 0.9f, 1f);
-        return root.GetComponent<Button>();
-    }
-
     private static Image GetOrCreateAvatarImage(Transform parent, Vector2 size, Vector2 anchoredPosition)
     {
         Transform child = FindChild(parent, "AvatarImage");
@@ -832,4 +774,43 @@ public class ProfileMenuController : MonoBehaviour
         image.preserveAspect = true;
         return image;
     }
+
+    
+    private static TMP_Text CreateLabel(
+        string value,
+        Transform parent,
+        Vector2 anchoredPosition,
+        Vector2 size,
+        float fontSize,
+        FontStyles style,
+        Color color,
+        TextAlignmentOptions alignment)
+    {
+        GameObject obj = new GameObject(
+            "Text",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(TextMeshProUGUI)
+        );
+
+        RectTransform rect = obj.GetComponent<RectTransform>();
+        rect.SetParent(parent, false);
+
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+
+        TMP_Text text = obj.GetComponent<TextMeshProUGUI>();
+        text.text = value;
+        text.fontSize = fontSize;
+        text.fontStyle = style;
+        text.color = color;
+        text.alignment = alignment;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+
+        return text;
+}
+
 }
