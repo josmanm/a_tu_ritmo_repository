@@ -103,8 +103,8 @@ public class SimonGameManager : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private AudioClip failClip;
-    [SerializeField] private AudioClip gameOverClip;
-    [SerializeField] private AudioClip levelUpClip;
+/*     [SerializeField] private AudioClip gameOverClip; */
+/*     [SerializeField] private AudioClip levelUpClip; */
     [SerializeField] private AudioClip roundTransitionClip;
 
     [Header("Efectos visuales")]
@@ -115,8 +115,8 @@ public class SimonGameManager : MonoBehaviour
 
     [Header("Dificultad suave")]
     [SerializeField] private float pauseBetweenRounds = 0.8f;
-    [SerializeField] private float playerResponseBeatWindow = 3f;
-    [SerializeField] private float minimumResponseTime = 1.5f;
+/*     [SerializeField] private float playerResponseBeatWindow = 3f;
+    [SerializeField] private float minimumResponseTime = 1.5f; */
     [SerializeField] private int levelsBeforeFiveColors = 7;
     [SerializeField] private int levelsBeforeSevenColors = 14;
 
@@ -219,6 +219,11 @@ public class SimonGameManager : MonoBehaviour
     [SerializeField] private int streakBonusPoints = 5;
     [SerializeField] private int maxReplaysPerLevel = 1;
 
+    [Header("Selector de modo")]
+    [SerializeField] private GameObject modeSelectionPanel;
+    [SerializeField] private Button memoryModeButton;
+    [SerializeField] private Button rhythmModeButton;
+
     private enum GameState { Idle, ShowingSequence, PlayerTurn, GameOver }
     private GameState currentState = GameState.Idle;
 
@@ -302,8 +307,7 @@ public class SimonGameManager : MonoBehaviour
     private LearningPhase learningPhase = LearningPhase.GuidedPractice;
     private SimonLearningProgress learningProgress;
     private SimonMetricsData learningMetrics;
-    private Button memoryModeButton;
-    private Button rhythmModeButton;
+
     private CanvasGroup rhythmCueGroup;
     private RectTransform rhythmCueRect;
     private Image rhythmCueBackground;
@@ -344,7 +348,7 @@ public class SimonGameManager : MonoBehaviour
         UpdateBoardForLevel();
         StartBoardStateTransition(boardIdleScale);
         SetInput(false);
-        EnsureLearningControls();
+        ConfigureModeButtons();
         ConfigureButtons();
 
         if (sfxSource != null)
@@ -368,9 +372,31 @@ public class SimonGameManager : MonoBehaviour
         RefreshScoreUI();
 
         SetStatus("Presiona JUGAR para comenzar", normalColor, animate: false);
-        RefreshModeButtons();
         ApplyGameSettings();
         SetCompassGuideVisible(false);
+    }
+
+    private void ConfigureModeButtons()
+    {
+        if (memoryModeButton != null)
+        {
+            memoryModeButton.onClick.AddListener(() =>
+            {
+                SelectMode(SimonMode.Classic);
+                SetModeSelectionVisible(false);
+                StartGame();
+            });
+        }
+
+        if (rhythmModeButton != null)
+        {
+            rhythmModeButton.onClick.AddListener(() =>
+            {
+                SelectMode(SimonMode.Compass);
+                SetModeSelectionVisible(false);
+                StartGame();
+            });
+        }
     }
 
     private void HideMetronomeVisual()
@@ -421,24 +447,6 @@ public class SimonGameManager : MonoBehaviour
         PlayerPrefs.SetString("SIMON_PROGRESS_" + playerId, JsonUtility.ToJson(learningProgress));
         PlayerPrefs.Save();
     }
-
-    private void EnsureLearningControls()
-    {
-        Canvas canvas = startButton != null ? startButton.GetComponentInParent<Canvas>() : null;
-        if (canvas == null)
-            return;
-
-        memoryModeButton = CreateLearningButton(canvas.transform, "MemoryModeButton", "Memoria", new Vector2(-140f, -278f));
-        rhythmModeButton = CreateLearningButton(canvas.transform, "RhythmModeButton", "Ritmo", new Vector2(140f, -278f));
-        memoryModeButton.onClick.AddListener(() => SelectMode(SimonMode.Classic));
-        rhythmModeButton.onClick.AddListener(() => SelectMode(SimonMode.Compass));
-
-        if (replayButton == null)
-            replayButton = CreateLearningButton(canvas.transform, "PracticeReplayButton", "Escuchar otra vez", new Vector2(0f, -352f));
-
-        EnsureRhythmCue(canvas.transform);
-    }
-
     private void EnsureRhythmCue(Transform canvas)
     {
         GameObject cue = new GameObject("RhythmTapCue", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
@@ -555,24 +563,13 @@ public class SimonGameManager : MonoBehaviour
         PlayerPrefs.SetInt("SIMON_LAST_MODE", (int)mode);
         PlayerPrefs.Save();
         UpdateBoardForLevel();
-        RefreshModeButtons();
         SetStatus(mode == SimonMode.Classic ? "Memoria: observa y repite sin pistas" : "Ritmo: escucha y toca con el pulso", normalColor);
     }
 
-    private void RefreshModeButtons()
+    private void SetModeSelectionVisible(bool visible)
     {
-        if (memoryModeButton != null)
-            memoryModeButton.GetComponent<Image>().color = simonMode == SimonMode.Classic
-                ? new Color(0.19f, 0.6f, 0.45f, 1f) : new Color(0.12f, 0.25f, 0.42f, 1f);
-        if (rhythmModeButton != null)
-            rhythmModeButton.GetComponent<Image>().color = simonMode == SimonMode.Compass
-                ? new Color(0.19f, 0.6f, 0.45f, 1f) : new Color(0.12f, 0.25f, 0.42f, 1f);
-    }
-
-    private void SetModeButtonsVisible(bool visible)
-    {
-        if (memoryModeButton != null) memoryModeButton.gameObject.SetActive(visible);
-        if (rhythmModeButton != null) rhythmModeButton.gameObject.SetActive(visible);
+        if (modeSelectionPanel != null)
+            modeSelectionPanel.SetActive(visible);
     }
 
     private void OnEnable()
@@ -686,7 +683,7 @@ public class SimonGameManager : MonoBehaviour
         attemptExitReason = "completed";
         RefreshScoreUI();
         SetStartButtonVisible(false);
-        SetModeButtonsVisible(false);
+        SetModeSelectionVisible(false);
         HideRhythmCue();
 
         BuildBoard(4);
@@ -1457,8 +1454,7 @@ public class SimonGameManager : MonoBehaviour
             replayButton.gameObject.SetActive(false);
 
         SetStartButtonVisible(true);
-        SetModeButtonsVisible(true);
-        RefreshModeButtons();
+        SetModeSelectionVisible(true);
         attemptExitReason = "session_complete";
         ReportAttempt(true);
         NarrationPlayer.Say("simon_fin");
@@ -1988,7 +1984,7 @@ public class SimonGameManager : MonoBehaviour
     {
         if (scoreText != null)
         {
-            scoreText.text = "Puntos " + score;
+            scoreText.text = "" + score;
             scoreText.color = scoreColor;
         }
     }
