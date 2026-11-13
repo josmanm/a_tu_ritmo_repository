@@ -1,0 +1,168 @@
+% Encuesta de evaluación experta – A tu Ritmo
+% Paquetes necesarios en el preámbulo:
+%   \usepackage[spanish]{babel}
+%   \usepackage{booktabs}
+%   \usepackage{tabularx}
+%   \usepackage{array}
+%   \usepackage{multirow}
+% Si el documento no los tiene, descomente el bloque de abajo para compilar este archivo solo.
+
+% \documentclass[11pt]{article}
+% \usepackage[utf8]{inputenc}
+% \usepackage[spanish]{babel}
+% \usepackage[margin=2.2cm]{geometry}
+% \usepackage{booktabs,tabularx,array,multirow}
+% \begin{document}
+
+\newcolumntype{C}{>{\centering\arraybackslash}p{0.55cm}}
+\renewcommand{\arraystretch}{1.35}
+
+% ---------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{Escala de valoración utilizada en los bloques A, B y C}
+\label{tab:escala}
+\begin{tabular}{ccccc}
+\toprule
+\textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} \\
+Totalmente en desacuerdo & En desacuerdo & Neutral & De acuerdo & Totalmente de acuerdo \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{Datos del evaluador}
+\label{tab:perfil}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Campo} & \textbf{Respuesta} \\
+\midrule
+Nombre completo & \\
+Institución & \\
+Área de especialidad & Educación especial / Musicoterapia / Educación musical / Terapia ocupacional / Fonoaudiología / Psicología / Desarrollo de software o UX / Otra \\
+Años de experiencia & \\
+Fecha de evaluación & \\
+Sesiones observadas & \\
+Niños o niñas observados & \\
+Dispositivo usado & Tablet Android / Teléfono Android / Computador Windows \\
+Actividades observadas & Simón (memoria) / Sigue el ritmo / Tempo Tap / Banda musical \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{Bloque A. Evaluación de la aplicación (Escala de Usabilidad del Sistema, SUS)}
+\label{tab:bloqueA}
+\begin{tabularx}{\textwidth}{lXCCCCC}
+\toprule
+\textbf{N.\textsuperscript{o}} & \textbf{Afirmación} & \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} \\
+\midrule
+A1  & Creo que a los niños y niñas les gustaría usar esta aplicación con frecuencia. & & & & & \\
+A2  & Encontré la aplicación innecesariamente compleja. & & & & & \\
+A3  & La aplicación fue fácil de usar. & & & & & \\
+A4  & Se necesita el apoyo de un técnico para poder usar esta aplicación. & & & & & \\
+A5  & Las funciones de la aplicación (perfiles, menú y juegos) están bien integradas. & & & & & \\
+A6  & Hay demasiada inconsistencia en la aplicación. & & & & & \\
+A7  & La mayoría de los niños y niñas aprenderían a usar esta aplicación muy rápidamente. & & & & & \\
+A8  & La aplicación es muy difícil de usar. & & & & & \\
+A9  & Los niños y niñas se mostraron seguros y confiados al usar la aplicación. & & & & & \\
+A10 & Fue necesario aprender muchas cosas antes de poder usar la aplicación. & & & & & \\
+\midrule
+\multicolumn{7}{p{0.95\textwidth}}{\textbf{Observaciones sobre la interfaz} (botones, colores, sonidos, retroalimentación):} \\[1.6cm]
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{Bloque B. Actividades rítmicas y valor educativo}
+\label{tab:bloqueB}
+\begin{tabularx}{\textwidth}{lXCCCCC}
+\toprule
+\textbf{N.\textsuperscript{o}} & \textbf{Afirmación} & \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} \\
+\midrule
+\multicolumn{7}{l}{\textit{Diseño de las actividades}} \\
+B1  & Las actividades rítmicas son adecuadas a la edad y al nivel de desarrollo de los niños y niñas con síndrome de Down. & & & & & \\
+B2  & Las instrucciones de cada juego se comprenden sin explicación adicional del adulto. & & & & & \\
+B3  & El tempo y la velocidad de los patrones son apropiados para los usuarios. & & & & & \\
+B4  & La dificultad aumenta de forma gradual y a un ritmo adecuado. & & & & & \\
+B5  & La retroalimentación visual y sonora ayuda a corregir el ritmo. & & & & & \\
+\midrule
+\multicolumn{7}{l}{\textit{Valor educativo}} \\
+B6  & Las actividades trabajan habilidades rítmicas concretas: pulso, acento e imitación de patrones. & & & & & \\
+B7  & Los juegos favorecen la atención y la memoria secuencial. & & & & & \\
+B8  & Las actividades estimulan la coordinación motora (toques y gestos al compás). & & & & & \\
+B9  & Los contenidos pueden integrarse a la planificación de aula o de terapia. & & & & & \\
+B10 & Las actividades mantienen la motivación durante toda la sesión. & & & & & \\
+\midrule
+\multicolumn{7}{p{0.95\textwidth}}{\textbf{Comentarios sobre las actividades} (qué juego aporta más, qué cambiaría):} \\[1.6cm]
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{Bloque C. Progreso y aprendizaje observado en el ritmo}
+\label{tab:bloqueC}
+\begin{tabularx}{\textwidth}{lXCCCCC}
+\toprule
+\textbf{N.\textsuperscript{o}} & \textbf{Afirmación} & \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} \\
+\midrule
+C1 & Mejoraron su capacidad para mantener un pulso estable. & & & & & \\
+C2 & Reprodujeron patrones rítmicos con mayor precisión que al inicio. & & & & & \\
+C3 & Lograron sincronizar sus toques con la música o el metrónomo. & & & & & \\
+C4 & Recordaron secuencias más largas a medida que avanzaban. & & & & & \\
+C5 & Aumentó el tiempo de atención sostenida durante la actividad. & & & & & \\
+C6 & Ganaron autonomía: necesitaron menos ayuda del adulto para jugar. & & & & & \\
+C7 & Mostraron disfrute e interés por volver a jugar. & & & & & \\
+C8 & Los reportes de partidas reflejan el progreso que observé en las sesiones. & & & & & \\
+\midrule
+\multicolumn{7}{p{0.95\textwidth}}{\textbf{Ejemplo concreto de progreso o dificultad observada:}} \\[1.6cm]
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{Dictamen del experto}
+\label{tab:dictamen}
+\begin{tabularx}{\textwidth}{XC}
+\toprule
+\multicolumn{2}{l}{\textbf{¿Recomienda el uso de A tu Ritmo con niños y niñas con síndrome de Down?}} \\
+\midrule
+Sí, tal como está. Puede usarse en aula o terapia sin cambios. & \\
+Sí, con ajustes menores. Requiere cambios puntuales antes de usarse. & \\
+Requiere ajustes importantes. Debe revisarse antes de aplicarse. & \\
+No la recomiendo para esta población. & \\
+\midrule
+\multicolumn{2}{p{0.95\textwidth}}{\textbf{Principales fortalezas:}} \\[1.6cm]
+\multicolumn{2}{p{0.95\textwidth}}{\textbf{Mejoras sugeridas:}} \\[1.6cm]
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------
+\begin{table}[htbp]
+\centering
+\caption{Cálculo de puntajes por bloque}
+\label{tab:puntajes}
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\textbf{Bloque} & \textbf{Cálculo} & \textbf{Rango} \\
+\midrule
+A (SUS) & Ítems impares: $x_i - 1$. Ítems pares: $5 - x_i$. Se suman los 10 valores y se multiplica por $2{,}5$. & 0--100 \\
+B y C & Promedio de $\dfrac{x_i - 1}{4} \times 100$ sobre los ítems del bloque. & 0--100 \\
+\midrule
+\multicolumn{3}{p{0.95\textwidth}}{\textit{Interpretación del SUS:} $\geq 85$ excelente; 72--84 buena; 68--71 aceptable; 51--67 marginal; $< 51$ deficiente. \textit{Bloques B y C:} $\geq 80$ muy alto; 60--79 alto; 40--59 medio; $< 40$ bajo.} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% \end{document}
