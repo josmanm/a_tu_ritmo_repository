@@ -1,0 +1,568 @@
+<title>Evaluación experta A tu Ritmo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: una sola columna de lectura; cabecera fija con una "partitura" de pulsos que marca el avance por bloque. */
+:root{
+  --bg:#f4f6f5; --surface:#ffffff; --ink:#18262b; --muted:#56666b; --line:#d6dedc;
+  --accent:#0d6b66; --accent-soft:#dcefed; --beat:#d99a1e; --beat-soft:#f8ecd2;
+  --ok:#2f7d3a; --warn:#a8580c; --danger:#b03a2e;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111a1c; --surface:#182427; --ink:#e7eeec; --muted:#9db0ad; --line:#2c3c3f;
+  --accent:#4fc0b6; --accent-soft:#183a38; --beat:#e8b44a; --beat-soft:#3a2f17;
+  --ok:#6cc17a; --warn:#e5a35a; --danger:#ef8273; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#111a1c; --surface:#182427; --ink:#e7eeec; --muted:#9db0ad; --line:#2c3c3f;
+  --accent:#4fc0b6; --accent-soft:#183a38; --beat:#e8b44a; --beat-soft:#3a2f17;
+  --ok:#6cc17a; --warn:#e5a35a; --danger:#ef8273; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:820px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(1.7rem,4.5vw,2.4rem);font-weight:700}
+h2{font-size:1.45rem;font-weight:700}
+h3{font-size:1.05rem;font-weight:500}
+p{margin:0}
+.eyebrow{font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--accent)}
+.muted{color:var(--muted)}
+
+/* Cabecera */
+header.top{background:var(--surface);border-bottom:1px solid var(--line)}
+header.top .wrap{padding-block:28px 22px;display:grid;gap:10px}
+.lede{max-width:62ch;color:var(--muted)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tab{font:inherit;font-weight:700;font-size:.9rem;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Partitura de avance */
+.score{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.score .wrap{padding-block:10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.measures{display:flex;gap:0;flex:1 1 380px;min-width:0;align-items:center}
+.measure{display:flex;gap:4px;align-items:center;padding:0 8px;border-left:2px solid var(--ink);min-width:0}
+.measure:last-child{border-right:2px solid var(--ink);box-shadow:inset -4px 0 0 var(--surface),inset -6px 0 0 var(--ink)}
+.measure .lbl{font-size:.7rem;font-weight:700;color:var(--muted);margin-right:2px}
+.pulse{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--muted);flex:none;transition:background .2s,border-color .2s,transform .2s}
+.pulse.on{background:var(--beat);border-color:var(--beat);transform:scale(1.15)}
+.count{font-variant-numeric:tabular-nums;font-size:.85rem;font-weight:700;white-space:nowrap}
+
+main .wrap{padding-block:28px 64px;display:grid;gap:28px}
+
+/* Instrucciones */
+.guide{display:grid;gap:12px;padding:18px 20px;background:var(--accent-soft);border-radius:var(--radius)}
+.scale-key{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;font-size:.8rem;text-align:center}
+.scale-key span{display:grid;gap:2px}
+.scale-key b{font-family:var(--f-display);font-size:1.1rem}
+
+/* Secciones */
+section.block{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.block-head{padding:20px 22px 16px;display:grid;gap:6px;border-bottom:1px solid var(--line)}
+.block-head .meta{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.chip{font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--beat-soft);color:var(--ink)}
+.block-body{padding:6px 22px 22px;display:grid;gap:0}
+.sub{padding-top:18px;padding-bottom:4px;font-family:var(--f-display);font-weight:700;font-size:.95rem;color:var(--accent)}
+
+.item{display:grid;grid-template-columns:2.2rem minmax(0,1fr);gap:4px 10px;padding-block:14px;border-top:1px solid var(--line)}
+.item:first-of-type{border-top:0}
+.sub + .item{border-top:0}
+.item .n{font-family:var(--f-display);font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:1px}
+.item .q{min-width:0}
+.item.missing .q > p{color:var(--danger)}
+.likert{grid-column:2;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:8px;border:0;padding:0}
+.likert legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.likert label{position:relative}
+.likert input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.likert span{display:grid;place-items:center;height:44px;border:1.5px solid var(--line);border-radius:10px;font-family:var(--f-display);font-weight:700;font-size:1.05rem;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.likert label:hover span{border-color:var(--accent)}
+.likert input:focus-visible + span{outline:3px solid var(--accent);outline-offset:2px}
+.likert input:checked + span{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.ends{grid-column:2;display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)}
+
+.field{display:grid;gap:6px}
+.field label,.field .lab{font-weight:700;font-size:.92rem}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+input[type=text],input[type=number],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+textarea{min-height:92px;resize:vertical}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:flex;gap:8px;align-items:center;padding:8px 12px;border:1.5px solid var(--line);border-radius:999px;font-weight:400;cursor:pointer}
+.checks input{accent-color:var(--accent);width:18px;height:18px}
+.comment{padding-top:18px;border-top:1px solid var(--line);margin-top:4px}
+
+.radios{display:grid;gap:8px}
+.radios label{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;font-weight:400}
+.radios input{accent-color:var(--accent);width:18px;height:18px;margin-top:3px;flex:none}
+
+/* Resultado */
+.result{display:grid;gap:16px;padding:22px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--line)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{display:grid;gap:4px;padding:14px;border-radius:10px;background:var(--bg)}
+.kpi .v{font-family:var(--f-display);font-weight:700;font-size:1.9rem;font-variant-numeric:tabular-nums;line-height:1}
+.kpi .v small{font-size:.9rem;color:var(--muted);font-weight:500}
+.bar{height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.tag{font-size:.78rem;font-weight:700}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:inherit;font-weight:700;padding:12px 20px;border-radius:10px;border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:focus-visible,.tab:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.status{font-size:.92rem}
+.status.ok{color:var(--ok)} .status.err{color:var(--danger)} .status.warn{color:var(--warn)}
+
+/* Panel de resultados */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.item-avgs{display:grid;gap:8px}
+.ia{display:grid;grid-template-columns:2.2rem minmax(0,1fr) 3rem;gap:10px;align-items:center;font-size:.88rem}
+.ia .bar{grid-column:2}
+details summary{cursor:pointer;font-weight:700}
+@media (max-width:480px){
+  .likert span{height:48px}
+  .block-head,.block-body{padding-left:16px;padding-right:16px}
+  .measure{padding:0 5px}
+  .pulse{width:7px;height:7px}
+  .measure .lbl{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <p class="eyebrow">Validación por juicio de expertos</p>
+    <h1>Evaluación experta de A tu Ritmo</h1>
+    <p class="lede">Instrumento para docentes, terapeutas y especialistas que observaron el uso de A tu Ritmo con niños y niñas con síndrome de Down. Valore la aplicación, el valor educativo de sus actividades rítmicas y el progreso que observó en el ritmo.</p>
+    <div class="tabs" role="tablist" id="tabs" hidden>
+      <button class="tab" role="tab" id="tab-form" aria-selected="true" type="button">Formulario</button>
+      <button class="tab" role="tab" id="tab-results" aria-selected="false" type="button">Resultados de expertos</button>
+    </div>
+  </div>
+</header>
+
+<div class="score" id="scorebar">
+  <div class="wrap">
+    <div class="measures" id="measures" aria-hidden="true"></div>
+    <span class="count" id="count">0 / 0 ítems</span>
+  </div>
+</div>
+
+<main>
+<div class="wrap" id="view-form">
+
+  <div class="guide">
+    <h3>Cómo responder</h3>
+    <p>Marque de 1 a 5 su grado de acuerdo con cada afirmación según lo que observó. Responda todos los ítems con escala; los comentarios son opcionales, pero ayudan mucho a mejorar la aplicación.</p>
+    <div class="scale-key">
+      <span><b>1</b>Totalmente en desacuerdo</span>
+      <span><b>2</b>En desacuerdo</span>
+      <span><b>3</b>Neutral</span>
+      <span><b>4</b>De acuerdo</span>
+      <span><b>5</b>Totalmente de acuerdo</span>
+    </div>
+  </div>
+
+  <form id="form" novalidate>
+  <div style="display:grid;gap:28px">
+
+    <section class="block" aria-labelledby="h-perfil">
+      <div class="block-head">
+        <div class="meta"><span class="eyebrow">Datos del evaluador</span></div>
+        <h2 id="h-perfil">Perfil profesional</h2>
+        <p class="muted">Estos datos permiten describir al panel de expertos en el informe de validación.</p>
+      </div>
+      <div class="block-body" style="gap:16px;padding-top:20px">
+        <div class="grid2">
+          <div class="field"><label for="p_nombre">Nombre completo</label><input type="text" id="p_nombre" name="p_nombre" autocomplete="name"></div>
+          <div class="field"><label for="p_institucion">Institución</label><input type="text" id="p_institucion" name="p_institucion" autocomplete="organization"></div>
+          <div class="field"><label for="p_profesion">Área de especialidad</label>
+            <select id="p_profesion" name="p_profesion">
+              <option value="">Seleccione…</option>
+              <option>Educación especial</option>
+              <option>Musicoterapia</option>
+              <option>Educación musical</option>
+              <option>Terapia ocupacional</option>
+              <option>Fonoaudiología / terapia de lenguaje</option>
+              <option>Psicología / psicopedagogía</option>
+              <option>Desarrollo de software / UX</option>
+              <option>Otra</option>
+            </select></div>
+          <div class="field"><label for="p_anios">Años de experiencia</label><input type="number" id="p_anios" name="p_anios" min="0" max="60" inputmode="numeric"></div>
+          <div class="field"><label for="p_fecha">Fecha de evaluación</label><input type="date" id="p_fecha" name="p_fecha"></div>
+          <div class="field"><label for="p_sesiones">Sesiones observadas</label><input type="number" id="p_sesiones" name="p_sesiones" min="0" max="500" inputmode="numeric"></div>
+          <div class="field"><label for="p_ninos">Niños o niñas observados</label><input type="number" id="p_ninos" name="p_ninos" min="0" max="500" inputmode="numeric"></div>
+          <div class="field"><label for="p_disp">Dispositivo usado</label>
+            <select id="p_disp" name="p_disp">
+              <option value="">Seleccione…</option>
+              <option>Tablet Android</option>
+              <option>Teléfono Android</option>
+              <option>Computador Windows</option>
+            </select></div>
+        </div>
+        <div class="field">
+          <span class="lab">Actividades que observó</span>
+          <div class="checks" id="juegos">
+            <label><input type="checkbox" name="j" value="Simón (memoria)" id="j_simon">Simón (memoria)</label>
+            <label><input type="checkbox" name="j" value="Sigue el ritmo" id="j_basic">Sigue el ritmo</label>
+            <label><input type="checkbox" name="j" value="Tempo Tap" id="j_tempo">Tempo Tap</label>
+            <label><input type="checkbox" name="j" value="Banda musical" id="j_banda">Banda musical</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="blocks"></div>
+
+    <section class="block" aria-labelledby="h-final">
+      <div class="block-head">
+        <div class="meta"><span class="eyebrow">Cierre</span></div>
+        <h2 id="h-final">Dictamen del experto</h2>
+      </div>
+      <div class="block-body" style="gap:16px;padding-top:20px">
+        <div class="field">
+          <span class="lab" id="lab-dictamen">¿Recomienda el uso de A tu Ritmo con niños y niñas con síndrome de Down?</span>
+          <div class="radios" role="radiogroup" aria-labelledby="lab-dictamen">
+            <label><input type="radio" name="dictamen" value="Sí, tal como está" id="d1"><span><b>Sí, tal como está.</b> Puede usarse en aula o terapia sin cambios.</span></label>
+            <label><input type="radio" name="dictamen" value="Sí, con ajustes menores" id="d2"><span><b>Sí, con ajustes menores.</b> Requiere cambios puntuales antes de usarse.</span></label>
+            <label><input type="radio" name="dictamen" value="Requiere ajustes importantes" id="d3"><span><b>Requiere ajustes importantes.</b> Debe revisarse antes de aplicarse.</span></label>
+            <label><input type="radio" name="dictamen" value="No la recomiendo" id="d4"><span><b>No la recomiendo</b> para esta población.</span></label>
+          </div>
+        </div>
+        <div class="field"><label for="c_fortalezas">Principales fortalezas</label><textarea id="c_fortalezas" name="c_fortalezas"></textarea></div>
+        <div class="field"><label for="c_mejoras">Mejoras sugeridas</label><textarea id="c_mejoras" name="c_mejoras"></textarea></div>
+      </div>
+    </section>
+
+    <div class="result" id="result">
+      <div class="meta" style="display:grid;gap:4px">
+        <span class="eyebrow">Su puntaje</span>
+        <h2>Resumen de la evaluación</h2>
+        <p class="muted">Se actualiza mientras responde. Cada bloque se expresa de 0 a 100.</p>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="actions">
+        <button class="btn" type="submit" id="submit">Enviar evaluación</button>
+        <button class="btn ghost" type="button" id="copy">Copiar resumen</button>
+        <span class="status" id="status" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+
+  </div>
+  </form>
+</div>
+
+<div class="wrap" id="view-results" hidden>
+  <div style="display:grid;gap:6px">
+    <span class="eyebrow">Solo visible para quien administra</span>
+    <h2>Resultados del panel de expertos</h2>
+    <p class="muted" id="res-note">Cargando evaluaciones…</p>
+  </div>
+  <div class="kpis" id="agg-kpis"></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Experto</th><th>Especialidad</th><th>Fecha</th><th>Usabilidad (SUS)</th><th>Valor educativo</th><th>Progreso</th><th>Dictamen</th></tr></thead>
+    <tbody id="res-body"><tr><td colspan="7" class="empty">Aún no hay evaluaciones. Comparta este enlace con los expertos; cada envío aparecerá aquí.</td></tr></tbody>
+  </table></div>
+  <details id="res-items"><summary>Promedio por ítem</summary><div class="item-avgs" id="item-avgs" style="padding-top:14px"></div></details>
+  <div class="actions"><button class="btn" type="button" id="csv">Descargar CSV</button><span class="status" id="csv-status" role="status"></span></div>
+</div>
+</main>
+
+<script>
+const BLOCKS = [
+  { key:"app", letter:"A", title:"Evaluación de la aplicación",
+    intro:"Usabilidad general basada en la Escala de Usabilidad del Sistema (SUS). Piense en cómo los niños y niñas, con el acompañamiento habitual del adulto, usaron la aplicación.",
+    chip:"Escala SUS · 10 ítems",
+    groups:[{ items:[
+      ["a1","Creo que a los niños y niñas les gustaría usar esta aplicación con frecuencia.",false],
+      ["a2","Encontré la aplicación innecesariamente compleja.",true],
+      ["a3","La aplicación fue fácil de usar.",false],
+      ["a4","Se necesita el apoyo de un técnico para poder usar esta aplicación.",true],
+      ["a5","Las funciones de la aplicación (perfiles, menú y juegos) están bien integradas.",false],
+      ["a6","Hay demasiada inconsistencia en la aplicación.",true],
+      ["a7","La mayoría de los niños y niñas aprenderían a usar esta aplicación muy rápidamente.",false],
+      ["a8","La aplicación es muy difícil de usar.",true],
+      ["a9","Los niños y niñas se mostraron seguros y confiados al usar la aplicación.",false],
+      ["a10","Fue necesario aprender muchas cosas antes de poder usar la aplicación.",true],
+    ]}],
+    comment:"Observaciones sobre la interfaz (botones, colores, sonidos, retroalimentación)" },
+  { key:"edu", letter:"B", title:"Actividades rítmicas y valor educativo",
+    intro:"Pertinencia pedagógica de los juegos de memoria y ritmo para el desarrollo de habilidades musicales y cognitivas.",
+    chip:"10 ítems",
+    groups:[
+      { name:"Diseño de las actividades", items:[
+        ["b1","Las actividades rítmicas son adecuadas a la edad y al nivel de desarrollo de los niños y niñas con síndrome de Down."],
+        ["b2","Las instrucciones de cada juego se comprenden sin explicación adicional del adulto."],
+        ["b3","El tempo y la velocidad de los patrones son apropiados para los usuarios."],
+        ["b4","La dificultad aumenta de forma gradual y a un ritmo adecuado."],
+        ["b5","La retroalimentación visual y sonora ayuda a corregir el ritmo."],
+      ]},
+      { name:"Valor educativo", items:[
+        ["b6","Las actividades trabajan habilidades rítmicas concretas: pulso, acento e imitación de patrones."],
+        ["b7","Los juegos favorecen la atención y la memoria secuencial."],
+        ["b8","Las actividades estimulan la coordinación motora (toques y gestos al compás)."],
+        ["b9","Los contenidos pueden integrarse a la planificación de aula o de terapia."],
+        ["b10","Las actividades mantienen la motivación durante toda la sesión."],
+      ]}],
+    comment:"Comentarios sobre las actividades (qué juego aporta más, qué cambiaría)" },
+  { key:"prog", letter:"C", title:"Progreso y aprendizaje observado en el ritmo",
+    intro:"Cambios que usted observó en los niños y niñas a lo largo de las sesiones. Responda solo sobre lo que pudo observar directamente.",
+    chip:"8 ítems",
+    groups:[{ items:[
+      ["c1","Mejoraron su capacidad para mantener un pulso estable."],
+      ["c2","Reprodujeron patrones rítmicos con mayor precisión que al inicio."],
+      ["c3","Lograron sincronizar sus toques con la música o el metrónomo."],
+      ["c4","Recordaron secuencias más largas a medida que avanzaban."],
+      ["c5","Aumentó el tiempo de atención sostenida durante la actividad."],
+      ["c6","Ganaron autonomía: necesitaron menos ayuda del adulto para jugar."],
+      ["c7","Mostraron disfrute e interés por volver a jugar."],
+      ["c8","Los reportes de partidas reflejan el progreso que observé en las sesiones."],
+    ]}],
+    comment:"Describa un ejemplo concreto de progreso (o de dificultad) que haya observado" },
+];
+const ALL_ITEMS = BLOCKS.flatMap(b => b.groups.flatMap(g => g.items.map(it => ({id:it[0], text:it[1], neg:!!it[2], block:b.key}))));
+const LIKERT_IDS = ALL_ITEMS.map(i => i.id);
+const DRAFT_KEY = "atr-eval-borrador-v1";
+
+/* ---------- Construcción del formulario ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let n = 0;
+document.getElementById("blocks").outerHTML = BLOCKS.map(b => `
+  <section class="block" aria-labelledby="h-${b.key}" id="blk-${b.key}">
+    <div class="block-head">
+      <div class="meta"><span class="eyebrow">Bloque ${b.letter}</span><span class="chip">${b.chip}</span></div>
+      <h2 id="h-${b.key}">${b.title}</h2>
+      <p class="muted">${b.intro}</p>
+    </div>
+    <div class="block-body">
+      ${b.groups.map(g => `${g.name ? `<p class="sub">${g.name}</p>` : ""}${g.items.map(([id,text]) => { n++; return `
+        <div class="item" id="it-${id}">
+          <span class="n">${b.letter}${b.groups.flatMap(x=>x.items).findIndex(x=>x[0]===id)+1}</span>
+          <div class="q"><p id="q-${id}">${esc(text)}</p></div>
+          <fieldset class="likert" aria-labelledby="q-${id}">
+            <legend>${esc(text)}</legend>
+            ${[1,2,3,4,5].map(v => `<label><input type="radio" name="${id}" value="${v}" id="${id}_${v}" aria-label="${v}"><span>${v}</span></label>`).join("")}
+          </fieldset>
+          <div class="ends"><span>Desacuerdo</span><span>Acuerdo</span></div>
+        </div>`; }).join("")}`).join("")}
+      <div class="field comment"><label for="com_${b.key}">${b.comment}</label><textarea id="com_${b.key}" name="com_${b.key}"></textarea></div>
+    </div>
+  </section>`).join("");
+
+document.getElementById("measures").innerHTML = BLOCKS.map(b => {
+  const ids = b.groups.flatMap(g => g.items.map(i => i[0]));
+  return `<div class="measure"><span class="lbl">${b.letter}</span>${ids.map(id => `<span class="pulse" data-p="${id}"></span>`).join("")}</div>`;
+}).join("");
+
+const form = document.getElementById("form");
+
+/* ---------- Puntajes ---------- */
+function readAnswers(){
+  const fd = new FormData(form); const a = {};
+  LIKERT_IDS.forEach(id => { const v = fd.get(id); if (v) a[id] = Number(v); });
+  return a;
+}
+function scores(a){
+  const out = {};
+  const app = ALL_ITEMS.filter(i => i.block === "app");
+  const appDone = app.filter(i => a[i.id]);
+  out.app = appDone.length === app.length ? app.reduce((s,i) => s + (i.neg ? 5 - a[i.id] : a[i.id] - 1), 0) * 2.5 : null;
+  out.appDone = appDone.length; out.appTotal = app.length;
+  ["edu","prog"].forEach(k => {
+    const its = ALL_ITEMS.filter(i => i.block === k); const done = its.filter(i => a[i.id]);
+    out[k] = done.length ? done.reduce((s,i) => s + (a[i.id]-1)/4*100, 0) / done.length : null;
+    out[k+"Done"] = done.length; out[k+"Total"] = its.length;
+  });
+  return out;
+}
+function susLabel(s){
+  if (s == null) return "";
+  if (s >= 85) return "Excelente";
+  if (s >= 72) return "Buena";
+  if (s >= 68) return "Aceptable (sobre el promedio)";
+  if (s >= 51) return "Marginal";
+  return "Deficiente";
+}
+function levelLabel(s){
+  if (s == null) return "";
+  if (s >= 80) return "Muy alto"; if (s >= 60) return "Alto"; if (s >= 40) return "Medio"; return "Bajo";
+}
+function kpi(title, val, sub, tag){
+  const v = val == null ? "–" : Math.round(val);
+  return `<div class="kpi"><span class="eyebrow" style="color:var(--muted)">${title}</span>
+    <span class="v">${v}<small> /100</small></span>
+    <div class="bar"><i style="width:${val==null?0:Math.max(0,Math.min(100,val))}%"></i></div>
+    <span class="tag">${tag || "&nbsp;"}</span><span class="muted" style="font-size:.8rem">${sub}</span></div>`;
+}
+function refresh(){
+  const a = readAnswers(); const s = scores(a);
+  document.querySelectorAll(".pulse").forEach(p => p.classList.toggle("on", !!a[p.dataset.p]));
+  const done = Object.keys(a).length;
+  document.getElementById("count").textContent = `${done} / ${LIKERT_IDS.length} ítems`;
+  document.getElementById("kpis").innerHTML =
+    kpi("A · Usabilidad (SUS)", s.app, s.app == null ? `Faltan ${s.appTotal - s.appDone} ítems para calcular` : "Escala SUS estándar", susLabel(s.app)) +
+    kpi("B · Valor educativo", s.edu, `${s.eduDone} de ${s.eduTotal} ítems`, levelLabel(s.edu)) +
+    kpi("C · Progreso observado", s.prog, `${s.progDone} de ${s.progTotal} ítems`, levelLabel(s.prog));
+  document.querySelectorAll(".item.missing").forEach(el => { if (a[el.id.slice(3)]) el.classList.remove("missing"); });
+}
+
+/* ---------- Borrador local ---------- */
+function collect(){
+  const fd = new FormData(form); const o = {};
+  for (const [k,v] of fd.entries()){ if (k === "j") continue; o[k] = v; }
+  o.juegos = fd.getAll("j");
+  return o;
+}
+function fill(o){
+  if (!o) return;
+  Object.entries(o).forEach(([k,v]) => {
+    if (k === "juegos") { form.querySelectorAll('input[name="j"]').forEach(c => c.checked = v.includes(c.value)); return; }
+    const els = form.elements[k]; if (!els) return;
+    if (els instanceof RadioNodeList) { els.forEach(r => r.checked = String(r.value) === String(v)); }
+    else els.value = v;
+  });
+}
+let draftTimer;
+function saveDraft(){ clearTimeout(draftTimer); draftTimer = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(collect())); } catch(e){} }, 400); }
+try { fill(JSON.parse(localStorage.getItem(DRAFT_KEY) || "null")); } catch(e){}
+if (!form.p_fecha.value) form.p_fecha.value = new Date().toISOString().slice(0,10);
+form.addEventListener("input", () => { refresh(); saveDraft(); });
+form.addEventListener("change", () => { refresh(); saveDraft(); });
+refresh();
+
+/* ---------- Resumen de texto ---------- */
+function summaryText(){
+  const o = collect(); const a = readAnswers(); const s = scores(a);
+  const lines = [`Evaluación experta – A tu Ritmo`, `Experto: ${o.p_nombre||"-"} (${o.p_profesion||"-"}), ${o.p_institucion||"-"}`, `Fecha: ${o.p_fecha||"-"}`, ""];
+  BLOCKS.forEach(b => {
+    lines.push(`Bloque ${b.letter}. ${b.title}`);
+    b.groups.flatMap(g=>g.items).forEach(([id,text],i) => lines.push(`  ${b.letter}${i+1}. ${text} → ${a[id]||"-"}`));
+    if (o["com_"+b.key]) lines.push(`  Comentario: ${o["com_"+b.key]}`);
+    lines.push("");
+  });
+  lines.push(`Puntajes: SUS ${s.app==null?"-":s.app.toFixed(1)} · Valor educativo ${s.edu==null?"-":s.edu.toFixed(1)} · Progreso ${s.prog==null?"-":s.prog.toFixed(1)}`);
+  lines.push(`Dictamen: ${o.dictamen||"-"}`);
+  if (o.c_fortalezas) lines.push(`Fortalezas: ${o.c_fortalezas}`);
+  if (o.c_mejoras) lines.push(`Mejoras: ${o.c_mejoras}`);
+  return lines.join("\n");
+}
+const statusEl = document.getElementById("status");
+function setStatus(msg, kind){ statusEl.textContent = msg; statusEl.className = "status " + (kind||""); }
+document.getElementById("copy").addEventListener("click", () => {
+  const t = summaryText();
+  navigator.clipboard.writeText(t).then(() => setStatus("Resumen copiado.", "ok")).catch(() => {
+    const ta = document.createElement("textarea"); ta.value = t; ta.style.marginTop = "8px";
+    document.getElementById("result").appendChild(ta); ta.select(); setStatus("Seleccione el texto y cópielo con Ctrl+C.", "warn");
+  });
+});
+
+/* ---------- Envío y almacenamiento ---------- */
+let db = null, user = null, myId = null;
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+  const a = readAnswers();
+  const missing = LIKERT_IDS.filter(id => !a[id]);
+  document.querySelectorAll(".item").forEach(el => el.classList.toggle("missing", missing.includes(el.id.slice(3))));
+  if (!form.p_nombre.value.trim()) { setStatus("Escriba su nombre en Perfil profesional.", "err"); form.p_nombre.focus(); return; }
+  if (missing.length) { setStatus(`Faltan ${missing.length} ítems por responder (marcados en rojo).`, "err"); document.getElementById("it-"+missing[0]).scrollIntoView({behavior:"smooth",block:"center"}); return; }
+  if (!form.dictamen.value) { setStatus("Elija un dictamen en la sección de cierre.", "err"); return; }
+  if (!db || !myId) { setStatus("No se pudo conectar con el registro de respuestas. Use «Copiar resumen» y envíelo a quien le compartió este formulario.", "warn"); return; }
+  const btn = document.getElementById("submit"); btn.disabled = true; setStatus("Enviando…");
+  const s = scores(a); const o = collect();
+  const doc = { perfil:{ nombre:o.p_nombre, institucion:o.p_institucion||"", profesion:o.p_profesion||"", anios:o.p_anios||"", fecha:o.p_fecha||"", sesiones:o.p_sesiones||"", ninos:o.p_ninos||"", dispositivo:o.p_disp||"", juegos:o.juegos },
+    respuestas:a, comentarios:{ app:o.com_app||"", edu:o.com_edu||"", prog:o.com_prog||"", fortalezas:o.c_fortalezas||"", mejoras:o.c_mejoras||"" },
+    dictamen:o.dictamen, puntajes:{ sus:s.app, educativo:Math.round(s.edu*10)/10, progreso:Math.round(s.prog*10)/10 },
+    enviado:new Date().toISOString() };
+  try {
+    await db.collection("evaluaciones").doc(myId).set(doc);
+    setStatus("Evaluación enviada. Gracias. Si la envía de nuevo, se reemplaza la anterior.", "ok");
+    btn.textContent = "Actualizar evaluación";
+  } catch(err) {
+    setStatus("No se pudo guardar (" + (err && err.code || "error") + "). Use «Copiar resumen» como respaldo.", "err");
+  } finally { btn.disabled = false; }
+});
+
+/* ---------- Panel de resultados (administración) ---------- */
+let rows = [];
+function showView(which){
+  document.getElementById("view-form").hidden = which !== "form";
+  document.getElementById("view-results").hidden = which !== "results";
+  document.getElementById("scorebar").hidden = which !== "form";
+  document.getElementById("tab-form").setAttribute("aria-selected", which === "form");
+  document.getElementById("tab-results").setAttribute("aria-selected", which === "results");
+}
+document.getElementById("tab-form").addEventListener("click", () => showView("form"));
+document.getElementById("tab-results").addEventListener("click", () => showView("results"));
+const fmt = v => v == null || isNaN(v) ? "–" : (Math.round(v*10)/10).toString().replace(".", ",");
+const mean = arr => { const f = arr.filter(v => typeof v === "number" && !isNaN(v)); return f.length ? f.reduce((x,y)=>x+y,0)/f.length : null; };
+function renderResults(){
+  const note = document.getElementById("res-note");
+  note.textContent = rows.length ? `${rows.length} evaluación${rows.length===1?"":"es"} recibida${rows.length===1?"":"s"}.` : "Aún no hay evaluaciones.";
+  const body = document.getElementById("res-body");
+  if (!rows.length){
+    body.innerHTML = `<tr><td colspan="7" class="empty">Aún no hay evaluaciones. Comparta este enlace con los expertos; cada envío aparecerá aquí.</td></tr>`;
+    document.getElementById("agg-kpis").innerHTML = ""; document.getElementById("item-avgs").innerHTML = ""; return;
+  }
+  body.innerHTML = rows.map(r => `<tr><td>${esc(r.perfil?.nombre||"–")}</td><td>${esc(r.perfil?.profesion||"–")}</td><td>${esc(r.perfil?.fecha||"–")}</td>
+    <td>${fmt(r.puntajes?.sus)}</td><td>${fmt(r.puntajes?.educativo)}</td><td>${fmt(r.puntajes?.progreso)}</td><td>${esc(r.dictamen||"–")}</td></tr>`).join("");
+  const sus = mean(rows.map(r => r.puntajes?.sus)), edu = mean(rows.map(r => r.puntajes?.educativo)), pr = mean(rows.map(r => r.puntajes?.progreso));
+  const fav = rows.filter(r => /^Sí/.test(r.dictamen||"")).length;
+  document.getElementById("agg-kpis").innerHTML =
+    kpi("A · SUS promedio", sus, `${rows.length} expertos`, susLabel(sus)) +
+    kpi("B · Valor educativo", edu, "Promedio del panel", levelLabel(edu)) +
+    kpi("C · Progreso observado", pr, "Promedio del panel", levelLabel(pr)) +
+    `<div class="kpi"><span class="eyebrow" style="color:var(--muted)">Recomiendan su uso</span><span class="v">${fav}<small> de ${rows.length}</small></span><div class="bar"><i style="width:${fav/rows.length*100}%"></i></div><span class="muted" style="font-size:.8rem">Dictamen «Sí» (con o sin ajustes)</span></div>`;
+  document.getElementById("item-avgs").innerHTML = BLOCKS.map(b => `<p class="sub" style="padding-top:6px">Bloque ${b.letter}. ${b.title}</p>` +
+    b.groups.flatMap(g=>g.items).map(([id,text],i) => { const m = mean(rows.map(r => r.respuestas?.[id]));
+      return `<div class="ia" title="${esc(text)}"><span class="n" style="font-weight:700">${b.letter}${i+1}</span><div style="min-width:0;display:grid;gap:4px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(text)}</span><div class="bar"><i style="width:${m==null?0:(m-1)/4*100}%"></i></div></div><span style="font-variant-numeric:tabular-nums;font-weight:700">${fmt(m)}</span></div>`; }).join("")).join("");
+}
+function toCSV(){
+  const head = ["nombre","institucion","especialidad","anios","fecha","sesiones","ninos","dispositivo","juegos", ...LIKERT_IDS.map(x=>x.toUpperCase()), "SUS","valor_educativo","progreso","dictamen","com_app","com_actividades","com_progreso","fortalezas","mejoras","enviado"];
+  const q = v => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const lines = rows.map(r => { const p = r.perfil||{}, c = r.comentarios||{}, s = r.puntajes||{};
+    return [p.nombre,p.institucion,p.profesion,p.anios,p.fecha,p.sesiones,p.ninos,p.dispositivo,(p.juegos||[]).join(" | "), ...LIKERT_IDS.map(id => r.respuestas?.[id] ?? ""), s.sus,s.educativo,s.progreso,r.dictamen,c.app,c.edu,c.prog,c.fortalezas,c.mejoras,r.enviado].map(q).join(","); });
+  return "﻿" + [head.join(","), ...lines].join("\n");
+}
+document.getElementById("csv").addEventListener("click", async () => {
+  const st = document.getElementById("csv-status");
+  if (!rows.length) { st.textContent = "No hay evaluaciones para descargar."; st.className = "status warn"; return; }
+  try {
+    const dl = await claude.use("downloads");
+    if (!dl) { st.textContent = "La descarga no está disponible en esta vista."; st.className = "status warn"; return; }
+    await dl.save({ filename:"evaluacion-expertos-a-tu-ritmo.csv", data: new Blob([toCSV()], {type:"text/csv"}) });
+    st.textContent = "Archivo listo."; st.className = "status ok";
+  } catch(e) { st.textContent = "La descarga se canceló."; st.className = "status warn"; }
+});
+
+/* ---------- Conexión ---------- */
+(async () => {
+  if (!window.claude?.use) { setStatus("Vista sin conexión: puede responder y copiar el resumen.", "warn"); return; }
+  try { [db, user] = await Promise.all([claude.use("db"), claude.use("user")]); } catch(e) {}
+  if (user) { try { myId = await user.id(); } catch(e){} }
+  if (db && myId) {
+    try {
+      const mine = await db.collection("evaluaciones").doc(myId).get();
+      if (mine.exists) { document.getElementById("submit").textContent = "Actualizar evaluación"; setStatus("Ya envió una evaluación; puede corregirla y enviarla de nuevo.", ""); }
+    } catch(e){}
+  }
+  const admin = user ? await user.canEdit().catch(() => false) : false;
+  if (db && admin) {
+    document.getElementById("tabs").hidden = false;
+    const timer = setTimeout(() => { document.getElementById("res-note").textContent = "No se pudo conectar con las respuestas todavía."; }, 10000);
+    db.collection("evaluaciones").onSnapshot(snap => {
+      if (!snap.metadata.fromCache) clearTimeout(timer);
+      rows = snap.docs.map(d => d.data()).filter(Boolean).sort((x,y) => String(x.enviado).localeCompare(String(y.enviado)));
+      renderResults();
+    }, () => { clearTimeout(timer); document.getElementById("res-note").textContent = "No se pudieron leer las evaluaciones."; });
+  }
+})();
+</script>
